@@ -1,0 +1,68 @@
+# ---------- Privacy first: personal data never goes into git ----------
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+token*.json
+client_secret*.json
+
+# Databases and personal data
+*.db
+*.sqlite
+*.sqlite3
+data/
+exports/
+
+# Documents (resumes, cover letters, plans, offers): never committed
+*.pdf
+*.doc
+*.docx
+*.pages
+*.odt
+*.rtf
+*resume*
+*Resume*
+*RESUME*
+*cv.*
+*CV.*
+*cover_letter*
+*offer*
+# ...but the /resume skill is a Claude routine, not a resume
+!.claude/skills/resume/
+!.claude/skills/resume/**
+
+# Local-only notes (put anything private in here)
+private/
+*.private.md
+PARKING_LOT.md
+WEEK_*.md
+docs/LEARNING_LOG.md
+ROADMAP.md
+NEXT.md
+CLAUDE.local.md
+
+# Claude Code: local settings may hold personal paths/permissions
+.claude/settings.local.json
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# ---------- OS / editor ----------
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
