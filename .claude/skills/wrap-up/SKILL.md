@@ -8,4 +8,5 @@ description: End-of-session routine. Use when Klaudia types /wrap-up or says she
 4. Tick finished boxes in ROADMAP.md.
 5. Rewrite NEXT.md: Last session (date + what got done), Next step (one concrete action small enough to start in 5 minutes), Open questions.
 6. Privacy check: scan `git diff --staged` for secrets, tokens, emails, phone numbers, real names of recruiters/contacts, resumes, .db files. Report "privacy check: clean" or list what to remove. Never commit until clean.
-7. Propose a commit message. Commit only after Klaudia says OK.
+7. If Claude made a mistake this session, propose a one-line CLAUDE.md rule so it doesn't happen again, and add it after Klaudia approves.
+8. Propose a commit message. Commit only after Klaudia says OK.
