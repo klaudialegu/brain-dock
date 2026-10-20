@@ -38,6 +38,7 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 
 ## Commands
 - Install / sync dependencies: `uv sync`
+- Create the local database (data/brain_dock.db, gitignored): `uv run python -m brain_dock.db`
 - Run the app (auto-reloads on save): `uv run uvicorn brain_dock.main:app --reload`, then open http://localhost:8000
 - Test: `uv run pytest`
 - Lint: `uv run ruff check .`
