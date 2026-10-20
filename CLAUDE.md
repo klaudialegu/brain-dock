@@ -34,7 +34,16 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - pytest + ruff; GitHub Actions for CI
 - Claude API (tool use) for the inbox agent
 
+## Commands
+- Install / sync dependencies: `uv sync`
+- Run the app (auto-reloads on save): `uv run uvicorn brain_dock.main:app --reload`, then open http://localhost:8000
+- Test: `uv run pytest`
+- Lint: `uv run ruff check .`
+- Format: `uv run ruff format .`
+
 ## Map
-- .claude/skills/: repeatable session routines (/resume, /learn, /wrap-up)
+- src/brain_dock/: the app (main.py routes, templates/ for Jinja2 HTML)
+- tests/: pytest tests
+- .claude/skills/: repeatable session routines (/resume, /learn, /wrap-up, /explain-diff, /adr)
 - docs/decisions/: ADRs
 - Personal working notes are local-only and gitignored (see CLAUDE.local.md if present).
