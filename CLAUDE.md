@@ -28,7 +28,7 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - Prefer boring, well-documented tools. Ask before adding a dependency.
 - Update README.md when setup steps change.
 
-## Stack (proposed: confirm, then record as ADR 0001)
+## Stack (see docs/decisions/0001-stack.md)
 - Python 3.12, FastAPI, SQLite via SQLModel
 - Server-rendered HTML with Jinja2 + HTMX; Apache ECharts for charts (it has Sankey/funnel)
 - pytest + ruff; GitHub Actions for CI
