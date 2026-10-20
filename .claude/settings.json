@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(uv run pytest *)",
+      "Bash(uv run pytest)",
+      "Bash(uv run ruff *)",
+      "Bash(ruff *)",
+      "Bash(uv sync)",
+      "Bash(uv sync *)",
+      "Bash(git status *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git diff)",
+      "Bash(git log *)",
+      "Bash(git log)",
+      "Bash(git branch)",
+      "Bash(git branch --list *)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(git push)",
+      "Bash(rm *)",
+      "Bash(uv add *)",
+      "Bash(uv pip install *)",
+      "Bash(pip install *)",
+      "Bash(brew install *)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Bash(cat .env)",
+      "Bash(cat .env.local)"
+]
+  }
+}
