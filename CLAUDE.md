@@ -14,6 +14,7 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 ## Privacy rules (non-negotiable; privacy beats convenience every time)
 - Personal data never goes into git: no resumes, emails, mood entries, recruiter names/contacts, salary numbers, or the database file. .gitignore covers *.db, .env, data/, and personal docs.
 - Secrets (API keys, OAuth tokens) only in .env or the macOS keychain. Never hardcode, print, or log them.
+- Personal values (home city, names, preferences) go in a gitignored local config with a committed `.example` file; never hard-code them in code or tests.
 - Least access: Gmail uses the read-only scope and a narrow search query (job alerts and recruiters only), never the whole inbox.
 - Data minimization: before sending anything to the Claude API, strip what isn't needed (signatures, phone numbers, other people's addresses). Send only the text needed for the task.
 - Local first: data stays on the user's machine. Anything cloud or deployed uses fake seed data only.
