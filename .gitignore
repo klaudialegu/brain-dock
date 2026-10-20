@@ -45,6 +45,9 @@ ROADMAP.md
 NEXT.md
 CLAUDE.local.md
 
+# Local app settings (personal city list, etc.); config.example.toml is the public template
+config.toml
+
 # Claude Code: local settings may hold personal paths/permissions
 .claude/settings.local.json
 
