@@ -5,7 +5,7 @@ Brain Dock is a personal, local-first job-search hub: applications, interview pr
 It is built with Claude Code as a pair programmer, in small reviewed slices.
 
 ## How we work
-- One slice at a time. A slice is the smallest change that can be SEEN working in the browser. If a task looks bigger than ~1 hour, propose splitting it.
+- One slice at a time. A slice is the smallest change that can be verified: seen working in the browser when it has UI, or proven by tests when it doesn't. If a task looks bigger than ~1 hour, propose splitting it.
 - Plan before code for anything touching more than 2 files: show a short numbered plan and wait for approval.
 - Explain the why before the how.
 - Verify your own work: run tests, and for UI changes open the page in the browser and check it before saying done.
