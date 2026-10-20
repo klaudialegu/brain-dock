@@ -1,0 +1,24 @@
+# Brain Dock local settings.
+# Copy this file to config.toml (gitignored) and change it to suit you.
+# Without a config.toml, the app uses the cities below.
+
+# World clocks on the home page, shown in this order.
+# The first city is the reference: other cities show a weekday (like "Tue")
+# when their date differs from it.
+# tz must be an IANA time zone name: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+
+[[clocks]]
+city = "Seattle"
+tz = "America/Los_Angeles"
+
+[[clocks]]
+city = "Chicago"
+tz = "America/Chicago"
+
+[[clocks]]
+city = "New York"
+tz = "America/New_York"
+
+[[clocks]]
+city = "Warsaw"
+tz = "Europe/Warsaw"
