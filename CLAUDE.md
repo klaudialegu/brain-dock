@@ -9,6 +9,7 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - Plan before code for anything touching more than 2 files: show a short numbered plan and wait for approval.
 - Explain the why before the how.
 - Verify your own work: run tests, and for UI changes open the page in the browser and check it before saying done.
+- Only say something is saved, parked, or done after the file is actually written. Never report a step in the past tense before doing it.
 
 ## Privacy rules (non-negotiable; privacy beats convenience every time)
 - Personal data never goes into git: no resumes, emails, mood entries, recruiter names/contacts, salary numbers, or the database file. .gitignore covers *.db, .env, data/, and personal docs.
