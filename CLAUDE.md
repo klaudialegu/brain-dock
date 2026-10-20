@@ -8,6 +8,7 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - One slice at a time. A slice is the smallest change that can be SEEN working in the browser. If a task looks bigger than ~1 hour, propose splitting it.
 - Plan before code for anything touching more than 2 files: show a short numbered plan and wait for approval.
 - Explain the why before the how.
+- Verify your own work: run tests, and for UI changes open the page in the browser and check it before saying done.
 
 ## Privacy rules (non-negotiable; privacy beats convenience every time)
 - Personal data never goes into git: no resumes, emails, mood entries, recruiter names/contacts, salary numbers, or the database file. .gitignore covers *.db, .env, data/, and personal docs.
@@ -27,7 +28,7 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - Prefer boring, well-documented tools. Ask before adding a dependency.
 - Update README.md when setup steps change.
 
-## Stack (proposed: confirm, then record as ADR 0001)
+## Stack (see docs/decisions/0001-stack.md)
 - Python 3.12, FastAPI, SQLite via SQLModel
 - Server-rendered HTML with Jinja2 + HTMX; Apache ECharts for charts (it has Sankey/funnel)
 - pytest + ruff; GitHub Actions for CI
