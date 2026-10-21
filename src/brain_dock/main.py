@@ -8,8 +8,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session
 
+from brain_dock import db
 from brain_dock.clocks import load_cities, world_clocks
-from brain_dock.db import create_db, get_engine
+from brain_dock.db import get_engine, is_at_head
 from brain_dock.queries import list_applications
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
@@ -17,11 +18,22 @@ TEMPLATES_DIR = Path(__file__).parent / "templates"
 CONFIG_PATH = Path(__file__).parents[2] / "config.toml"
 
 
+class DatabaseNotReadyError(RuntimeError):
+    pass
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Uses db.DB_PATH at startup time, so tests can point it at a temp file.
+    # Never migrates on its own: changing the only copy of the data should be a choice.
+    # Reads db.DB_PATH at startup time, so tests can point it at a temp file.
+    if not db.DB_PATH.exists():
+        raise DatabaseNotReadyError("No database yet. Run: uv run python -m brain_dock.db")
     engine = get_engine()
-    create_db(engine)
+    if not is_at_head(engine):
+        engine.dispose()
+        raise DatabaseNotReadyError(
+            "The database needs migrating. Run: uv run python -m brain_dock.db"
+        )
     app.state.engine = engine
     yield
     engine.dispose()

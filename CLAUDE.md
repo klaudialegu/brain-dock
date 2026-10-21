@@ -38,8 +38,9 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 
 ## Commands
 - Install / sync dependencies: `uv sync`
-- Create the local database (data/brain_dock.db, gitignored): `uv run python -m brain_dock.db`
-- Rebuild the database from data/my_applications.json (gitignored, the source of truth): `uv run python -m brain_dock.importer`
+- Create or upgrade the local database (data/brain_dock.db, gitignored; it is the source of truth, ADR 0004): `uv run python -m brain_dock.db`. Run it after pulling model changes; the app refuses to start until the database is migrated.
+- After changing a model, create a migration and review it before committing: `uv run alembic revision --autogenerate -m "describe the change"`. tests/test_migrations.py fails if a model change has no migration.
+- First-time setup from data/my_applications.json (replaces everything in the database): `uv run python -m brain_dock.importer`
 - Load fake demo data into data/demo.db (never the real database): `uv run python -m brain_dock.importer --demo`
 - Run the app (auto-reloads on save): `uv run uvicorn brain_dock.main:app --host 127.0.0.1 --reload`, then open http://127.0.0.1:8000 (bound to this machine only; never use --host 0.0.0.0)
 - Test: `uv run pytest`

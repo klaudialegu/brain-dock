@@ -7,9 +7,9 @@ A personal, local-first job-search hub: applications, interview prep, inbox tria
 1. Install [uv](https://docs.astral.sh/uv/) (on macOS: `brew install uv`).
 2. Install dependencies: `uv sync`. This creates a local `.venv/` with Python 3.12 and everything in `uv.lock`.
 3. Optional: `cp config.example.toml config.toml` and edit it to choose your own world clocks. `config.toml` is gitignored; without it, the app uses the defaults in the example.
-4. Create the local database: `uv run python -m brain_dock.db`. It lives in `data/brain_dock.db`, which is gitignored.
+4. Create the local database: `uv run python -m brain_dock.db`. It lives in `data/brain_dock.db`, which is gitignored, and it is the source of truth. Run the same command after pulling changes that include new migrations; the app won't start on an out-of-date database.
    - Try it with fake data: `uv run python -m brain_dock.importer --demo` loads `demo/applications.json` into `data/demo.db`.
-   - Use your own: `cp demo/applications.json data/my_applications.json`, edit it, then `uv run python -m brain_dock.importer`. The JSON file is the source of truth: each run rebuilds the database from it. Everything in `data/` is gitignored.
+   - Use your own: `cp demo/applications.json data/my_applications.json`, edit it, then `uv run python -m brain_dock.importer` for first-time setup. The import replaces everything in the database. Everything in `data/` is gitignored.
 5. Run the app: `uv run uvicorn brain_dock.main:app --host 127.0.0.1 --reload`. It only listens on this machine, so nothing on your network can reach your data.
 6. Open http://127.0.0.1:8000
 

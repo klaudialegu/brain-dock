@@ -1,5 +1,5 @@
 # 0003. Application tracker data model
-**Status:** Accepted
+**Status:** Accepted; schema creation and source of truth superseded by 0004
 **Date:** 2026-10-19
 
 ## Context

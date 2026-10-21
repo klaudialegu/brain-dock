@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 from sqlalchemy import Engine, delete, func, select
 from sqlmodel import Session
 
-from brain_dock.db import DB_PATH, create_db, get_engine
+from brain_dock.db import DB_PATH, get_engine, migrate
 from brain_dock.models import (
     Application,
     Company,
@@ -128,7 +128,7 @@ def company_key(name: str) -> str:
 
 def rebuild_db(engine: Engine, entries: list[ApplicationIn]) -> ImportCounts:
     """Replace all tracker rows with the entries, in one transaction: all or nothing."""
-    create_db(engine)
+    migrate(engine)
     with Session(engine) as session, session.begin():
         # Children first, so foreign keys are never left pointing at nothing.
         session.execute(delete(StageEvent))

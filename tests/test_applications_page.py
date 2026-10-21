@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from sqlmodel import select
 
 from brain_dock import db
+from brain_dock.db import get_engine, migrate
 from brain_dock.main import app, get_session
 from brain_dock.models import (
     Application,
@@ -196,7 +197,9 @@ def test_startup_never_opens_the_real_database(monkeypatch):
     monkeypatch.setattr(sqlite3.dbapi2, "connect", spy_connect)
     monkeypatch.setattr(sqlite3, "connect", spy_connect)
 
-    # Runs the real startup (lifespan: get_engine + create_db) and a real page request.
+    migrate(get_engine())  # the temp stand-in for data/brain_dock.db, via db.DB_PATH
+
+    # Runs the real startup (lifespan: database checks) and a real page request.
     with TestClient(app) as client:
         assert client.get("/applications").status_code == 200
 
