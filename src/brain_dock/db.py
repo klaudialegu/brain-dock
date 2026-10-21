@@ -11,6 +11,9 @@ DB_PATH = Path(__file__).parents[2] / "data" / "brain_dock.db"
 
 def get_engine(url: str | None = None, **kwargs) -> Engine:
     """Create an engine with foreign keys enforced. Every engine should come from here."""
+    # FastAPI runs routes in worker threads; each session still stays on one request,
+    # so letting SQLite connections cross threads is safe here.
+    kwargs.setdefault("connect_args", {"check_same_thread": False})
     engine = create_engine(url or f"sqlite:///{DB_PATH}", **kwargs)
     event.listen(engine, "connect", _enable_foreign_keys)
     return engine

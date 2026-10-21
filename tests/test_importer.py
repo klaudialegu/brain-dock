@@ -349,3 +349,20 @@ def test_personal_data_files_are_gitignored(path):
     result = subprocess.run(["git", "check-ignore", "-q", path], cwd=REPO_ROOT)
 
     assert result.returncode == 0, f"{path} is not gitignored"
+
+
+@pytest.mark.parametrize("link", ["javascript:alert(1)", "data:text/html,x", "example.com"])
+def test_non_http_links_are_rejected_without_echoing_them(tmp_path, link):
+    path = write_file(tmp_path, [entry(link=link)])
+
+    with pytest.raises(ImportFileError) as caught:
+        load_applications(path)
+
+    assert "entry 1, link: must be an http:// or https:// URL" in str(caught.value)
+    assert link not in str(caught.value)
+
+
+def test_https_link_is_accepted(tmp_path):
+    [app] = load_applications(write_file(tmp_path, [entry(link="https://example.com/jobs/1")]))
+
+    assert app.link == "https://example.com/jobs/1"

@@ -10,8 +10,8 @@ A personal, local-first job-search hub: applications, interview prep, inbox tria
 4. Create the local database: `uv run python -m brain_dock.db`. It lives in `data/brain_dock.db`, which is gitignored.
    - Try it with fake data: `uv run python -m brain_dock.importer --demo` loads `demo/applications.json` into `data/demo.db`.
    - Use your own: `cp demo/applications.json data/my_applications.json`, edit it, then `uv run python -m brain_dock.importer`. The JSON file is the source of truth: each run rebuilds the database from it. Everything in `data/` is gitignored.
-5. Run the app: `uv run uvicorn brain_dock.main:app --reload`
-6. Open http://localhost:8000
+5. Run the app: `uv run uvicorn brain_dock.main:app --host 127.0.0.1 --reload`. It only listens on this machine, so nothing on your network can reach your data.
+6. Open http://127.0.0.1:8000
 
 ## Development
 
