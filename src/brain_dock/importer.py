@@ -19,6 +19,7 @@ from brain_dock.models import (
     create_application,
     record_stage,
 )
+from brain_dock.queries import safe_link
 
 REPO_ROOT = Path(__file__).parents[2]
 REAL_JSON = REPO_ROOT / "data" / "my_applications.json"
@@ -53,6 +54,13 @@ class ApplicationIn(BaseModel):
     notes: str | None = None
     follow_up_on: date | None = None
     events: list[EventIn] = []
+
+    @field_validator("link")
+    @classmethod
+    def http_link_only(cls, link: str | None) -> str | None:
+        if link is not None and safe_link(link) is None:
+            raise ValueError("must be an http:// or https:// URL")
+        return link
 
     @model_validator(mode="after")
     def events_not_before_applied(self) -> "ApplicationIn":
