@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Applications · Brain Dock{% endblock %}
+{% block body_class %}page-wide{% endblock %}
+
+{% set track_labels = {"support": "Support", "fde": "FDE", "other": "Other"} %}
+
+{% block content %}
+<h1>Applications</h1>
+
+{% if applications %}
+<p>{{ applications | length }} application{{ "" if applications | length == 1 else "s" }}, newest first.</p>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Company</th>
+        <th scope="col">Role</th>
+        <th scope="col">Track</th>
+        <th scope="col">Applied</th>
+        <th scope="col">Stage</th>
+        <th scope="col">Follow-up</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for app in applications %}
+      <tr>
+        <td>{{ app.company }}</td>
+        <td>
+          {% if app.link %}
+          <a href="{{ app.link }}" target="_blank" rel="noopener noreferrer">{{ app.role_title }}</a>
+          {% else %}
+          {{ app.role_title }}
+          {% endif %}
+        </td>
+        <td>{{ track_labels[app.role_track] }}</td>
+        <td class="date">{{ app.applied_on.isoformat() }}</td>
+        <td><span class="stage stage-{{ app.current_stage }}">{{ app.current_stage }}</span></td>
+        <td class="date">{{ app.follow_up_on.isoformat() if app.follow_up_on else "" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="empty">No applications yet. Add them to <code>data/my_applications.json</code>, then run <code>uv run python -m brain_dock.importer</code>.</p>
+{% endif %}
+{% endblock %}
