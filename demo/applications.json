@@ -1,0 +1,65 @@
+{
+  "applications": [
+    {
+      "company": "Acme Analytics",
+      "role_title": "Forward Deployed Engineer",
+      "role_track": "fde",
+      "applied_on": "2026-09-01",
+      "link": "https://example.com/jobs/acme-fde",
+      "notes": "Fake demo entry.",
+      "events": [
+        {"stage": "screen", "happened_on": "2026-09-08", "note": "30 min recruiter call"},
+        {"stage": "interview", "happened_on": "2026-09-15"},
+        {"stage": "onsite", "happened_on": "2026-09-29"},
+        {"stage": "offer", "happened_on": "2026-10-06"}
+      ]
+    },
+    {
+      "company": "Acme Analytics",
+      "role_title": "Senior Support Engineer",
+      "role_track": "support",
+      "applied_on": "2026-08-20",
+      "events": [
+        {"stage": "withdrawn", "happened_on": "2026-09-10", "note": "Focusing on the FDE role"}
+      ]
+    },
+    {
+      "company": "Globex Systems",
+      "role_title": "Solutions Engineer",
+      "role_track": "fde",
+      "applied_on": "2026-09-05",
+      "events": [
+        {"stage": "screen", "happened_on": "2026-09-12"},
+        {"stage": "rejected", "happened_on": "2026-09-19"}
+      ]
+    },
+    {
+      "company": "Initech",
+      "role_title": "Technical Support Lead",
+      "role_track": "support",
+      "applied_on": "2026-09-10",
+      "events": [
+        {"stage": "ghosted", "happened_on": "2026-10-10"}
+      ]
+    },
+    {
+      "company": "Hooli",
+      "role_title": "Customer Engineer",
+      "role_track": "other",
+      "applied_on": "2026-09-22",
+      "follow_up_on": "2026-10-27",
+      "events": [
+        {"stage": "screen", "happened_on": "2026-10-01"},
+        {"stage": "interview", "happened_on": "2026-10-14"}
+      ]
+    },
+    {
+      "company": "Pied Piper",
+      "role_title": "Forward Deployed Engineer",
+      "role_track": "fde",
+      "applied_on": "2026-10-12",
+      "link": "https://example.com/jobs/pied-piper-fde",
+      "follow_up_on": "2026-10-26"
+    }
+  ]
+}
