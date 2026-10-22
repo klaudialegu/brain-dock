@@ -178,3 +178,16 @@ def update_application(
         if remaining == 0:
             session.delete(old_company)
             session.flush()
+
+
+def add_stage(
+    session: Session,
+    application: Application,
+    stage: Stage | str,
+    happened_on: date,
+    note: str | None = None,
+) -> StageEvent:
+    """record_stage() for people: refuses a date before the application was sent."""
+    if happened_on < application.applied_on:
+        raise DateOrderError("happened_on is before applied_on")
+    return record_stage(session, application, stage, happened_on, note)

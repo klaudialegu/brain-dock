@@ -72,6 +72,17 @@ class ApplicationForm(ApplicationFields):
         return None if isinstance(value, str) and not value.strip() else value
 
 
+class StageForm(EventIn):
+    """What the record-stage form posts: same rules as an imported event."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    @field_validator("note", mode="before")
+    @classmethod
+    def blank_is_none(cls, value):
+        return None if isinstance(value, str) and not value.strip() else value
+
+
 # Labels for form error messages, matching the form's own labels.
 FIELD_LABELS = {
     "company": "Company",
@@ -81,6 +92,9 @@ FIELD_LABELS = {
     "link": "Job link",
     "notes": "Notes",
     "follow_up_on": "Follow-up",
+    "stage": "Stage",
+    "happened_on": "Date",
+    "note": "Note",
 }
 
 

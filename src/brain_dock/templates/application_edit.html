@@ -17,6 +17,18 @@
   <p><button class="button" type="submit">Save changes</button> <a href="/applications">Cancel</a></p>
 </form>
 
+<section class="history" aria-labelledby="record-heading">
+  <h2 id="record-heading">Record a stage</h2>
+  {{ f.form_errors(stage_errors) }}
+  <form class="stack" method="post" action="/applications/{{ detail.id }}/stages">
+    {{ f.csrf(csrf_field, csrf_token) }}
+    {{ f.select("stage", "Stage", stage_values, stage_errors, stage_options, required=True) }}
+    {{ f.input("happened_on", "Date", stage_values, stage_errors, type="date", required=True) }}
+    {{ f.textarea("note", "Note", stage_values, stage_errors, rows=2, hint="optional") }}
+    <p><button class="button" type="submit">Record stage</button></p>
+  </form>
+</section>
+
 <section class="history" aria-labelledby="history-heading">
   <h2 id="history-heading">Stage history</h2>
   <div class="table-wrap">

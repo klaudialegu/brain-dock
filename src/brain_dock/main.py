@@ -19,12 +19,13 @@ from brain_dock.db import get_engine, is_at_head
 from brain_dock.models import (
     Application,
     DateOrderError,
+    add_stage,
     create_application,
     get_or_create_company,
     update_application,
 )
 from brain_dock.queries import application_detail, list_applications
-from brain_dock.schemas import ApplicationForm, form_errors
+from brain_dock.schemas import ApplicationForm, StageForm, form_errors
 from brain_dock.security import (
     ALLOWED_HOSTS,
     CSRF_FIELD,
@@ -34,7 +35,7 @@ from brain_dock.security import (
     set_csrf_cookie,
     verify_csrf,
 )
-from brain_dock.stages import stage_css, stage_label
+from brain_dock.stages import recordable_stages, stage_css, stage_label
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
@@ -178,6 +179,8 @@ def render_edit(
     values: dict | None = None,
     errors: dict | None = None,
     status_code: int = 200,
+    stage_values: dict | None = None,
+    stage_errors: dict | None = None,
 ) -> HTMLResponse:
     detail = application_detail(session, application_id)
     if detail is None:
@@ -189,6 +192,9 @@ def render_edit(
         status_code,
         template="application_edit.html",
         detail=detail,
+        stage_options=[(s.value, stage_label(s)) for s in recordable_stages()],
+        stage_values=stage_values or {"happened_on": date.today().isoformat()},
+        stage_errors=stage_errors or {},
     )
 
 
@@ -223,3 +229,31 @@ async def save_application(request: Request, application_id: int, session: Sessi
         return render_edit(request, session, application_id, values, errors, 400)
     session.commit()
     return RedirectResponse("/applications", status_code=303)
+
+
+@app.post("/applications/{application_id}/stages", dependencies=[Depends(verify_csrf)])
+async def add_application_stage(request: Request, application_id: int, session: SessionDep):
+    application = load_application(session, application_id)
+    values = form_values(await request.form())
+
+    def refused(errors: dict) -> HTMLResponse:
+        return render_edit(
+            request,
+            session,
+            application_id,
+            status_code=400,
+            stage_values=values,
+            stage_errors=errors,
+        )
+
+    try:
+        entry = StageForm.model_validate(values)
+    except ValidationError as e:
+        return refused(form_errors(e))
+    try:
+        add_stage(session, application, entry.stage, entry.happened_on, entry.note)
+    except DateOrderError:
+        session.rollback()
+        return refused({"happened_on": "Date: must be on or after the applied date"})
+    session.commit()
+    return RedirectResponse(f"/applications/{application_id}/edit", status_code=303)

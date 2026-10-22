@@ -297,3 +297,159 @@ def test_edit_never_logs_typed_values(client, session, caplog):
     assert caplog.records
     assert SECRET not in caplog.text
     assert session.scalar(select(func.count()).select_from(Application)) == 1
+
+
+# --- Recording a stage -------------------------------------------------------
+
+
+def record(client, application, data, headers=None):
+    return client.post(
+        f"/applications/{application.id}/stages",
+        data={**data, "csrf_token": token(client, application.id)},
+        headers={"Origin": BASE_URL} if headers is None else headers,
+        follow_redirects=False,
+    )
+
+
+def test_record_stage_form_offers_every_stage_but_applied(client, session):
+    application = add(session)
+
+    html = client.get(f"/applications/{application.id}/edit").text
+    stage_select = html[
+        html.index('name="stage"') : html.index("</select>", html.index('name="stage"'))
+    ]
+
+    assert 'value="applied"' not in stage_select
+    for stage in ["screen", "interview", "onsite", "offer", "rejected", "ghosted", "withdrawn"]:
+        assert f'value="{stage}"' in stage_select
+
+
+def test_recording_a_stage_updates_current_stage_and_history(client, session):
+    application = add(session)
+
+    response = record(
+        client, application, {"stage": "screen", "happened_on": "2026-10-05", "note": " Call "}
+    )
+
+    assert response.status_code == 303
+    assert response.headers["location"] == f"/applications/{application.id}/edit"
+    session.refresh(application)
+    assert application.current_stage == Stage.screen
+    assert [(e.stage, e.note) for e in application.events][-1] == (Stage.screen, "Call")
+
+
+def test_blank_note_is_saved_as_empty(client, session):
+    application = add(session)
+
+    record(client, application, {"stage": "screen", "happened_on": "2026-10-05", "note": "  "})
+
+    session.refresh(application)
+    assert application.events[-1].note is None
+
+
+def test_backfilled_stage_does_not_move_current_stage_back(client, session):
+    application = add(session)
+    record(client, application, {"stage": "interview", "happened_on": "2026-10-10"})
+
+    record(client, application, {"stage": "screen", "happened_on": "2026-10-05"})
+
+    session.refresh(application)
+    assert application.current_stage == Stage.interview
+    assert len(application.events) == 3
+
+
+def test_stage_before_applied_on_is_refused(client, session):
+    application = add(session)
+
+    response = record(client, application, {"stage": "screen", "happened_on": "2026-09-30"})
+
+    assert response.status_code == 400
+    assert "Date: must be on or after the applied date" in response.text
+    session.refresh(application)
+    assert len(application.events) == 1 and application.current_stage == Stage.applied
+
+
+def test_stage_on_the_applied_date_is_allowed(client, session):
+    application = add(session)
+
+    assert (
+        record(client, application, {"stage": "rejected", "happened_on": "2026-10-01"}).status_code
+        == 303
+    )
+
+
+@pytest.mark.parametrize(
+    ("data", "message"),
+    [
+        ({"stage": "applied", "happened_on": "2026-10-05"}, "Stage: "),
+        ({"stage": SECRET, "happened_on": "2026-10-05"}, "Stage: Input should be"),
+        ({"stage": "screen", "happened_on": SECRET}, "Date: Input should be a valid date"),
+    ],
+)
+def test_invalid_stage_input_is_refused_without_echo(client, session, data, message):
+    application = add(session)
+
+    response = record(client, application, data)
+
+    assert response.status_code == 400
+    assert message in response.text
+    errors = re.findall(r'<span class="field-error"[^>]*>([^<]*)</span>', response.text)
+    assert errors and all(SECRET not in e for e in errors)
+    session.refresh(application)
+    assert len(application.events) == 1
+
+
+def test_record_stage_requires_csrf(client, session):
+    application = add(session)
+
+    response = client.post(
+        f"/applications/{application.id}/stages",
+        data={"stage": "screen", "happened_on": "2026-10-05"},
+        headers={"Origin": BASE_URL},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 403
+    session.refresh(application)
+    assert len(application.events) == 1
+
+
+def test_record_stage_refuses_a_foreign_origin(client, session):
+    application = add(session)
+
+    response = record(
+        client,
+        application,
+        {"stage": "screen", "happened_on": "2026-10-05"},
+        {"Origin": "https://evil.example"},
+    )
+
+    assert response.status_code == 403
+
+
+def test_recording_on_an_unknown_application_is_404(client, session):
+    application = add(session)
+    data = {
+        "stage": "screen",
+        "happened_on": "2026-10-05",
+        "csrf_token": token(client, application.id),
+    }
+
+    response = client.post(
+        "/applications/999/stages", data=data, headers={"Origin": BASE_URL}, follow_redirects=False
+    )
+
+    assert response.status_code == 404
+
+
+def test_record_stage_never_logs_typed_values(client, session, caplog):
+    application = add(session)
+    caplog.set_level(logging.DEBUG)
+
+    record(client, application, {"stage": "screen", "happened_on": "2026-10-05", "note": SECRET})
+    record(client, application, {"stage": SECRET, "happened_on": "2026-10-05", "note": SECRET})
+
+    assert caplog.records
+    assert SECRET not in caplog.text
+    session.refresh(application)
+    assert len(application.events) == 2
