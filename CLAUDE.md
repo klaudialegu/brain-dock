@@ -10,7 +10,8 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - Explain the why before the how.
 - Verify your own work: run tests, and for UI changes open the page in the browser and check it before saying done.
 - Only say something is saved, parked, or done after the file is actually written. Never report a step in the past tense before doing it.
-- Before reporting a check's result, confirm it actually ran what it claims (test count above 0, correct target, a spy that saw calls).
+- Before reporting a check's result, confirm it actually ran what it claims (test count above 0, correct target, a spy that saw calls), and every new test must be able to fail: no always-true assertions.
+- Before telling Klaudia how to change her data, check the instruction against the current ADRs (since ADR 0004 the database is the source of truth).
 
 ## Privacy rules (non-negotiable; privacy beats convenience every time)
 - Personal data never goes into git: no resumes, emails, mood entries, recruiter names/contacts, salary numbers, or the database file. .gitignore covers *.db, .env, data/, and personal docs.
