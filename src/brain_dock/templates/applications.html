@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "partials/stage_badge.html" import badge %}
 
 {% block title %}Applications · Brain Dock{% endblock %}
 {% block body_class %}page-wide{% endblock %}
@@ -36,7 +37,7 @@
         </td>
         <td>{{ track_labels[app.role_track] }}</td>
         <td class="date">{{ app.applied_on.isoformat() }}</td>
-        <td><span class="stage stage-{{ app.current_stage }}">{{ app.current_stage }}</span></td>
+        <td>{{ badge(app.current_stage) }}</td>
         <td class="date">{{ app.follow_up_on.isoformat() if app.follow_up_on else "" }}</td>
       </tr>
       {% endfor %}

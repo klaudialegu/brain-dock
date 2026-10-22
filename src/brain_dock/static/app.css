@@ -80,9 +80,7 @@ td.date { font-variant-numeric: tabular-nums; }
   background: var(--badge-bg);
   font-size: 0.8125rem;
 }
-.stage-offer { color: var(--good); font-weight: 600; }
-.stage-rejected, .stage-ghosted, .stage-withdrawn { color: var(--muted); }
-.stage-interview, .stage-onsite, .stage-screen { color: var(--accent); }
+/* Stage colors come from brain_dock/stages.py, served as /stages.css. */
 code { font-size: 0.875em; }
 .button {
   display: inline-block;

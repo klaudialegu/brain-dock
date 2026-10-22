@@ -1,0 +1,4 @@
+{# Usage: {% from "partials/stage_badge.html" import badge %} ... {{ badge(stage) }} #}
+{% macro badge(stage) -%}
+<span class="stage stage-{{ stage }}">{{ stage_label(stage) }}</span>
+{%- endmacro %}

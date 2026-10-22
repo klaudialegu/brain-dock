@@ -129,7 +129,7 @@ def test_page_lists_applications_with_details(client, session):
     assert html.index("Acme Analytics") < html.index("Globex Systems")
     for text in ["Forward Deployed Engineer", "FDE", "Support", "2026-10-01", "2026-10-08"]:
         assert text in html
-    assert '<span class="stage stage-applied">applied</span>' in html
+    assert '<span class="stage stage-applied">Applied</span>' in html
 
 
 def test_job_link_opens_safely_in_a_new_tab(client, session):

@@ -6,7 +6,7 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
@@ -28,6 +28,7 @@ from brain_dock.security import (
     set_csrf_cookie,
     verify_csrf,
 )
+from brain_dock.stages import stage_css, stage_label
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
@@ -63,6 +64,7 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS)
 app.middleware("http")(add_security_headers)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
+templates.env.globals["stage_label"] = stage_label
 
 
 @app.exception_handler(RequestValidationError)
@@ -77,6 +79,11 @@ def get_session(request: Request) -> Iterator[Session]:
 
 
 SessionDep = Annotated[Session, Depends(get_session)]
+
+
+@app.get("/stages.css")
+def stages_css() -> Response:
+    return Response(stage_css(), media_type="text/css")
 
 
 @app.get("/", response_class=HTMLResponse)
