@@ -204,7 +204,7 @@ def test_rebuilding_twice_gives_the_same_result(engine, tmp_path):
 
     rebuild_db(engine, entries)
     first = snapshot(engine)
-    rebuild_db(engine, entries)
+    rebuild_db(engine, entries, locked=False)
 
     assert snapshot(engine) == first
 
@@ -212,7 +212,9 @@ def test_rebuilding_twice_gives_the_same_result(engine, tmp_path):
 def test_rebuild_replaces_previous_rows(engine, tmp_path):
     rebuild_db(engine, load_applications(write_file(tmp_path, [entry(company="Old Co")])))
 
-    rebuild_db(engine, load_applications(write_file(tmp_path, [entry(company="New Co")])))
+    rebuild_db(
+        engine, load_applications(write_file(tmp_path, [entry(company="New Co")])), locked=False
+    )
 
     assert snapshot(engine)["companies"] == ["New Co"]
 
@@ -248,7 +250,7 @@ def test_mid_insert_failure_leaves_the_database_unchanged(engine, tmp_path, monk
     )
 
     with pytest.raises(RuntimeError, match="simulated crash"):
-        rebuild_db(engine, new_entries)
+        rebuild_db(engine, new_entries, locked=False)
 
     assert calls == 2  # the crash happened after deletes and some inserts
     assert snapshot(engine) == before
@@ -343,7 +345,13 @@ def test_invalid_file_imports_nothing_and_hides_values(paths, capsys):
 
 @pytest.mark.parametrize(
     "path",
-    ["data/my_applications.json", "data/brain_dock.db", "data/demo.db", "anything.db"],
+    [
+        "data/my_applications.json",
+        "data/brain_dock.db",
+        "data/demo.db",
+        "data/backups/applications-20261021-120000.json",
+        "anything.db",
+    ],
 )
 def test_personal_data_files_are_gitignored(path):
     result = subprocess.run(["git", "check-ignore", "-q", path], cwd=REPO_ROOT)
@@ -366,3 +374,113 @@ def test_https_link_is_accepted(tmp_path):
     [app] = load_applications(write_file(tmp_path, [entry(link="https://example.com/jobs/1")]))
 
     assert app.link == "https://example.com/jobs/1"
+
+
+# --- Safety lock -------------------------------------------------------------
+
+
+@pytest.fixture
+def filled(engine, tmp_path):
+    """A real (locked) database that already has one application."""
+    rebuild_db(engine, load_applications(write_file(tmp_path, [entry(company="Old Co")])))
+    return engine
+
+
+def new_entries(tmp_path):
+    return load_applications(write_file(tmp_path, [entry(company="New Co")]))
+
+
+def test_lock_refuses_a_non_empty_database(filled, tmp_path):
+    before = snapshot(filled)
+
+    with pytest.raises(importer.DatabaseNotEmptyError, match="already has 1 applications") as e:
+        rebuild_db(filled, new_entries(tmp_path))
+
+    assert "Old Co" not in str(e.value)
+    assert snapshot(filled) == before
+
+
+def test_empty_database_needs_no_force_or_backup(engine, tmp_path):
+    counts = rebuild_db(engine, new_entries(tmp_path), backup_dir=tmp_path / "backups")
+
+    assert counts.backup is None
+    assert not (tmp_path / "backups").exists()
+
+
+def test_force_backs_up_completely_before_deleting(filled, tmp_path, monkeypatch):
+    from brain_dock import export
+
+    seen_at_backup_time = []
+    real_write_backup = export.write_backup
+
+    def spy(engine, backup_dir=None, now=None):
+        backup = real_write_backup(engine, backup_dir, now)
+        seen_at_backup_time.append(snapshot(engine)["companies"])  # backup is done here
+        return backup
+
+    monkeypatch.setattr(export, "write_backup", spy)
+
+    counts = rebuild_db(filled, new_entries(tmp_path), force=True, backup_dir=tmp_path / "bk")
+
+    assert seen_at_backup_time == [["Old Co"]]  # old data was still there when backed up
+    assert json.loads(counts.backup.read_text())["applications"][0]["company"] == "Old Co"
+    assert snapshot(filled)["companies"] == ["New Co"]
+
+
+def test_failed_backup_aborts_without_wiping(filled, tmp_path, monkeypatch):
+    from brain_dock import export
+
+    def broken(*args, **kwargs):
+        raise OSError("backup disk full (simulated)")
+
+    monkeypatch.setattr(export, "write_backup", broken)
+    before = snapshot(filled)
+
+    with pytest.raises(OSError, match="backup disk full"):
+        rebuild_db(filled, new_entries(tmp_path), force=True)
+
+    assert snapshot(filled) == before
+
+
+def test_demo_database_is_not_locked(paths):
+    assert importer.main(["--demo"]) == 0
+    assert importer.main(["--demo"]) == 0  # reloads without --force
+
+
+def test_command_refuses_then_forces_with_a_backup(paths, capsys):
+    from brain_dock import export
+
+    real_json, real_db, _ = paths
+    real_json.write_text(json.dumps({"applications": [entry(company=SECRET)]}))
+    assert importer.main([]) == 0
+    capsys.readouterr()
+
+    assert importer.main([]) == 1
+    err = capsys.readouterr().err
+    assert "already has 1 applications. Nothing was changed." in err
+    assert SECRET not in err
+
+    assert importer.main(["--force"]) == 0
+    out = capsys.readouterr().out
+    assert "Backed up the previous data to data/backups/applications-" in out
+    assert SECRET not in out
+    [backup] = list(export.BACKUP_DIR.iterdir())
+    assert SECRET in backup.read_text()  # the data is in the backup, just never printed
+
+
+def test_command_reports_a_failed_backup(paths, capsys, monkeypatch):
+    from brain_dock import export
+
+    real_json, real_db, _ = paths
+    real_json.write_text(json.dumps({"applications": [entry()]}))
+    importer.main([])
+    engine = get_engine(f"sqlite:///{real_db}")
+    before = snapshot(engine)
+    monkeypatch.setattr(export, "write_backup", lambda *a, **k: (_ for _ in ()).throw(OSError("x")))
+    capsys.readouterr()
+
+    assert importer.main(["--force"]) == 1
+
+    assert "Backup failed, so nothing was changed" in capsys.readouterr().err
+    assert snapshot(engine) == before
+    engine.dispose()
