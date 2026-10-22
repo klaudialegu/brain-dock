@@ -14,6 +14,7 @@ from sqlmodel import Session
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from brain_dock import db
+from brain_dock.charts import pipeline_chart_data, pipeline_summary
 from brain_dock.clocks import load_cities, world_clocks
 from brain_dock.db import get_engine, is_at_head
 from brain_dock.models import (
@@ -24,7 +25,13 @@ from brain_dock.models import (
     get_or_create_company,
     update_application,
 )
-from brain_dock.queries import application_detail, list_applications
+from brain_dock.queries import (
+    RESPONSE_MIN_AGE_DAYS,
+    application_detail,
+    list_applications,
+    pipeline_links,
+    stats,
+)
 from brain_dock.schemas import ApplicationForm, StageForm, form_errors
 from brain_dock.security import (
     ALLOWED_HOSTS,
@@ -103,7 +110,14 @@ def home(request: Request) -> HTMLResponse:
 
 @app.get("/applications", response_class=HTMLResponse)
 def applications(request: Request, session: SessionDep) -> HTMLResponse:
-    context = {"applications": list_applications(session)}
+    links = pipeline_links(session)
+    context = {
+        "applications": list_applications(session),
+        "stats": stats(session, date.today()),
+        "min_age": RESPONSE_MIN_AGE_DAYS,
+        "pipeline": pipeline_chart_data(links),
+        "pipeline_summary": pipeline_summary(links),
+    }
     return no_store(templates.TemplateResponse(request, "applications.html", context))
 
 

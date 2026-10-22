@@ -1,0 +1,30 @@
+{# The numbers above the list. `stats` is a queries.Stats; `min_age` the response-rate window. #}
+{% macro percent(rate) -%}
+{{ "—" if rate is none else ((rate * 100) | round | int) ~ "%" }}
+{%- endmacro %}
+
+{% macro stats_row(stats, min_age) -%}
+<section class="stats" aria-label="Application stats">
+  <div class="stat">
+    <div class="stat-label">Response rate</div>
+    <div class="stat-value">{{ percent(stats.response_rate) }}</div>
+    <div class="stat-note">
+      {% if stats.old_enough %}{{ stats.responded }} of {{ stats.old_enough }} applications older than {{ min_age }} days
+      {% else %}No application is {{ min_age }} days old yet{% endif %}
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Interview rate</div>
+    <div class="stat-value">{{ percent(stats.interview_rate) }}</div>
+    <div class="stat-note">
+      {% if stats.old_enough %}{{ stats.interviewed }} of {{ stats.old_enough }} applications older than {{ min_age }} days
+      {% else %}No application is {{ min_age }} days old yet{% endif %}
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat-label">Since last application</div>
+    <div class="stat-value">{{ "—" if stats.days_since_last_application is none else stats.days_since_last_application }}</div>
+    <div class="stat-note">{{ "day" if stats.days_since_last_application == 1 else "days" }}</div>
+  </div>
+</section>
+{%- endmacro %}
