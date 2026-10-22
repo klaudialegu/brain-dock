@@ -281,7 +281,7 @@ def test_every_post_route_checks_csrf():
 # --- Pages -------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("path", ["/applications", "/applications/new"])
+@pytest.mark.parametrize("path", ["/", "/applications", "/applications/new"])
 def test_pages_with_personal_data_are_not_cached(client, path):
     assert client.get(path).headers["cache-control"] == "no-store"
 

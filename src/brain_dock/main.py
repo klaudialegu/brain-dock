@@ -97,7 +97,8 @@ def stages_css() -> Response:
 def home(request: Request) -> HTMLResponse:
     cities = load_cities(CONFIG_PATH)
     context = {"clocks": world_clocks(cities=cities), "reference_tz": cities[0][1]}
-    return templates.TemplateResponse(request, "index.html", context)
+    # The clocks can show personal places from config.toml, so don't cache this page either.
+    return no_store(templates.TemplateResponse(request, "index.html", context))
 
 
 @app.get("/applications", response_class=HTMLResponse)
