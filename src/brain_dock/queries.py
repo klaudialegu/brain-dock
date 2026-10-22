@@ -1,3 +1,4 @@
+from collections import Counter
 from dataclasses import dataclass
 from datetime import date
 from urllib.parse import urlparse
@@ -6,6 +7,7 @@ from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from brain_dock.models import Application, RoleTrack, Stage
+from brain_dock.stages import STAGES, stage_order
 
 
 @dataclass(frozen=True)
@@ -98,3 +100,43 @@ def application_detail(session: Session, application_id: int) -> ApplicationDeta
         current_stage=application.current_stage,
         events=events,
     )
+
+
+@dataclass(frozen=True)
+class PipelineLink:
+    source: Stage
+    target: Stage
+    count: int
+
+
+def pipeline_path(application: Application) -> list[Stage]:
+    """The application's way through the pipeline, for the Sankey chart.
+
+    Starts at applied, then only ever moves forward in STAGES order (a chart can't draw
+    loops, so repeated or backwards steps are left out), and ends with the outcome if the
+    application has closed (rejected, ghosted, withdrawn).
+    """
+    path = [Stage.applied]
+    for event in sorted(application.events, key=lambda e: (e.happened_on, e.id)):
+        stage = event.stage
+        if STAGES[stage].kind != "closed" and stage_order(stage) > stage_order(path[-1]):
+            path.append(stage)
+    outcome = application.current_stage
+    if STAGES[outcome].kind == "closed" and path[-1] != outcome:
+        path.append(outcome)
+    return path
+
+
+def pipeline_links(session: Session) -> list[PipelineLink]:
+    """How many applications moved from each stage to the next, as plain values."""
+    applications = session.exec(select(Application).options(selectinload(Application.events))).all()
+    counts: Counter[tuple[Stage, Stage]] = Counter()
+    for application in applications:
+        path = pipeline_path(application)
+        counts.update(zip(path, path[1:], strict=False))
+    return [
+        PipelineLink(source, target, n)
+        for (source, target), n in sorted(
+            counts.items(), key=lambda item: (stage_order(item[0][0]), stage_order(item[0][1]))
+        )
+    ]

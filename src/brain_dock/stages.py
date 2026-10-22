@@ -31,6 +31,16 @@ STAGES: dict[Stage, StageInfo] = {
 
 KINDS = {"active", "won", "closed"}
 
+# Stages that count as hearing back from the company (for the response rate).
+# Ghosted and withdrawn are endings without a reply.
+REPLY_STAGES = frozenset({Stage.screen, Stage.interview, Stage.onsite, Stage.offer, Stage.rejected})
+# Stages that mean the application got as far as interviewing.
+INTERVIEW_STAGES = frozenset({Stage.interview, Stage.onsite, Stage.offer})
+
+
+def stage_order(stage: Stage | str) -> int:
+    return STAGES[Stage(stage)].order
+
 
 def stage_label(stage: Stage | str) -> str:
     return STAGES[Stage(stage)].label
