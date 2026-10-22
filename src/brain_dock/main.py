@@ -22,6 +22,7 @@ from brain_dock.schemas import ApplicationForm, form_errors
 from brain_dock.security import (
     ALLOWED_HOSTS,
     CSRF_FIELD,
+    add_security_headers,
     csrf_token,
     no_store,
     set_csrf_cookie,
@@ -59,6 +60,7 @@ app = FastAPI(title="Brain Dock", lifespan=lifespan)
 # Only answer to our own host names, so a site that points its domain at 127.0.0.1
 # (DNS rebinding) can't talk to the app.
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS)
+app.middleware("http")(add_security_headers)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
