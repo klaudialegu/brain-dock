@@ -41,3 +41,25 @@ def test_home_page_uses_cities_from_config(no_local_config):
     assert "Tokyo" in response.text
     assert "Seattle" not in response.text
     assert 'data-reference-tz="Asia/Tokyo"' in response.text
+
+
+@pytest.mark.parametrize(
+    ("path", "content_type", "snippet"),
+    [
+        ("/static/app.css", "text/css", "--accent"),
+        ("/static/clocks.js", "javascript", "Intl.DateTimeFormat"),
+    ],
+)
+def test_static_files_are_served(path, content_type, snippet):
+    response = client.get(path)
+
+    assert response.status_code == 200
+    assert content_type in response.headers["content-type"]
+    assert snippet in response.text
+
+
+def test_pages_use_the_static_files():
+    html = client.get("/").text
+
+    assert '<link rel="stylesheet" href="/static/app.css">' in html
+    assert '<script src="/static/clocks.js" defer></script>' in html

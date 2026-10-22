@@ -7,6 +7,7 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 from sqlmodel import Session
@@ -28,6 +29,7 @@ from brain_dock.security import (
 )
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
+STATIC_DIR = Path(__file__).parent / "static"
 # Local, gitignored settings at the repo root. See config.example.toml for the format.
 CONFIG_PATH = Path(__file__).parents[2] / "config.toml"
 
@@ -57,6 +59,7 @@ app = FastAPI(title="Brain Dock", lifespan=lifespan)
 # Only answer to our own host names, so a site that points its domain at 127.0.0.1
 # (DNS rebinding) can't talk to the app.
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
