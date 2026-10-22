@@ -103,12 +103,14 @@ def test_rows_carry_company_and_current_stage(session):
 # --- The page ----------------------------------------------------------------
 
 
-def test_empty_state_explains_how_to_import(client):
+def test_empty_state_invites_adding_the_first_application(client):
     response = client.get("/applications")
 
     assert response.status_code == 200
-    assert "No applications yet" in response.text
-    assert "uv run python -m brain_dock.importer" in response.text
+    assert (
+        'No applications yet. <a href="/applications/new">Add your first application</a>.'
+        in response.text
+    )
 
 
 def test_page_lists_applications_with_details(client, session):

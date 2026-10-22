@@ -2,7 +2,7 @@
 
 from datetime import date
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from brain_dock.models import RoleTrack, Stage
 from brain_dock.queries import safe_link
@@ -23,7 +23,9 @@ class EventIn(BaseModel):
         return stage
 
 
-class ApplicationIn(BaseModel):
+class ApplicationFields(BaseModel):
+    """One application's own fields, with the rules every input path shares."""
+
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     company: str = Field(min_length=1)
@@ -33,7 +35,6 @@ class ApplicationIn(BaseModel):
     link: str | None = None
     notes: str | None = None
     follow_up_on: date | None = None
-    events: list[EventIn] = []
 
     @field_validator("link")
     @classmethod
@@ -41,6 +42,12 @@ class ApplicationIn(BaseModel):
         if link is not None and safe_link(link) is None:
             raise ValueError("must be an http:// or https:// URL")
         return link
+
+
+class ApplicationIn(ApplicationFields):
+    """An application in an import file or backup: its fields plus its stage events."""
+
+    events: list[EventIn] = []
 
     @model_validator(mode="after")
     def events_not_before_applied(self) -> "ApplicationIn":
@@ -54,6 +61,42 @@ class ApplicationsFile(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     applications: list[ApplicationIn]
+
+
+class ApplicationForm(ApplicationFields):
+    """What the add-application form posts. HTML sends "" for empty optional fields."""
+
+    @field_validator("link", "notes", "follow_up_on", mode="before")
+    @classmethod
+    def blank_is_none(cls, value):
+        return None if isinstance(value, str) and not value.strip() else value
+
+
+# Labels for form error messages, matching the form's own labels.
+FIELD_LABELS = {
+    "company": "Company",
+    "role_title": "Role",
+    "role_track": "Track",
+    "applied_on": "Applied on",
+    "link": "Job link",
+    "notes": "Notes",
+    "follow_up_on": "Follow-up",
+}
+
+
+def form_errors(error: ValidationError) -> dict[str, str]:
+    """Map each form field to one message: its label and Pydantic's reason, never the input.
+    Problems that aren't about a known field (like an unexpected extra field) go under "form",
+    without naming the field, since the name came from the request."""
+    errors: dict[str, str] = {}
+    for err in error.errors():
+        field = err["loc"][0] if err["loc"] else None
+        if field in FIELD_LABELS and err["type"] != "extra_forbidden":
+            reason = err["msg"].removeprefix("Value error, ")
+            errors.setdefault(field, f"{FIELD_LABELS[field]}: {reason}")
+        else:
+            errors.setdefault("form", "The form contained something unexpected. Please try again.")
+    return errors
 
 
 def describe_error(error: dict) -> str:
