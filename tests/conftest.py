@@ -5,6 +5,10 @@ from sqlmodel import Session
 from brain_dock import db, export
 from brain_dock.db import create_db, get_engine
 
+# The app only answers to its own host names (TrustedHostMiddleware), so test clients
+# must use one of them instead of TestClient's default "testserver".
+BASE_URL = "http://127.0.0.1:8000"
+
 # The real database, as it is before any test can patch it.
 REAL_DB_PATH = db.DB_PATH
 

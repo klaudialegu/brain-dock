@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from brain_dock.db import get_engine, migrate
 from brain_dock.main import DatabaseNotReadyError, app
 
+from .conftest import BASE_URL
 from .test_migrations import legacy_db
 
 # --- App startup -------------------------------------------------------------
@@ -12,7 +13,7 @@ from .test_migrations import legacy_db
 
 def test_startup_refuses_a_missing_database():
     with pytest.raises(DatabaseNotReadyError, match="uv run python -m brain_dock.db"):
-        with TestClient(app):
+        with TestClient(app, base_url=BASE_URL):
             pass
 
 
@@ -22,7 +23,7 @@ def test_startup_refuses_an_unmigrated_database():
     legacy.dispose()
 
     with pytest.raises(DatabaseNotReadyError, match="needs migrating"):
-        with TestClient(app):
+        with TestClient(app, base_url=BASE_URL):
             pass
 
 
@@ -31,5 +32,5 @@ def test_startup_succeeds_after_migrating():
     migrate(ready)
     ready.dispose()
 
-    with TestClient(app) as client:
+    with TestClient(app, base_url=BASE_URL) as client:
         assert client.get("/applications").status_code == 200

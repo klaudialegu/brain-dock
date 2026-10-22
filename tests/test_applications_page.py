@@ -19,14 +19,14 @@ from brain_dock.models import (
 )
 from brain_dock.queries import list_applications, safe_link
 
-from .conftest import REAL_DB_PATH
+from .conftest import BASE_URL, REAL_DB_PATH
 
 
 @pytest.fixture
 def client(session):
     # Serve the page from the in-memory test database instead of data/brain_dock.db.
     app.dependency_overrides[get_session] = lambda: session
-    yield TestClient(app)
+    yield TestClient(app, base_url=BASE_URL)
     app.dependency_overrides.clear()
 
 
@@ -200,7 +200,7 @@ def test_startup_never_opens_the_real_database(monkeypatch):
     migrate(get_engine())  # the temp stand-in for data/brain_dock.db, via db.DB_PATH
 
     # Runs the real startup (lifespan: database checks) and a real page request.
-    with TestClient(app) as client:
+    with TestClient(app, base_url=BASE_URL) as client:
         assert client.get("/applications").status_code == 200
 
     assert str(db.DB_PATH) in opened  # the spy works: the temp database was used
