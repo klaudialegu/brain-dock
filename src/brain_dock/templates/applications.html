@@ -7,6 +7,7 @@
 
 {% block content %}
 <h1>Applications</h1>
+<p><a class="button" href="/applications/new">Add application</a></p>
 
 {% if applications %}
 <p>{{ applications | length }} application{{ "" if applications | length == 1 else "s" }}, newest first.</p>
@@ -43,6 +44,6 @@
   </table>
 </div>
 {% else %}
-<p class="empty">No applications yet. Add them to <code>data/my_applications.json</code>, then run <code>uv run python -m brain_dock.importer</code>.</p>
+<p class="empty">No applications yet. <a href="/applications/new">Add your first application</a>.</p>
 {% endif %}
 {% endblock %}

@@ -14,6 +14,11 @@ A personal, local-first job-search hub: applications, interview prep, inbox tria
 6. Run the app: `uv run uvicorn brain_dock.main:app --host 127.0.0.1 --reload`. It only listens on this machine, so nothing on your network can reach your data.
 7. Open http://127.0.0.1:8000
 
+## Using the app
+
+- **Applications** lists everything, newest first. **Add application** opens a form; it saves straight to the database, so run the export first if you want a backup.
+- Open the app at `http://127.0.0.1:8000` or `http://localhost:8000`. Other host names are refused on purpose, and forms only accept posts from the app's own pages (see [ADR 0005](docs/decisions/0005-form-security-on-a-localhost-app.md)).
+
 ## Development
 
 - Tests: `uv run pytest`

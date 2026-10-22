@@ -91,6 +91,32 @@
     .stage-rejected, .stage-ghosted, .stage-withdrawn { color: var(--muted); }
     .stage-interview, .stage-onsite, .stage-screen { color: var(--accent); }
     code { font-size: 0.875em; }
+    .button {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: var(--bg);
+      text-decoration: none;
+      font-weight: 600;
+      border: 0;
+      font: inherit;
+      cursor: pointer;
+    }
+    form.stack { display: grid; gap: 14px; max-width: 560px; }
+    form.stack label { display: grid; gap: 4px; font-weight: 600; font-size: 0.875rem; }
+    form.stack .optional { color: var(--muted); font-weight: 400; }
+    form.stack input, form.stack select, form.stack textarea {
+      font: inherit;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card);
+      color: var(--text);
+    }
+    form.stack [aria-invalid="true"] { border-color: var(--bad); }
+    .field-error { color: var(--bad); font-weight: 400; font-size: 0.8125rem; }
+    .form-errors { color: var(--bad); border: 1px solid var(--bad); border-radius: 8px; padding: 10px 14px; }
   </style>
 </head>
 <body class="{% block body_class %}{% endblock %}">

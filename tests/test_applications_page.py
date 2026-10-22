@@ -19,14 +19,14 @@ from brain_dock.models import (
 )
 from brain_dock.queries import list_applications, safe_link
 
-from .conftest import REAL_DB_PATH
+from .conftest import BASE_URL, REAL_DB_PATH
 
 
 @pytest.fixture
 def client(session):
     # Serve the page from the in-memory test database instead of data/brain_dock.db.
     app.dependency_overrides[get_session] = lambda: session
-    yield TestClient(app)
+    yield TestClient(app, base_url=BASE_URL)
     app.dependency_overrides.clear()
 
 
@@ -103,12 +103,14 @@ def test_rows_carry_company_and_current_stage(session):
 # --- The page ----------------------------------------------------------------
 
 
-def test_empty_state_explains_how_to_import(client):
+def test_empty_state_invites_adding_the_first_application(client):
     response = client.get("/applications")
 
     assert response.status_code == 200
-    assert "No applications yet" in response.text
-    assert "uv run python -m brain_dock.importer" in response.text
+    assert (
+        'No applications yet. <a href="/applications/new">Add your first application</a>.'
+        in response.text
+    )
 
 
 def test_page_lists_applications_with_details(client, session):
@@ -200,7 +202,7 @@ def test_startup_never_opens_the_real_database(monkeypatch):
     migrate(get_engine())  # the temp stand-in for data/brain_dock.db, via db.DB_PATH
 
     # Runs the real startup (lifespan: database checks) and a real page request.
-    with TestClient(app) as client:
+    with TestClient(app, base_url=BASE_URL) as client:
         assert client.get("/applications").status_code == 200
 
     assert str(db.DB_PATH) in opened  # the spy works: the temp database was used

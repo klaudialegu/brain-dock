@@ -1,7 +1,7 @@
 from datetime import date
 from enum import StrEnum
 
-from sqlmodel import Field, Relationship, Session, SQLModel
+from sqlmodel import Field, Relationship, Session, SQLModel, select
 
 
 # Members are lowercase on purpose: SQLAlchemy stores an enum's member *name*,
@@ -54,6 +54,17 @@ class StageEvent(SQLModel, table=True):
     note: str | None = None
 
     application: Application | None = Relationship(back_populates="events")
+
+
+def get_or_create_company(session: Session, name: str) -> Company:
+    """Find a company by name, ignoring case and surrounding spaces, or add it (trimmed)."""
+    key = name.strip().casefold()
+    for company in session.exec(select(Company)):
+        if company.name.strip().casefold() == key:
+            return company
+    company = Company(name=name.strip())
+    session.add(company)
+    return company
 
 
 def create_application(

@@ -4,7 +4,9 @@ from fastapi.testclient import TestClient
 from brain_dock import main
 from brain_dock.main import app
 
-client = TestClient(app)
+from .conftest import BASE_URL
+
+client = TestClient(app, base_url=BASE_URL)
 
 
 @pytest.fixture(autouse=True)
