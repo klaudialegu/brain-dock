@@ -17,6 +17,7 @@ A personal, local-first job-search hub: applications, interview prep, inbox tria
 ## Using the app
 
 - **Applications** lists everything, newest first. **Add application** opens a form; it saves straight to the database, so run the export first if you want a backup.
+- **Edit** on any row opens that application: change its fields (moving it to another company reuses that company; a company left with no applications is removed, see [ADR 0006](docs/decisions/0006-companies-without-applications.md)), see its stage history, and record a new stage.
 - Open the app at `http://127.0.0.1:8000` or `http://localhost:8000`. Other host names are refused on purpose, and forms only accept posts from the app's own pages (see [ADR 0005](docs/decisions/0005-form-security-on-a-localhost-app.md)).
 
 ## Development

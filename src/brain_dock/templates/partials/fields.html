@@ -1,0 +1,53 @@
+{# Form field macros. Each one renders its label, the input, and its error (if any),
+   linked with aria-describedby. Pass the form's `values` and `errors` dicts. #}
+
+{% macro _error(name, errors) -%}
+{% if errors.get(name) %}<span class="field-error" id="{{ name }}-error">{{ errors[name] }}</span>{% endif %}
+{%- endmacro %}
+
+{% macro _invalid(name, errors) -%}
+{% if errors.get(name) %} aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}
+{%- endmacro %}
+
+{% macro _hint(hint) -%}
+{% if hint %} <span class="optional">({{ hint }})</span>{% endif %}
+{%- endmacro %}
+
+{% macro input(name, label, values, errors, type="text", required=False, hint=None) -%}
+<label>{{ label }}{{ _hint(hint) }}
+  <input{% if type != "text" %} type="{{ type }}"{% endif %} name="{{ name }}"{% if required %} required{% endif %} value="{{ values.get(name, '') }}"{{ _invalid(name, errors) }}>
+  {{ _error(name, errors) }}
+</label>
+{%- endmacro %}
+
+{% macro textarea(name, label, values, errors, rows=3, hint=None) -%}
+<label>{{ label }}{{ _hint(hint) }}
+  <textarea name="{{ name }}" rows="{{ rows }}"{{ _invalid(name, errors) }}>{{ values.get(name, '') }}</textarea>
+  {{ _error(name, errors) }}
+</label>
+{%- endmacro %}
+
+{% macro select(name, label, values, errors, options, required=False) -%}
+{# options: a list of (value, text) pairs #}
+<label>{{ label }}
+  <select name="{{ name }}"{% if required %} required{% endif %}{{ _invalid(name, errors) }}>
+    {% for value, text in options %}
+    <option value="{{ value }}"{% if values.get(name) == value %} selected{% endif %}>{{ text }}</option>
+    {% endfor %}
+  </select>
+  {{ _error(name, errors) }}
+</label>
+{%- endmacro %}
+
+{% macro form_errors(errors) -%}
+{% if errors %}
+<div class="form-errors" role="alert">
+  <p>Please fix the {{ "problem" if errors | length == 1 else "problems" }} below.</p>
+  {% if errors.get("form") %}<p>{{ errors["form"] }}</p>{% endif %}
+</div>
+{% endif %}
+{%- endmacro %}
+
+{% macro csrf(field, token) -%}
+<input type="hidden" name="{{ field }}" value="{{ token }}">
+{%- endmacro %}

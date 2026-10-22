@@ -12,6 +12,7 @@ from brain_dock.models import Application, RoleTrack, Stage
 class ApplicationRow:
     """What the list page shows: plain values, so templates never query the database."""
 
+    id: int
     company: str
     role_title: str
     role_track: RoleTrack
@@ -44,6 +45,7 @@ def list_applications(session: Session) -> list[ApplicationRow]:
     ).all()
     return [
         ApplicationRow(
+            id=a.id,
             company=a.company.name,
             role_title=a.role_title,
             role_track=a.role_track,
@@ -54,3 +56,45 @@ def list_applications(session: Session) -> list[ApplicationRow]:
         )
         for a in applications
     ]
+
+
+@dataclass(frozen=True)
+class EventRow:
+    stage: Stage
+    happened_on: date
+    note: str | None
+
+
+@dataclass(frozen=True)
+class ApplicationDetail:
+    """What the edit page shows: form values as strings, and the stage history."""
+
+    id: int
+    values: dict[str, str]
+    current_stage: Stage
+    events: list[EventRow]
+
+
+def application_detail(session: Session, application_id: int) -> ApplicationDetail | None:
+    application = session.get(Application, application_id)
+    if application is None:
+        return None
+    values = {
+        "company": application.company.name,
+        "role_title": application.role_title,
+        "role_track": application.role_track.value,
+        "applied_on": application.applied_on.isoformat(),
+        "link": application.link or "",
+        "notes": application.notes or "",
+        "follow_up_on": application.follow_up_on.isoformat() if application.follow_up_on else "",
+    }
+    events = [
+        EventRow(stage=e.stage, happened_on=e.happened_on, note=e.note)
+        for e in sorted(application.events, key=lambda e: (e.happened_on, e.id))
+    ]
+    return ApplicationDetail(
+        id=application.id,
+        values=values,
+        current_stage=application.current_stage,
+        events=events,
+    )

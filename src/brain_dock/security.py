@@ -21,6 +21,29 @@ CSRF_FIELD = "csrf_token"
 _TOKEN_SHAPE = re.compile(r"^[A-Za-z0-9_-]{43}$")  # secrets.token_urlsafe(32)
 
 
+# Only this app's own files may run or style a page: no inline scripts or styles, nothing
+# from other sites, no plugins, no framing, and forms may only post back to the app.
+CONTENT_SECURITY_POLICY = "; ".join(
+    [
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self'",
+        "img-src 'self' data:",
+        "object-src 'none'",
+        "base-uri 'none'",
+        "form-action 'self'",
+        "frame-ancestors 'none'",
+    ]
+)
+
+
+async def add_security_headers(request: Request, call_next) -> Response:
+    """HTTP middleware: put the Content-Security-Policy on every response."""
+    response = await call_next(request)
+    response.headers["Content-Security-Policy"] = CONTENT_SECURITY_POLICY
+    return response
+
+
 def csrf_token(request: Request) -> tuple[str, bool]:
     """The token to put in a form, and whether it's new (needs setting as a cookie).
     Reuses a well-formed existing cookie, so two open tabs don't invalidate each other."""
