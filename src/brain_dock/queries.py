@@ -142,8 +142,8 @@ def pipeline_links(session: Session) -> list[PipelineLink]:
     ]
 
 
-# Applications younger than this haven't had a fair chance to get a reply yet,
-# so they're left out of the response rate (the page says so).
+# Applications younger than this haven't had a fair chance to get a reply or an interview
+# yet, so they're left out of both rates (the page says so).
 RESPONSE_MIN_AGE_DAYS = 14
 
 
@@ -153,7 +153,7 @@ class Stats:
     response_rate: float | None  # None when no application is old enough
     responded: int
     old_enough: int
-    interview_rate: float | None  # None when there are no applications
+    interview_rate: float | None  # None when no application is old enough
     interviewed: int
     days_since_last_application: int | None
 
@@ -168,7 +168,7 @@ def stats(session: Session, today: date) -> Stats:
     cutoff = today - timedelta(days=RESPONSE_MIN_AGE_DAYS)
     old_enough = [a for a in applications if a.applied_on <= cutoff]
     responded = sum(reached(a, REPLY_STAGES) for a in old_enough)
-    interviewed = sum(reached(a, INTERVIEW_STAGES) for a in applications)
+    interviewed = sum(reached(a, INTERVIEW_STAGES) for a in old_enough)
     latest = max((a.applied_on for a in applications), default=None)
 
     return Stats(
@@ -176,7 +176,7 @@ def stats(session: Session, today: date) -> Stats:
         response_rate=responded / len(old_enough) if old_enough else None,
         responded=responded,
         old_enough=len(old_enough),
-        interview_rate=interviewed / len(applications) if applications else None,
+        interview_rate=interviewed / len(old_enough) if old_enough else None,
         interviewed=interviewed,
         days_since_last_application=max(0, (today - latest).days) if latest else None,
     )

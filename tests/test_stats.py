@@ -76,20 +76,21 @@ def test_response_rate_is_none_when_everything_is_too_new(session):
     result = stats(session, TODAY)
 
     assert result.response_rate is None and result.old_enough == 0
+    assert result.interview_rate is None
     assert result.total == 1
 
 
-def test_interview_rate_counts_interview_onsite_or_offer_over_all(session):
+def test_interview_rate_counts_interview_onsite_or_offer_over_old_enough(session):
     add(session, OLD, Stage.screen, Stage.interview, Stage.rejected)
     add(session, OLD, Stage.onsite)
     add(session, OLD, Stage.offer)
     add(session, OLD, Stage.screen)
-    add(session, date(2026, 10, 30))  # new ones count here
+    add(session, date(2026, 10, 30), Stage.interview)  # 1 day old: left out, even with an interview
 
     result = stats(session, TODAY)
 
-    assert (result.interviewed, result.total) == (3, 5)
-    assert result.interview_rate == pytest.approx(0.6)
+    assert (result.interviewed, result.old_enough, result.total) == (3, 4, 5)
+    assert result.interview_rate == pytest.approx(0.75)
 
 
 def test_days_since_last_application(session):

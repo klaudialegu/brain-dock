@@ -16,7 +16,10 @@
   <div class="stat">
     <div class="stat-label">Interview rate</div>
     <div class="stat-value">{{ percent(stats.interview_rate) }}</div>
-    <div class="stat-note">{{ stats.interviewed }} of {{ stats.total }} reached an interview</div>
+    <div class="stat-note">
+      {% if stats.old_enough %}{{ stats.interviewed }} of {{ stats.old_enough }} applications older than {{ min_age }} days
+      {% else %}No application is {{ min_age }} days old yet{% endif %}
+    </div>
   </div>
   <div class="stat">
     <div class="stat-label">Since last application</div>

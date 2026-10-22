@@ -20,7 +20,7 @@ A personal, local-first job-search hub: applications, interview prep, inbox tria
 - **Edit** on any row opens that application: change its fields (moving it to another company reuses that company; a company left with no applications is removed, see [ADR 0006](docs/decisions/0006-companies-without-applications.md)), see its stage history, and record a new stage.
 - Above the list: a **Pipeline** chart (how applications moved from stage to stage; repeated or backwards steps are left out so the chart has no loops) and three stats:
   - **Response rate**: applications that got any reply (screen, interview, onsite, offer or rejected) out of those at least 14 days old. Ghosted and withdrawn don't count as replies; newer applications are left out because they haven't had a fair chance yet.
-  - **Interview rate**: applications that reached interview, onsite or offer, out of all applications.
+  - **Interview rate**: applications that reached interview, onsite or offer, out of those at least 14 days old (same window as the response rate).
   - **Since last application**: days since the most recent applied date.
 
   The chart library (Apache ECharts) is bundled in `src/brain_dock/static/vendor/` with its license and a recorded checksum, so pages never load anything from another site.

@@ -98,7 +98,8 @@ def test_page_shows_stats_and_chart(client, session):
     assert "Response rate" in html
     assert "1 of 2 applications older than 14 days" in html
     assert ">50%<" in html
-    assert "1 of 3 reached an interview" in html and ">33%<" in html
+    # Interview rate uses the same 14-day window: 1 of the 2 old enough reached an interview.
+    assert html.count("1 of 2 applications older than 14 days") == 2
     assert "Since last application" in html
     data = chart_json(html)
     assert {(link["source"], link["target"]) for link in data["links"]} == {
