@@ -89,6 +89,19 @@ class ImportCounts:
     companies: int
     applications: int
     events: int
+    backup: Path | None = None  # set when --force backed up existing data first
+
+
+class DatabaseNotEmptyError(RuntimeError):
+    """The database already has applications, and the import would wipe them."""
+
+    def __init__(self, count: int):
+        self.count = count
+        super().__init__(
+            f"The database already has {count} applications. Nothing was changed. "
+            "Back them up with `uv run python -m brain_dock.export`, or pass --force "
+            "(which writes a backup first)."
+        )
 
 
 def _describe(error: dict) -> str:
@@ -126,9 +139,33 @@ def company_key(name: str) -> str:
     return name.strip().casefold()
 
 
-def rebuild_db(engine: Engine, entries: list[ApplicationIn]) -> ImportCounts:
-    """Replace all tracker rows with the entries, in one transaction: all or nothing."""
+def rebuild_db(
+    engine: Engine,
+    entries: list[ApplicationIn],
+    *,
+    locked: bool = True,
+    force: bool = False,
+    backup_dir: Path | None = None,
+) -> ImportCounts:
+    """Replace all tracker rows with the entries, in one transaction: all or nothing.
+
+    locked (the default) refuses to wipe a database that already has applications,
+    unless force is set; then a complete, validated backup is written first, and if
+    that fails nothing is deleted. Only the disposable demo database runs unlocked.
+    """
+    # Imported here because export.py imports load_applications from this module.
+    from brain_dock.export import write_backup
+
     migrate(engine)
+    backup = None
+    if locked:
+        with Session(engine) as session:
+            existing = session.scalar(select(func.count()).select_from(Application))
+        if existing:
+            if not force:
+                raise DatabaseNotEmptyError(existing)
+            backup = write_backup(engine, backup_dir).path  # raises before any delete
+
     with Session(engine) as session, session.begin():
         # Children first, so foreign keys are never left pointing at nothing.
         session.execute(delete(StageEvent))
@@ -158,6 +195,7 @@ def rebuild_db(engine: Engine, entries: list[ApplicationIn]) -> ImportCounts:
             companies=session.scalar(select(func.count()).select_from(Company)),
             applications=session.scalar(select(func.count()).select_from(Application)),
             events=session.scalar(select(func.count()).select_from(StageEvent)),
+            backup=backup,
         )
 
 
@@ -170,6 +208,11 @@ def main(argv: list[str] | None = None) -> int:
         "--demo",
         action="store_true",
         help="load the fake demo data into data/demo.db (never the real database)",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="replace a database that already has applications (writes a backup first)",
     )
     args = parser.parse_args(argv)
     source, target = (DEMO_JSON, DEMO_DB) if args.demo else (REAL_JSON, REAL_DB)
@@ -190,9 +233,22 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  - {problem}", file=sys.stderr)
         return 1
 
+    # Deferred for the same reason as in rebuild_db.
+    from brain_dock.export import BackupError
+
     engine = get_engine(f"sqlite:///{target}")
-    counts = rebuild_db(engine, entries)
-    engine.dispose()
+    try:
+        counts = rebuild_db(engine, entries, locked=not args.demo, force=args.force)
+    except DatabaseNotEmptyError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    except (BackupError, OSError) as e:
+        print(f"Backup failed, so nothing was changed: {e}", file=sys.stderr)
+        return 1
+    finally:
+        engine.dispose()
+    if counts.backup:
+        print(f"Backed up the previous data to data/backups/{counts.backup.name}")
     print(
         f"Imported {counts.applications} applications at {counts.companies} companies "
         f"({counts.events} stage events) into {target.parent.name}/{target.name}"

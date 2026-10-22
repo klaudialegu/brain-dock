@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session
 
-from brain_dock import db
+from brain_dock import db, export
 from brain_dock.db import create_db, get_engine
 
 # The real database, as it is before any test can patch it.
@@ -14,6 +14,7 @@ def never_use_the_real_database(tmp_path, monkeypatch):
     # Anything that falls back to the default database (like app startup)
     # gets a temp file instead of data/brain_dock.db.
     monkeypatch.setattr(db, "DB_PATH", tmp_path / "default.db")
+    monkeypatch.setattr(export, "BACKUP_DIR", tmp_path / "backups")
 
 
 @pytest.fixture
