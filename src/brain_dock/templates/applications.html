@@ -22,6 +22,7 @@
         <th scope="col">Applied</th>
         <th scope="col">Stage</th>
         <th scope="col">Follow-up</th>
+        <th scope="col"><span class="visually-hidden">Actions</span></th>
       </tr>
     </thead>
     <tbody>
@@ -39,6 +40,7 @@
         <td class="date">{{ app.applied_on.isoformat() }}</td>
         <td>{{ badge(app.current_stage) }}</td>
         <td class="date">{{ app.follow_up_on.isoformat() if app.follow_up_on else "" }}</td>
+        <td><a href="/applications/{{ app.id }}/edit">Edit<span class="visually-hidden"> {{ app.role_title }} at {{ app.company }}</span></a></td>
       </tr>
       {% endfor %}
     </tbody>

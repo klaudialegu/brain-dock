@@ -108,3 +108,12 @@ form.stack input, form.stack select, form.stack textarea {
 form.stack [aria-invalid="true"] { border-color: var(--bad); }
 .field-error { color: var(--bad); font-weight: 400; font-size: 0.8125rem; }
 .form-errors { color: var(--bad); border: 1px solid var(--bad); border-radius: 8px; padding: 10px 14px; }
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.history { margin: 1.5rem 0; }
