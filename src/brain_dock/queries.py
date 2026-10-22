@@ -1,13 +1,13 @@
 from collections import Counter
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from urllib.parse import urlparse
 
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from brain_dock.models import Application, RoleTrack, Stage
-from brain_dock.stages import STAGES, stage_order
+from brain_dock.stages import INTERVIEW_STAGES, REPLY_STAGES, STAGES, stage_order
 
 
 @dataclass(frozen=True)
@@ -140,3 +140,43 @@ def pipeline_links(session: Session) -> list[PipelineLink]:
             counts.items(), key=lambda item: (stage_order(item[0][0]), stage_order(item[0][1]))
         )
     ]
+
+
+# Applications younger than this haven't had a fair chance to get a reply yet,
+# so they're left out of the response rate (the page says so).
+RESPONSE_MIN_AGE_DAYS = 14
+
+
+@dataclass(frozen=True)
+class Stats:
+    total: int
+    response_rate: float | None  # None when no application is old enough
+    responded: int
+    old_enough: int
+    interview_rate: float | None  # None when there are no applications
+    interviewed: int
+    days_since_last_application: int | None
+
+
+def stats(session: Session, today: date) -> Stats:
+    """The numbers above the list. `today` is passed in, so tests can pick any day."""
+    applications = session.exec(select(Application).options(selectinload(Application.events))).all()
+
+    def reached(application: Application, stages: frozenset) -> bool:
+        return any(e.stage in stages for e in application.events)
+
+    cutoff = today - timedelta(days=RESPONSE_MIN_AGE_DAYS)
+    old_enough = [a for a in applications if a.applied_on <= cutoff]
+    responded = sum(reached(a, REPLY_STAGES) for a in old_enough)
+    interviewed = sum(reached(a, INTERVIEW_STAGES) for a in applications)
+    latest = max((a.applied_on for a in applications), default=None)
+
+    return Stats(
+        total=len(applications),
+        response_rate=responded / len(old_enough) if old_enough else None,
+        responded=responded,
+        old_enough=len(old_enough),
+        interview_rate=interviewed / len(applications) if applications else None,
+        interviewed=interviewed,
+        days_since_last_application=max(0, (today - latest).days) if latest else None,
+    )
