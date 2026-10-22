@@ -16,7 +16,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from brain_dock import db
 from brain_dock.clocks import load_cities, world_clocks
 from brain_dock.db import get_engine, is_at_head
-from brain_dock.models import RoleTrack, create_application, get_or_create_company
+from brain_dock.models import create_application, get_or_create_company
 from brain_dock.queries import list_applications
 from brain_dock.schemas import ApplicationForm, form_errors
 from brain_dock.security import (
@@ -106,7 +106,6 @@ def render_form(
     context = {
         "values": values,
         "errors": errors or {},
-        "tracks": list(RoleTrack),
         "csrf_field": CSRF_FIELD,
         "csrf_token": token,
     }

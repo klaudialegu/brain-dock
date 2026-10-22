@@ -1,70 +1,17 @@
 {% extends "base.html" %}
+{% import "partials/fields.html" as f %}
 
 {% block title %}Add application · Brain Dock{% endblock %}
 {% block body_class %}page-wide{% endblock %}
 
-{% set track_labels = {"support": "Support", "fde": "FDE", "other": "Other"} %}
-
-{% macro error(field) -%}
-{% if errors.get(field) %}<span class="field-error" id="{{ field }}-error">{{ errors[field] }}</span>{% endif %}
-{%- endmacro %}
-
-{% macro invalid(field) -%}
-{% if errors.get(field) %} aria-invalid="true" aria-describedby="{{ field }}-error"{% endif %}
-{%- endmacro %}
-
 {% block content %}
 <h1>Add application</h1>
 
-{% if errors %}
-<div class="form-errors" role="alert">
-  <p>Please fix the {{ "problem" if errors | length == 1 else "problems" }} below.</p>
-  {% if errors.get("form") %}<p>{{ errors["form"] }}</p>{% endif %}
-</div>
-{% endif %}
+{{ f.form_errors(errors) }}
 
 <form class="stack" method="post" action="/applications">
-  <input type="hidden" name="{{ csrf_field }}" value="{{ csrf_token }}">
-
-  <label>Company
-    <input name="company" required value="{{ values.get('company', '') }}"{{ invalid("company") }}>
-    {{ error("company") }}
-  </label>
-
-  <label>Role
-    <input name="role_title" required value="{{ values.get('role_title', '') }}"{{ invalid("role_title") }}>
-    {{ error("role_title") }}
-  </label>
-
-  <label>Track
-    <select name="role_track" required{{ invalid("role_track") }}>
-      {% for track in tracks %}
-      <option value="{{ track.value }}"{% if values.get('role_track') == track.value %} selected{% endif %}>{{ track_labels[track.value] }}</option>
-      {% endfor %}
-    </select>
-    {{ error("role_track") }}
-  </label>
-
-  <label>Applied on
-    <input type="date" name="applied_on" required value="{{ values.get('applied_on', '') }}"{{ invalid("applied_on") }}>
-    {{ error("applied_on") }}
-  </label>
-
-  <label>Job link <span class="optional">(optional, http or https)</span>
-    <input type="url" name="link" value="{{ values.get('link', '') }}"{{ invalid("link") }}>
-    {{ error("link") }}
-  </label>
-
-  <label>Notes <span class="optional">(optional)</span>
-    <textarea name="notes" rows="3"{{ invalid("notes") }}>{{ values.get('notes', '') }}</textarea>
-    {{ error("notes") }}
-  </label>
-
-  <label>Follow-up <span class="optional">(optional)</span>
-    <input type="date" name="follow_up_on" value="{{ values.get('follow_up_on', '') }}"{{ invalid("follow_up_on") }}>
-    {{ error("follow_up_on") }}
-  </label>
-
+  {{ f.csrf(csrf_field, csrf_token) }}
+  {% include "partials/application_fields.html" %}
   <p><button class="button" type="submit">Save application</button> <a href="/applications">Cancel</a></p>
 </form>
 {% endblock %}

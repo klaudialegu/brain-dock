@@ -1,0 +1,10 @@
+{# The fields of one application, shared by the add and edit forms. #}
+{% import "partials/fields.html" as f %}
+{% set track_options = [("support", "Support"), ("fde", "FDE"), ("other", "Other")] %}
+{{ f.input("company", "Company", values, errors, required=True) }}
+{{ f.input("role_title", "Role", values, errors, required=True) }}
+{{ f.select("role_track", "Track", values, errors, track_options, required=True) }}
+{{ f.input("applied_on", "Applied on", values, errors, type="date", required=True) }}
+{{ f.input("link", "Job link", values, errors, type="url", hint="optional, http or https") }}
+{{ f.textarea("notes", "Notes", values, errors, hint="optional") }}
+{{ f.input("follow_up_on", "Follow-up", values, errors, type="date", hint="optional") }}
