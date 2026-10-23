@@ -9,6 +9,9 @@
 </head>
 <body class="{% block body_class %}{% endblock %}">
   <main>
+    {% if request.app.state.is_demo %}
+    <p class="demo-banner" role="status">You're looking at fake demo data (<code>data/demo.db</code>). Your own data lives in <code>data/brain_dock.db</code>.</p>
+    {% endif %}
     <nav aria-label="Main">
       <a href="/applications"{% if request.url.path == "/applications" %} aria-current="page"{% endif %}>Applications</a>
       ·

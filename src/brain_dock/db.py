@@ -1,3 +1,5 @@
+import os
+from collections.abc import Mapping
 from pathlib import Path
 
 from alembic import command
@@ -11,8 +13,23 @@ from sqlmodel import SQLModel, create_engine
 from brain_dock import models  # noqa: F401  (importing registers the tables)
 
 REPO_ROOT = Path(__file__).parents[2]
-# Local database at the repo root, inside the gitignored data/ folder.
-DB_PATH = REPO_ROOT / "data" / "brain_dock.db"
+# Local databases at the repo root, inside the gitignored data/ folder.
+DEFAULT_DB_PATH = REPO_ROOT / "data" / "brain_dock.db"
+DEMO_DB_PATH = REPO_ROOT / "data" / "demo.db"
+
+
+def database_path(environ: Mapping[str, str] = os.environ) -> Path:
+    """The database the app and tools use: BRAIN_DOCK_DB if set, else data/brain_dock.db.
+    A relative BRAIN_DOCK_DB is taken from the current folder (the repo root, per the README)."""
+    configured = environ.get("BRAIN_DOCK_DB", "").strip()
+    return Path(configured).resolve() if configured else DEFAULT_DB_PATH
+
+
+def is_demo_database(path: Path) -> bool:
+    return path.resolve() == DEMO_DB_PATH.resolve()
+
+
+DB_PATH = database_path()
 ALEMBIC_INI = REPO_ROOT / "alembic.ini"
 # The revision that matches databases made by create_all before migrations existed.
 BASELINE_REVISION = "0001"

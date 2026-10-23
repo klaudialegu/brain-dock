@@ -15,7 +15,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from brain_dock import db
 from brain_dock.charts import pipeline_chart_data, pipeline_summary
-from brain_dock.db import get_engine, is_at_head
+from brain_dock.db import get_engine, is_at_head, is_demo_database
 from brain_dock.models import (
     Application,
     DateOrderError,
@@ -64,6 +64,8 @@ async def lifespan(app: FastAPI):
             "The database needs migrating. Run: uv run python -m brain_dock.db"
         )
     app.state.engine = engine
+    # Shown as a banner, so fake demo data can't be mistaken for real data (or vice versa).
+    app.state.is_demo = is_demo_database(db.DB_PATH)
     yield
     engine.dispose()
 
