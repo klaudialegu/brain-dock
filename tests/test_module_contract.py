@@ -97,3 +97,65 @@ def test_imports_no_other_module(m):
             if name.startswith("brain_dock.modules.") and name != "brain_dock.modules":
                 assert name == own or name.startswith(own + "."), f"{path.name} imports {name}"
             assert not name.startswith(("brain_dock.registry", "brain_dock.main")), path.name
+
+
+def alembic_scripts():
+    from alembic.script import ScriptDirectory
+
+    from brain_dock.core.db import _alembic_config
+
+    return ScriptDirectory.from_config(_alembic_config())
+
+
+@pytest.mark.parametrize("m", MODULES, ids=lambda m: m.name)
+def test_migrations_are_a_branch_of_their_own(m):
+    import configparser
+
+    from brain_dock.core.db import ALEMBIC_INI
+
+    assert m.migrations.is_dir()
+    scripts = alembic_scripts()
+    own = [s for s in scripts.walk_revisions() if Path(s.path).parent == m.migrations]
+
+    assert own  # the module really has migrations
+    by_id = {s.revision: s for s in own}
+    for script in own:
+        if script.down_revision is None:
+            assert m.name in script.branch_labels, f"{script.revision} must start the branch"
+        else:
+            # Its history stays inside this module's folder: no revision built on another's.
+            parents = script.down_revision
+            for parent in parents if isinstance(parents, tuple) else (parents,):
+                assert parent in by_id, f"{script.revision} builds on {parent} from elsewhere"
+
+    # alembic.ini is the list of installed migration folders, so the CLI sees them too.
+    ini = configparser.ConfigParser()
+    ini.read(ALEMBIC_INI)
+    listed = {
+        Path(p.replace("%(here)s", str(ALEMBIC_INI.parent))).resolve()
+        for p in ini.get("alembic", "version_locations", raw=True).split()
+    }
+    assert m.migrations.resolve() in listed
+
+
+@pytest.mark.parametrize("m", MODULES, ids=lambda m: m.name)
+def test_migrations_match_the_models(m):
+    from alembic import command
+    from alembic.autogenerate import compare_metadata
+    from alembic.runtime.migration import MigrationContext
+    from sqlalchemy import MetaData
+    from sqlalchemy.pool import StaticPool
+
+    from brain_dock.core.db import _alembic_config, get_engine
+
+    module_metadata = MetaData()
+    for table in m.tables:
+        SQLModel.metadata.tables[table].to_metadata(module_metadata)
+
+    engine = get_engine("sqlite://", poolclass=StaticPool)
+    with engine.begin() as connection:
+        command.upgrade(_alembic_config(connection), f"{m.name}@head")
+        diff = compare_metadata(MigrationContext.configure(connection), module_metadata)
+    engine.dispose()
+
+    assert diff == [], "a model changed without a migration in this module"
