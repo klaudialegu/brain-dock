@@ -34,7 +34,7 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 
 ## Stack (see docs/decisions/0001-stack.md)
 - Python 3.12, FastAPI, SQLite via SQLModel
-- Server-rendered HTML with Jinja2 + HTMX; Apache ECharts for charts (it has Sankey/funnel)
+- Server-rendered HTML with Jinja2 (plain form posts; HTMX only if a page needs partial updates, see ADR 0001); Apache ECharts, vendored, for charts
 - pytest + ruff; GitHub Actions for CI
 - Claude API (tool use) for the inbox agent
 
