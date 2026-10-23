@@ -94,6 +94,20 @@ def get_session(request: Request) -> Iterator[Session]:
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
+async def form_values(request: Request) -> dict[str, str]:
+    """The submitted fields without the CSRF token, as strings only.
+
+    Reading the body needs `await`, so it happens here, in an async dependency. The POST
+    routes can then be plain `def`: FastAPI runs those in worker threads, so their
+    synchronous database calls never block the event loop.
+    """
+    form = await request.form()
+    return {k: v for k, v in form.items() if k != CSRF_FIELD and isinstance(v, str)}
+
+
+FormValues = Annotated[dict[str, str], Depends(form_values)]
+
+
 @app.get("/stages.css")
 def stages_css() -> Response:
     return Response(stage_css(), media_type="text/css")
@@ -147,8 +161,7 @@ def new_application(request: Request) -> HTMLResponse:
 
 
 @app.post("/applications", dependencies=[Depends(verify_csrf)])
-async def add_application(request: Request, session: SessionDep):
-    values = form_values(await request.form())
+def add_application(request: Request, session: SessionDep, values: FormValues):
     try:
         entry = ApplicationForm.model_validate(values)
     except ValidationError as e:
@@ -168,11 +181,6 @@ async def add_application(request: Request, session: SessionDep):
     session.commit()
     # Post/redirect/get: refreshing the list can't submit the form again.
     return RedirectResponse("/applications", status_code=303)
-
-
-def form_values(form) -> dict[str, str]:
-    """The submitted fields without the CSRF token, as strings only."""
-    return {k: v for k, v in form.items() if k != CSRF_FIELD and isinstance(v, str)}
 
 
 def load_application(session: Session, application_id: int) -> Application:
@@ -214,9 +222,10 @@ def edit_application(request: Request, application_id: int, session: SessionDep)
 
 
 @app.post("/applications/{application_id}", dependencies=[Depends(verify_csrf)])
-async def save_application(request: Request, application_id: int, session: SessionDep):
+def save_application(
+    request: Request, application_id: int, session: SessionDep, values: FormValues
+):
     application = load_application(session, application_id)
-    values = form_values(await request.form())
     try:
         entry = ApplicationForm.model_validate(values)
     except ValidationError as e:
@@ -242,9 +251,10 @@ async def save_application(request: Request, application_id: int, session: Sessi
 
 
 @app.post("/applications/{application_id}/stages", dependencies=[Depends(verify_csrf)])
-async def add_application_stage(request: Request, application_id: int, session: SessionDep):
+def add_application_stage(
+    request: Request, application_id: int, session: SessionDep, values: FormValues
+):
     application = load_application(session, application_id)
-    values = form_values(await request.form())
 
     def refused(errors: dict) -> HTMLResponse:
         return render_edit(
