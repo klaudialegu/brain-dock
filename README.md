@@ -26,6 +26,7 @@ Open http://127.0.0.1:8000. Needs [uv](https://docs.astral.sh/uv/). CI runs thes
 
 ## Engineering highlights
 
+- **Core + modules**: a small core plus removable modules, each with a manifest and its own migrations; CI runs the app with each module turned off. ([ADR 0007](docs/decisions/0007-core-and-modules.md))
 - **Database as source of truth**: migrations, atomic validated backups, an importer that won't wipe data. ([ADR 0004](docs/decisions/0004-database-as-source-of-truth.md))
 - **Localhost security**: CSRF, DNS-rebinding protection, strict CSP, errors that never echo input. ([ADR 0005](docs/decisions/0005-form-security-on-a-localhost-app.md))
 - **Tests that prove themselves**: every security and data-writing check is broken on purpose once to show the tests catch it.

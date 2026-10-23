@@ -152,9 +152,18 @@ def is_at_head(engine: Engine) -> bool:
         return current_revision(connection) == head_revision()
 
 
+def display_path(path: Path) -> str:
+    """A database path as people see it: relative to the repo when inside it, else in full."""
+    try:
+        return str(path.resolve().relative_to(REPO_ROOT.resolve()))
+    except ValueError:
+        return str(path.resolve())
+
+
 def main() -> None:
     result = migrate(get_engine())
-    print(f"Database {result} at revision {head_revision()}: data/brain_dock.db")
+    # Name the database that was actually migrated (BRAIN_DOCK_DB can point anywhere).
+    print(f"Database {result} at revision {head_revision()}: {display_path(DB_PATH)}")
 
 
 if __name__ == "__main__":
