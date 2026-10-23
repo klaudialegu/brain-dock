@@ -1,3 +1,4 @@
+import html
 import logging
 import re
 from datetime import date
@@ -92,7 +93,8 @@ def test_non_numeric_id_is_rejected_without_echo(client):
     response = client.get(f"/applications/{SECRET}/edit")
 
     assert response.status_code == 422
-    assert response.text == "Invalid request"
+    assert "That request didn't make sense" in html.unescape(response.text)
+    assert SECRET not in response.text
 
 
 # --- Saving edits ------------------------------------------------------------

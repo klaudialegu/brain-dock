@@ -6,11 +6,12 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 from sqlmodel import Session
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from brain_dock import db
@@ -34,6 +35,7 @@ from brain_dock.queries import (
 from brain_dock.schemas import ApplicationForm, StageForm, form_errors
 from brain_dock.security import (
     ALLOWED_HOSTS,
+    CONTENT_SECURITY_POLICY,
     CSRF_FIELD,
     add_security_headers,
     csrf_token,
@@ -80,10 +82,57 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 templates.env.globals["stage_label"] = stage_label
 
 
+# What each error page says. Fixed text only: never the path, the input, or the exception,
+# so an error page can't echo personal data or internals.
+ERROR_PAGES = {
+    403: (
+        "That form wasn't accepted",
+        "Forms only work from Brain Dock's own pages. Reload the page and try again.",
+    ),
+    404: ("Page not found", "There's nothing at this address."),
+    405: ("That action isn't available here", "This address doesn't accept that kind of request."),
+    422: (
+        "That request didn't make sense",
+        "Part of the address or form wasn't in the expected format.",
+    ),
+    500: (
+        "Something went wrong",
+        "The app hit an unexpected error. The details are only in the server's terminal, "
+        "on purpose.",
+    ),
+}
+
+
+def render_error(request: Request, status_code: int, headers: dict | None = None) -> HTMLResponse:
+    title, message = ERROR_PAGES.get(status_code, ERROR_PAGES[500])
+    response = templates.TemplateResponse(
+        request,
+        "error.html",
+        {"title": title, "message": message},
+        status_code=status_code,
+        headers=headers,
+    )
+    # The 500 handler runs outside the security-headers middleware, so set the CSP here too.
+    response.headers["Content-Security-Policy"] = CONTENT_SECURITY_POLICY
+    return response
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_error(request: Request, exc: StarletteHTTPException) -> HTMLResponse:
+    # Keeps headers like Allow (for 405); ignores exc.detail, which can carry details.
+    return render_error(request, exc.status_code, getattr(exc, "headers", None))
+
+
 @app.exception_handler(RequestValidationError)
-async def invalid_request(request: Request, exc: RequestValidationError) -> PlainTextResponse:
+async def invalid_request(request: Request, exc: RequestValidationError) -> HTMLResponse:
     # FastAPI's default reply includes the submitted values; this one never does.
-    return PlainTextResponse("Invalid request", status_code=422)
+    return render_error(request, 422)
+
+
+@app.exception_handler(Exception)
+async def server_error(request: Request, exc: Exception) -> HTMLResponse:
+    # The traceback still goes to the server's terminal; the page shows none of it.
+    return render_error(request, 500)
 
 
 def get_session(request: Request) -> Iterator[Session]:

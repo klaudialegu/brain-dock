@@ -1,3 +1,4 @@
+import html
 import logging
 import re
 from datetime import date
@@ -150,21 +151,17 @@ def test_error_messages_never_contain_typed_values(client):
     assert all(SECRET not in m for m in messages)
 
 
-def test_request_validation_reply_never_includes_the_input():
-    import asyncio
-
+def test_request_validation_reply_never_includes_the_input(client):
     from fastapi.exceptions import RequestValidationError
 
     from brain_dock.main import invalid_request
 
-    exc = RequestValidationError(
-        [{"type": "int_parsing", "loc": ("path", "id"), "msg": "bad", "input": SECRET}]
-    )
-    response = asyncio.run(invalid_request(None, exc))
+    response = client.get(f"/applications/{SECRET}/edit")  # not a number: fails validation
 
     assert response.status_code == 422
-    assert response.body == b"Invalid request"
-    assert app.exception_handlers[type(exc)] is invalid_request  # it's the registered handler
+    assert "That request didn't make sense" in html.unescape(response.text)
+    assert SECRET not in response.text
+    assert app.exception_handlers[RequestValidationError] is invalid_request  # registered
 
 
 # --- CSRF -------------------------------------------------------------------
