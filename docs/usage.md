@@ -25,3 +25,18 @@ The pipeline chart leaves out repeated or backwards steps, so it has no loops.
 ## Companies
 
 Moving an application to another company reuses that company (names are matched ignoring case and spaces). A company left with no applications is removed ([ADR 0006](decisions/0006-companies-without-applications.md)).
+
+## Modules
+
+Brain Dock is a core plus modules ([ADR 0007](decisions/0007-core-and-modules.md)). Job search is the first module.
+
+- `BRAIN_DOCK_MODULES` picks the enabled modules, comma-separated (for example `BRAIN_DOCK_MODULES=job_search`). Unset means all installed modules; empty means none. An unknown name stops the app with an error listing the installed modules.
+- Turning a module off hides its pages, nav and files. Its data and migrations are never touched; turn it back on and everything is there.
+
+### Adding a module
+
+1. Create `src/brain_dock/modules/<name>/` with a `manifest.py` (see `job_search/manifest.py`), its routes, templates and models. Prefix its tables with `<name>_`.
+2. Give it its own migrations folder, starting a branch labelled `<name>`, and add that folder to `version_locations` in `alembic.ini`.
+3. Add it to `INSTALLED` in `src/brain_dock/registry.py`, and a seeder for fake data in `tests/test_modules_off.py`.
+4. Run the tests: the module contract (`tests/test_module_contract.py`) and the modules-off checks cover it automatically. It may only import the core, never another module.
+

@@ -52,7 +52,9 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - Format: `uv run ruff format .`
 
 ## Map
-- src/brain_dock/: the app (main.py routes, templates/ for Jinja2 HTML)
+- src/brain_dock/core/: the dock (ADR 0007): app factory, storage and migrations, security, web helpers, the Manifest type. Never imports a module.
+- src/brain_dock/modules/<name>/: one module each (job_search is #1): manifest.py, routes, models, its own migrations/, templates/ (loaded as "<name>/..."), static/.
+- src/brain_dock/registry.py: installed and enabled modules (BRAIN_DOCK_MODULES); the only place that imports modules. main.py composes the app.
 - tests/: pytest tests
 - .claude/skills/: repeatable session routines (/resume, /learn, /wrap-up, /explain-diff, /adr)
 - docs/decisions/: ADRs
