@@ -12,6 +12,7 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - Only say something is saved, parked, or done after the file is actually written. Never report a step in the past tense before doing it.
 - Before reporting a check's result, confirm it actually ran what it claims (test count above 0, correct target, a spy that saw calls), and every new test must be able to fail: no always-true assertions.
 - Before telling Klaudia how to change her data, check the instruction against the current ADRs (since ADR 0004 the database is the source of truth).
+- Any plan that removes or renames tests includes the before/after `pytest --collect-only` test-ID diff, so the approved count is the real one.
 
 ## Privacy rules (non-negotiable; privacy beats convenience every time)
 - Personal data never goes into git: no resumes, emails, mood entries, recruiter names/contacts, salary numbers, or the database file. .gitignore covers *.db, .env, data/, and personal docs.
@@ -34,7 +35,7 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 
 ## Stack (see docs/decisions/0001-stack.md)
 - Python 3.12, FastAPI, SQLite via SQLModel
-- Server-rendered HTML with Jinja2 + HTMX; Apache ECharts for charts (it has Sankey/funnel)
+- Server-rendered HTML with Jinja2 (plain form posts; HTMX only if a page needs partial updates, see ADR 0001); Apache ECharts, vendored, for charts
 - pytest + ruff; GitHub Actions for CI
 - Claude API (tool use) for the inbox agent
 

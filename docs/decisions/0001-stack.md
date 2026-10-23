@@ -24,3 +24,6 @@ Python 3.12 with FastAPI, SQLite via SQLModel, server-rendered Jinja2 templates 
 - Trade-off: SQLite has one writer at a time, which is fine for one user but would need revisiting for multi-user.
 - Trade-off: HTMX suits server-driven pages; a very interactive UI later could outgrow it.
 - Trade-off: SQLModel is younger than SQLAlchemy; we can drop down to SQLAlchemy (which it is built on) if needed.
+
+## Update 2026-10-22
+HTMX hasn't been needed so far: forms are plain HTML posts with a redirect after success, and the one interactive view (the pipeline chart) is a small script reading a JSON block. HTMX is not a dependency; it stays an option if a page needs partial updates later. The rest of this decision stands.

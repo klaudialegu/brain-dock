@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from sqlalchemy import Engine, delete, func, select
 from sqlmodel import Session
 
-from brain_dock.db import DB_PATH, get_engine, migrate
+from brain_dock.db import DB_PATH, DEMO_DB_PATH, get_engine, migrate
 from brain_dock.models import (
     Application,
     Company,
@@ -28,7 +28,7 @@ REPO_ROOT = Path(__file__).parents[2]
 REAL_JSON = REPO_ROOT / "data" / "my_applications.json"
 REAL_DB = DB_PATH
 DEMO_JSON = REPO_ROOT / "demo" / "applications.json"
-DEMO_DB = REPO_ROOT / "data" / "demo.db"
+DEMO_DB = DEMO_DB_PATH
 
 
 class ImportFileError(ValueError):

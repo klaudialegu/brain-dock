@@ -15,8 +15,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from brain_dock import db
 from brain_dock.charts import pipeline_chart_data, pipeline_summary
-from brain_dock.clocks import load_cities, world_clocks
-from brain_dock.db import get_engine, is_at_head
+from brain_dock.db import get_engine, is_at_head, is_demo_database
 from brain_dock.models import (
     Application,
     DateOrderError,
@@ -46,8 +45,6 @@ from brain_dock.stages import recordable_stages, stage_css, stage_label
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"
-# Local, gitignored settings at the repo root. See config.example.toml for the format.
-CONFIG_PATH = Path(__file__).parents[2] / "config.toml"
 
 
 class DatabaseNotReadyError(RuntimeError):
@@ -67,6 +64,8 @@ async def lifespan(app: FastAPI):
             "The database needs migrating. Run: uv run python -m brain_dock.db"
         )
     app.state.engine = engine
+    # Shown as a banner, so fake demo data can't be mistaken for real data (or vice versa).
+    app.state.is_demo = is_demo_database(db.DB_PATH)
     yield
     engine.dispose()
 
@@ -100,12 +99,10 @@ def stages_css() -> Response:
     return Response(stage_css(), media_type="text/css")
 
 
-@app.get("/", response_class=HTMLResponse)
-def home(request: Request) -> HTMLResponse:
-    cities = load_cities(CONFIG_PATH)
-    context = {"clocks": world_clocks(cities=cities), "reference_tz": cities[0][1]}
-    # The clocks can show personal places from config.toml, so don't cache this page either.
-    return no_store(templates.TemplateResponse(request, "index.html", context))
+@app.get("/")
+def home() -> RedirectResponse:
+    # The pipeline is the home page; one address for it keeps links and bookmarks simple.
+    return RedirectResponse("/applications", status_code=303)
 
 
 @app.get("/applications", response_class=HTMLResponse)

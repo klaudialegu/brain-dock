@@ -175,7 +175,10 @@ def test_html_in_data_is_escaped(client, session):
     assert "<script>alert(1)</script>" not in html
 
 
-@pytest.mark.parametrize(("path", "current"), [("/", "Home"), ("/applications", "Applications")])
+@pytest.mark.parametrize(
+    ("path", "current"),
+    [("/applications", "Applications"), ("/applications/new", "Add application")],
+)
 def test_nav_on_every_page_marks_the_current_one(client, path, current):
     html = client.get(path).text
 
