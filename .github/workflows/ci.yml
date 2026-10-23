@@ -57,3 +57,24 @@ jobs:
 
       - name: README quick start on a fresh clone
         run: scripts/check_quickstart.sh
+
+  # Starts the real server with each module turned off in turn (and all off), on demo
+  # data, and checks the core still serves while the module's data stays untouched.
+  modules-off:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: "0.12.23" # same uv as local development
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Each module turned off in turn
+        run: scripts/check_modules_off.sh
