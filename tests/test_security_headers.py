@@ -1,10 +1,10 @@
 import re
-from pathlib import Path
 
 import pytest
 
 from brain_dock.core.security import CONTENT_SECURITY_POLICY
-from brain_dock.main import TEMPLATES_DIR
+
+from .conftest import all_templates
 
 
 def directives(policy):
@@ -41,7 +41,7 @@ def test_every_response_has_the_policy(client, method, path):
     assert response.headers["content-security-policy"] == CONTENT_SECURITY_POLICY
 
 
-TEMPLATES = sorted(Path(TEMPLATES_DIR).rglob("*.html"))
+TEMPLATES = all_templates()
 
 
 @pytest.mark.parametrize("template", TEMPLATES, ids=lambda p: p.name)

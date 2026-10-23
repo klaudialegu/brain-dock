@@ -3,8 +3,8 @@ from logging.config import fileConfig
 from alembic import context
 from sqlmodel import SQLModel
 
+from brain_dock import registry  # noqa: F401  (importing registers every installed module's tables)
 from brain_dock.core.db import get_engine
-from brain_dock.modules.job_search import models  # noqa: F401  (importing registers the tables)
 
 config = context.config
 if config.config_file_name and config.attributes.get("configure_logger", True):

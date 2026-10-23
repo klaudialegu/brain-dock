@@ -113,7 +113,7 @@ def test_chart_scripts_load_from_this_app_in_order(client, session):
     echarts = html.index(
         '<script src="/static/vendor/echarts-6.1.0/echarts.min.js" defer></script>'
     )
-    pipeline = html.index('<script src="/static/pipeline.js" defer></script>')
+    pipeline = html.index('<script src="/static/modules/job_search/pipeline.js" defer></script>')
 
     assert echarts < pipeline
 
@@ -146,7 +146,7 @@ def test_empty_list_has_no_stats_or_chart(client):
 
 
 def test_pipeline_script_is_served(client):
-    response = client.get("/static/pipeline.js")
+    response = client.get("/static/modules/job_search/pipeline.js")
 
     assert response.status_code == 200
     assert "renderMode" in response.text  # canvas tooltips, no inline styles (CSP)

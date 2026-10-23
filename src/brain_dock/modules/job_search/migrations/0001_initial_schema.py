@@ -13,7 +13,8 @@ from alembic import op
 
 revision: str = "0001"
 down_revision: str | None = None
-branch_labels: str | Sequence[str] | None = None
+# Job search's own branch of the migration history (ADR 0007).
+branch_labels: str | Sequence[str] | None = ("job_search",)
 depends_on: str | Sequence[str] | None = None
 
 

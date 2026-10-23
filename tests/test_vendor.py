@@ -1,13 +1,12 @@
 import hashlib
 import re
-from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
 
-from brain_dock.main import STATIC_DIR, TEMPLATES_DIR, app
+from brain_dock.main import STATIC_DIR, app
 
-from .conftest import BASE_URL
+from .conftest import BASE_URL, all_templates
 
 # Every vendored file and its SHA-256. A changed file fails the test until it's reviewed.
 VENDORED = {
@@ -36,7 +35,7 @@ def test_vendored_file_is_served(path):
     assert "javascript" in response.headers["content-type"]
 
 
-TEMPLATES = sorted(Path(TEMPLATES_DIR).rglob("*.html"))
+TEMPLATES = all_templates()
 
 
 @pytest.mark.parametrize("template", TEMPLATES, ids=lambda p: p.name)

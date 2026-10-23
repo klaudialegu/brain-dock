@@ -10,8 +10,6 @@ from sqlalchemy import Connection, Engine, event, inspect
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel, create_engine
 
-from brain_dock.modules.job_search import models  # noqa: F401  (importing registers the tables)
-
 REPO_ROOT = Path(__file__).parents[3]  # src/brain_dock/core/db.py -> repo root
 # Local databases at the repo root, inside the gitignored data/ folder.
 DEFAULT_DB_PATH = REPO_ROOT / "data" / "brain_dock.db"
@@ -33,7 +31,6 @@ DB_PATH = database_path()
 ALEMBIC_INI = REPO_ROOT / "alembic.ini"
 # The revision that matches databases made by create_all before migrations existed.
 BASELINE_REVISION = "0001"
-TRACKER_TABLES = {"company", "application", "stageevent"}
 
 
 class SchemaMismatchError(RuntimeError):
@@ -73,12 +70,19 @@ def _alembic_config(connection: Connection | None = None) -> Config:
     return config
 
 
+def head_revisions() -> set[str]:
+    """The latest revision of every module's branch."""
+    return set(ScriptDirectory.from_config(_alembic_config()).get_heads())
+
+
 def head_revision() -> str:
-    return ScriptDirectory.from_config(_alembic_config()).get_current_head()
+    return ", ".join(sorted(head_revisions()))
 
 
 def current_revision(connection: Connection) -> str | None:
-    return MigrationContext.configure(connection).get_current_revision()
+    """Where the database is, one revision per module branch (None before any migration)."""
+    heads = MigrationContext.configure(connection).get_current_heads()
+    return ", ".join(sorted(heads)) if heads else None
 
 
 def schema_snapshot(connection: Connection) -> dict:
@@ -127,7 +131,9 @@ def migrate(engine: Engine) -> str:
     with engine.begin() as connection:
         existing = set(inspect(connection).get_table_names())
         before = current_revision(connection)
-        if before is None and existing & TRACKER_TABLES:
+        # Tables but no migration history: made before migrations existed (or by hand).
+        # Only an exact match with the baseline is stamped; anything else stops.
+        if before is None and existing - {"alembic_version"}:
             if schema_snapshot(connection) != baseline_snapshot():
                 raise SchemaMismatchError(
                     "The database has tables but no migration history, and its schema "
@@ -135,9 +141,9 @@ def migrate(engine: Engine) -> str:
                     "Export or rebuild it before migrating."
                 )
             command.stamp(_alembic_config(connection), BASELINE_REVISION)
-            command.upgrade(_alembic_config(connection), "head")
+            command.upgrade(_alembic_config(connection), "heads")
             return "stamped"
-        command.upgrade(_alembic_config(connection), "head")
+        command.upgrade(_alembic_config(connection), "heads")
         return "up to date" if before == head_revision() else "upgraded"
 
 

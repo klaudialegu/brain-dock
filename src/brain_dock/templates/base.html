@@ -5,18 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Brain Dock{% endblock %}</title>
   <link rel="stylesheet" href="/static/app.css">
-  <link rel="stylesheet" href="/stages.css">
+  {% for href in stylesheets %}
+  <link rel="stylesheet" href="{{ href }}">
+  {% endfor %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
   <main>
     {% if request.app.state.is_demo %}
     <p class="demo-banner" role="status">You're looking at fake demo data (<code>data/demo.db</code>). Your own data lives in <code>data/brain_dock.db</code>.</p>
     {% endif %}
+    {% if nav %}
     <nav aria-label="Main">
-      <a href="/applications"{% if request.url.path == "/applications" %} aria-current="page"{% endif %}>Applications</a>
-      ·
-      <a href="/applications/new"{% if request.url.path == "/applications/new" %} aria-current="page"{% endif %}>Add application</a>
+      {% for entry in nav %}
+      {% if not loop.first %}·{% endif %}
+      <a href="{{ entry.path }}"{% if request.url.path == entry.path %} aria-current="page"{% endif %}>{{ entry.label }}</a>
+      {% endfor %}
     </nav>
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
 </body>

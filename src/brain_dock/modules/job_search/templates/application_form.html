@@ -11,7 +11,7 @@
 
 <form class="stack" method="post" action="/applications">
   {{ f.csrf(csrf_field, csrf_token) }}
-  {% include "partials/application_fields.html" %}
+  {% include "job_search/partials/application_fields.html" %}
   <p><button class="button" type="submit">Save application</button> <a href="/applications">Cancel</a></p>
 </form>
 {% endblock %}

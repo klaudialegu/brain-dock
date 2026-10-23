@@ -6,7 +6,7 @@
   <div id="pipeline-chart" class="pipeline-chart" role="img" aria-label="Pipeline: {{ summary }}"></div>
   <script type="application/json" id="pipeline-data">{{ data | tojson }}</script>
   <script src="/static/vendor/echarts-6.1.0/echarts.min.js" defer></script>
-  <script src="/static/pipeline.js" defer></script>
+  <script src="/static/modules/job_search/pipeline.js" defer></script>
   {% else %}
   <p class="stat-note">The pipeline appears once an application moves past Applied.</p>
   {% endif %}
