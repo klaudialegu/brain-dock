@@ -1,5 +1,7 @@
 # Brain Dock
 
+[![CI](https://github.com/klaudialegu/brain-dock/actions/workflows/ci.yml/badge.svg)](https://github.com/klaudialegu/brain-dock/actions/workflows/ci.yml)
+
 A personal, local-first job-search hub: applications, interview prep, inbox triage and learning in one place. Built with Claude Code as a pair programmer, in small reviewed slices.
 
 ## Setup
@@ -27,6 +29,8 @@ A personal, local-first job-search hub: applications, interview prep, inbox tria
 - Open the app at `http://127.0.0.1:8000` or `http://localhost:8000`. Other host names are refused on purpose, and forms only accept posts from the app's own pages (see [ADR 0005](docs/decisions/0005-form-security-on-a-localhost-app.md)).
 
 ## Development
+
+Every push to `main` and every pull request runs CI (`.github/workflows/ci.yml`): `uv sync --locked`, ruff lint and format checks, and the tests. Any warning fails the tests (`filterwarnings = ["error"]` in `pyproject.toml`). Actions are pinned to commit SHAs and kept current by Dependabot.
 
 - Tests: `uv run pytest`
 - Lint: `uv run ruff check .`
