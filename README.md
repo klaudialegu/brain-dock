@@ -34,8 +34,7 @@ Open http://127.0.0.1:8000. Needs [uv](https://docs.astral.sh/uv/). CI runs thes
 
 ## Why I built it
 
-<!-- DRAFT for Klaudia to rewrite in her own voice. -->
-I'm a support engineer moving into Forward Deployed Engineering. My job search was spread across spreadsheets, emails and notes, so I built one place for it, and a real project to practice the work I'm moving toward: take a fuzzy need and ship it end to end, in small verified slices.
+I work as a support engineer, and I learn best by building things I’ll actually use. Brain Dock is my personal project for learning how to develop software properly with AI: in small reviewed slices, with tests that prove themselves and security taken seriously. Job search is the first piece. More will come as I learn.
 
 ## Where it's going (roadmap)
 
