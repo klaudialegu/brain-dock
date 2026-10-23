@@ -13,6 +13,8 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - Before reporting a check's result, confirm it actually ran what it claims (test count above 0, correct target, a spy that saw calls), and every new test must be able to fail: no always-true assertions.
 - Before telling Klaudia how to change her data, check the instruction against the current ADRs (since ADR 0004 the database is the source of truth).
 - Any plan that removes or renames tests includes the before/after `pytest --collect-only` test-ID diff, so the approved count is the real one.
+- If a new test is worth adding mid-slice, add it and report the plan change; don't fold it into a planned test just to keep the test-ID diff matching.
+- Before running a bulk rewrite across files (a regex or a script), dry-run it and read the diff before running fixers like `ruff --fix`.
 
 ## Privacy rules (non-negotiable; privacy beats convenience every time)
 - Personal data never goes into git: no resumes, emails, mood entries, recruiter names/contacts, salary numbers, or the database file. .gitignore covers *.db, .env, data/, and personal docs.
