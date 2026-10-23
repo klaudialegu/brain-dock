@@ -17,8 +17,7 @@ from brain_dock.importer import (
 )
 from brain_dock.models import Application, Company, Stage, StageEvent
 
-# Distinctive marker used in bad input, so tests can prove it never appears in error output.
-SECRET = "SECRET-VALUE-42"
+from .conftest import SECRET
 
 
 def entry(**overrides):

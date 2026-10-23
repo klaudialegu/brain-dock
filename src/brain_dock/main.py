@@ -6,11 +6,12 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import ValidationError
 from sqlmodel import Session
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from brain_dock import db
@@ -34,6 +35,7 @@ from brain_dock.queries import (
 from brain_dock.schemas import ApplicationForm, StageForm, form_errors
 from brain_dock.security import (
     ALLOWED_HOSTS,
+    CONTENT_SECURITY_POLICY,
     CSRF_FIELD,
     add_security_headers,
     csrf_token,
@@ -80,10 +82,57 @@ templates = Jinja2Templates(directory=TEMPLATES_DIR)
 templates.env.globals["stage_label"] = stage_label
 
 
+# What each error page says. Fixed text only: never the path, the input, or the exception,
+# so an error page can't echo personal data or internals.
+ERROR_PAGES = {
+    403: (
+        "That form wasn't accepted",
+        "Forms only work from Brain Dock's own pages. Reload the page and try again.",
+    ),
+    404: ("Page not found", "There's nothing at this address."),
+    405: ("That action isn't available here", "This address doesn't accept that kind of request."),
+    422: (
+        "That request didn't make sense",
+        "Part of the address or form wasn't in the expected format.",
+    ),
+    500: (
+        "Something went wrong",
+        "The app hit an unexpected error. The details are only in the server's terminal, "
+        "on purpose.",
+    ),
+}
+
+
+def render_error(request: Request, status_code: int, headers: dict | None = None) -> HTMLResponse:
+    title, message = ERROR_PAGES.get(status_code, ERROR_PAGES[500])
+    response = templates.TemplateResponse(
+        request,
+        "error.html",
+        {"title": title, "message": message},
+        status_code=status_code,
+        headers=headers,
+    )
+    # The 500 handler runs outside the security-headers middleware, so set the CSP here too.
+    response.headers["Content-Security-Policy"] = CONTENT_SECURITY_POLICY
+    return response
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_error(request: Request, exc: StarletteHTTPException) -> HTMLResponse:
+    # Keeps headers like Allow (for 405); ignores exc.detail, which can carry details.
+    return render_error(request, exc.status_code, getattr(exc, "headers", None))
+
+
 @app.exception_handler(RequestValidationError)
-async def invalid_request(request: Request, exc: RequestValidationError) -> PlainTextResponse:
+async def invalid_request(request: Request, exc: RequestValidationError) -> HTMLResponse:
     # FastAPI's default reply includes the submitted values; this one never does.
-    return PlainTextResponse("Invalid request", status_code=422)
+    return render_error(request, 422)
+
+
+@app.exception_handler(Exception)
+async def server_error(request: Request, exc: Exception) -> HTMLResponse:
+    # The traceback still goes to the server's terminal; the page shows none of it.
+    return render_error(request, 500)
 
 
 def get_session(request: Request) -> Iterator[Session]:
@@ -92,6 +141,20 @@ def get_session(request: Request) -> Iterator[Session]:
 
 
 SessionDep = Annotated[Session, Depends(get_session)]
+
+
+async def form_values(request: Request) -> dict[str, str]:
+    """The submitted fields without the CSRF token, as strings only.
+
+    Reading the body needs `await`, so it happens here, in an async dependency. The POST
+    routes can then be plain `def`: FastAPI runs those in worker threads, so their
+    synchronous database calls never block the event loop.
+    """
+    form = await request.form()
+    return {k: v for k, v in form.items() if k != CSRF_FIELD and isinstance(v, str)}
+
+
+FormValues = Annotated[dict[str, str], Depends(form_values)]
 
 
 @app.get("/stages.css")
@@ -147,15 +210,12 @@ def new_application(request: Request) -> HTMLResponse:
 
 
 @app.post("/applications", dependencies=[Depends(verify_csrf)])
-async def add_application(request: Request, session: SessionDep):
-    form = await request.form()
-    values = {k: v for k, v in form.items() if k != CSRF_FIELD}
+def add_application(request: Request, session: SessionDep, values: FormValues):
     try:
         entry = ApplicationForm.model_validate(values)
     except ValidationError as e:
         # Show the problems next to the fields; nothing about the input is logged.
-        shown = {k: v for k, v in values.items() if isinstance(v, str)}
-        return render_form(request, shown, form_errors(e), status_code=400)
+        return render_form(request, values, form_errors(e), status_code=400)
 
     create_application(
         session,
@@ -170,11 +230,6 @@ async def add_application(request: Request, session: SessionDep):
     session.commit()
     # Post/redirect/get: refreshing the list can't submit the form again.
     return RedirectResponse("/applications", status_code=303)
-
-
-def form_values(form) -> dict[str, str]:
-    """The submitted fields without the CSRF token, as strings only."""
-    return {k: v for k, v in form.items() if k != CSRF_FIELD and isinstance(v, str)}
 
 
 def load_application(session: Session, application_id: int) -> Application:
@@ -216,9 +271,10 @@ def edit_application(request: Request, application_id: int, session: SessionDep)
 
 
 @app.post("/applications/{application_id}", dependencies=[Depends(verify_csrf)])
-async def save_application(request: Request, application_id: int, session: SessionDep):
+def save_application(
+    request: Request, application_id: int, session: SessionDep, values: FormValues
+):
     application = load_application(session, application_id)
-    values = form_values(await request.form())
     try:
         entry = ApplicationForm.model_validate(values)
     except ValidationError as e:
@@ -244,9 +300,10 @@ async def save_application(request: Request, application_id: int, session: Sessi
 
 
 @app.post("/applications/{application_id}/stages", dependencies=[Depends(verify_csrf)])
-async def add_application_stage(request: Request, application_id: int, session: SessionDep):
+def add_application_stage(
+    request: Request, application_id: int, session: SessionDep, values: FormValues
+):
     application = load_application(session, application_id)
-    values = form_values(await request.form())
 
     def refused(errors: dict) -> HTMLResponse:
         return render_edit(

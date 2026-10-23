@@ -8,7 +8,7 @@ from sqlmodel import select
 
 from brain_dock import db
 from brain_dock.db import get_engine, migrate
-from brain_dock.main import app, get_session
+from brain_dock.main import app
 from brain_dock.models import (
     Application,
     Company,
@@ -20,14 +20,6 @@ from brain_dock.models import (
 from brain_dock.queries import list_applications, safe_link
 
 from .conftest import BASE_URL, REAL_DB_PATH
-
-
-@pytest.fixture
-def client(session):
-    # Serve the page from the in-memory test database instead of data/brain_dock.db.
-    app.dependency_overrides[get_session] = lambda: session
-    yield TestClient(app, base_url=BASE_URL)
-    app.dependency_overrides.clear()
 
 
 def add(session, company_name, role_title, applied_on, **kwargs):

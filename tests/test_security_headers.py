@@ -2,19 +2,9 @@ import re
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
 
-from brain_dock.main import TEMPLATES_DIR, app, get_session
+from brain_dock.main import TEMPLATES_DIR
 from brain_dock.security import CONTENT_SECURITY_POLICY
-
-from .conftest import BASE_URL
-
-
-@pytest.fixture
-def client(session):
-    app.dependency_overrides[get_session] = lambda: session
-    yield TestClient(app, base_url=BASE_URL)
-    app.dependency_overrides.clear()
 
 
 def directives(policy):

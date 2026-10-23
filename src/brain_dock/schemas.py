@@ -128,7 +128,3 @@ def describe_error(error: dict) -> str:
         parts.append(field)
     reason = error["msg"].removeprefix("Value error, ")
     return f"{', '.join(parts) or 'file'}: {reason}"
-
-
-def company_key(name: str) -> str:
-    return name.strip().casefold()

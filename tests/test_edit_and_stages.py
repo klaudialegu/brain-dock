@@ -1,12 +1,11 @@
+import html
 import logging
 import re
 from datetime import date
 
 import pytest
-from fastapi.testclient import TestClient
 from sqlmodel import func, select
 
-from brain_dock.main import app, get_session
 from brain_dock.models import (
     Application,
     Company,
@@ -17,16 +16,7 @@ from brain_dock.models import (
     record_stage,
 )
 
-from .conftest import BASE_URL
-
-SECRET = "SECRET-VALUE-42"
-
-
-@pytest.fixture
-def client(session):
-    app.dependency_overrides[get_session] = lambda: session
-    yield TestClient(app, base_url=BASE_URL)
-    app.dependency_overrides.clear()
+from .conftest import BASE_URL, SECRET
 
 
 def add(session, company="Acme Analytics", role="Solutions Engineer", applied=date(2026, 10, 1)):
@@ -103,7 +93,8 @@ def test_non_numeric_id_is_rejected_without_echo(client):
     response = client.get(f"/applications/{SECRET}/edit")
 
     assert response.status_code == 422
-    assert response.text == "Invalid request"
+    assert "That request didn't make sense" in html.unescape(response.text)
+    assert SECRET not in response.text
 
 
 # --- Saving edits ------------------------------------------------------------

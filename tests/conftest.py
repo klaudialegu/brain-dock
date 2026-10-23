@@ -1,13 +1,19 @@
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session
 
 from brain_dock import db, export
 from brain_dock.db import create_db, get_engine
+from brain_dock.main import app, get_session
 
 # The app only answers to its own host names (TrustedHostMiddleware), so test clients
 # must use one of them instead of TestClient's default "testserver".
 BASE_URL = "http://127.0.0.1:8000"
+
+# A distinctive value planted in input, so tests can prove it never shows up in
+# error messages, logs or responses.
+SECRET = "SECRET-VALUE-42"
 
 # The real database, as it is before any test can patch it.
 REAL_DB_PATH = db.DB_PATH
@@ -30,3 +36,11 @@ def session():
     with Session(engine) as session:
         yield session
     engine.dispose()
+
+
+@pytest.fixture
+def client(session):
+    """A test client whose requests use the in-memory test database, never data/."""
+    app.dependency_overrides[get_session] = lambda: session
+    yield TestClient(app, base_url=BASE_URL)
+    app.dependency_overrides.clear()

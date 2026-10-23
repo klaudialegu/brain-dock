@@ -13,16 +13,11 @@ from brain_dock.models import (
     Application,
     Company,
     StageEvent,
+    company_key,
     create_application,
     record_stage,
 )
-from brain_dock.schemas import (  # noqa: F401  (EventIn re-exported for callers)
-    ApplicationIn,
-    ApplicationsFile,
-    EventIn,
-    company_key,
-    describe_error,
-)
+from brain_dock.schemas import ApplicationIn, ApplicationsFile, describe_error
 
 REPO_ROOT = Path(__file__).parents[2]
 REAL_JSON = REPO_ROOT / "data" / "my_applications.json"
