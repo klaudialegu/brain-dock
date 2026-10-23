@@ -46,4 +46,4 @@ def test_stage_css_is_served_and_linked():
     assert response.status_code == 200
     assert response.headers["content-type"].startswith("text/css")
     assert response.text == stage_css()
-    assert '<link rel="stylesheet" href="/stages.css">' in client.get("/").text
+    assert '<link rel="stylesheet" href="/stages.css">' in client.get("/applications/new").text
