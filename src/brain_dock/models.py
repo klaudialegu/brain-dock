@@ -56,11 +56,16 @@ class StageEvent(SQLModel, table=True):
     application: Application | None = Relationship(back_populates="events")
 
 
+def company_key(name: str) -> str:
+    """How company names are compared everywhere: ignoring case and surrounding spaces."""
+    return name.strip().casefold()
+
+
 def get_or_create_company(session: Session, name: str) -> Company:
-    """Find a company by name, ignoring case and surrounding spaces, or add it (trimmed)."""
-    key = name.strip().casefold()
+    """Find a company by name (see company_key), or add it, trimmed."""
+    key = company_key(name)
     for company in session.exec(select(Company)):
-        if company.name.strip().casefold() == key:
+        if company_key(company.name) == key:
             return company
     company = Company(name=name.strip())
     session.add(company)
@@ -149,7 +154,7 @@ def update_application(
         raise DateOrderError("applied_on is after a recorded stage")
 
     old_company = application.company
-    if old_company.name.strip().casefold() == company_name.strip().casefold():
+    if company_key(old_company.name) == company_key(company_name):
         old_company.name = company_name.strip()  # same company: allow fixing its spelling
         new_company = old_company
     else:

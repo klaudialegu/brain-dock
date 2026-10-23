@@ -11,9 +11,8 @@ from brain_dock.main import app, get_session
 from brain_dock.models import Application, Company, Stage, StageEvent
 from brain_dock.security import CSRF_COOKIE, verify_csrf
 
-from .conftest import BASE_URL
+from .conftest import BASE_URL, SECRET
 
-SECRET = "SECRET-VALUE-42"
 VALID = {
     "company": "Acme Analytics",
     "role_title": "Forward Deployed Engineer",
@@ -23,13 +22,6 @@ VALID = {
     "notes": "Fake notes",
     "follow_up_on": "2026-10-28",
 }
-
-
-@pytest.fixture
-def client(session):
-    app.dependency_overrides[get_session] = lambda: session
-    yield TestClient(app, base_url=BASE_URL)
-    app.dependency_overrides.clear()
 
 
 def form_token(client):

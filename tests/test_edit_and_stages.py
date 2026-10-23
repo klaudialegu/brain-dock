@@ -3,10 +3,8 @@ import re
 from datetime import date
 
 import pytest
-from fastapi.testclient import TestClient
 from sqlmodel import func, select
 
-from brain_dock.main import app, get_session
 from brain_dock.models import (
     Application,
     Company,
@@ -17,16 +15,7 @@ from brain_dock.models import (
     record_stage,
 )
 
-from .conftest import BASE_URL
-
-SECRET = "SECRET-VALUE-42"
-
-
-@pytest.fixture
-def client(session):
-    app.dependency_overrides[get_session] = lambda: session
-    yield TestClient(app, base_url=BASE_URL)
-    app.dependency_overrides.clear()
+from .conftest import BASE_URL, SECRET
 
 
 def add(session, company="Acme Analytics", role="Solutions Engineer", applied=date(2026, 10, 1)):

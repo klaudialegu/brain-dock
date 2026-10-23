@@ -148,14 +148,12 @@ def new_application(request: Request) -> HTMLResponse:
 
 @app.post("/applications", dependencies=[Depends(verify_csrf)])
 async def add_application(request: Request, session: SessionDep):
-    form = await request.form()
-    values = {k: v for k, v in form.items() if k != CSRF_FIELD}
+    values = form_values(await request.form())
     try:
         entry = ApplicationForm.model_validate(values)
     except ValidationError as e:
         # Show the problems next to the fields; nothing about the input is logged.
-        shown = {k: v for k, v in values.items() if isinstance(v, str)}
-        return render_form(request, shown, form_errors(e), status_code=400)
+        return render_form(request, values, form_errors(e), status_code=400)
 
     create_application(
         session,

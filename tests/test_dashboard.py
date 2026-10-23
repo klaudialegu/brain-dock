@@ -2,11 +2,7 @@ import json
 import re
 from datetime import date, timedelta
 
-import pytest
-from fastapi.testclient import TestClient
-
 from brain_dock.charts import pipeline_chart_data, pipeline_summary
-from brain_dock.main import app, get_session
 from brain_dock.models import (
     RoleTrack,
     Stage,
@@ -16,15 +12,6 @@ from brain_dock.models import (
 )
 from brain_dock.queries import PipelineLink
 from brain_dock.stages import STAGES
-
-from .conftest import BASE_URL
-
-
-@pytest.fixture
-def client(session):
-    app.dependency_overrides[get_session] = lambda: session
-    yield TestClient(app, base_url=BASE_URL)
-    app.dependency_overrides.clear()
 
 
 def add(session, company, role, applied_on, *stages):
