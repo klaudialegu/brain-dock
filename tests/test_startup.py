@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from brain_dock.db import get_engine, migrate
+from brain_dock.core.db import get_engine, migrate
 from brain_dock.main import DatabaseNotReadyError, app
 
 from .conftest import BASE_URL

@@ -1,8 +1,14 @@
 from fastapi.testclient import TestClient
 
 from brain_dock.main import app
-from brain_dock.models import Stage
-from brain_dock.stages import KINDS, STAGES, recordable_stages, stage_css, stage_label
+from brain_dock.modules.job_search.models import Stage
+from brain_dock.modules.job_search.stages import (
+    KINDS,
+    STAGES,
+    recordable_stages,
+    stage_css,
+    stage_label,
+)
 
 from .conftest import BASE_URL
 

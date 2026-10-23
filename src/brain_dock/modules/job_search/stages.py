@@ -6,7 +6,7 @@ read from STAGES. tests/test_stages.py fails if a Stage is missing here.
 
 from dataclasses import dataclass
 
-from brain_dock.models import Stage
+from brain_dock.modules.job_search.models import Stage
 
 
 @dataclass(frozen=True)

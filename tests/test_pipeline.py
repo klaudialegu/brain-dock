@@ -1,13 +1,13 @@
 from datetime import date
 
-from brain_dock.models import (
+from brain_dock.modules.job_search.models import (
     RoleTrack,
     Stage,
     create_application,
     get_or_create_company,
     record_stage,
 )
-from brain_dock.queries import PipelineLink, pipeline_links
+from brain_dock.modules.job_search.queries import PipelineLink, pipeline_links
 
 A, S, INTV, ONS, OFFER = Stage.applied, Stage.screen, Stage.interview, Stage.onsite, Stage.offer
 REJ, GHOST, WD = Stage.rejected, Stage.ghosted, Stage.withdrawn
@@ -96,8 +96,8 @@ def test_links_are_ordered_left_to_right(session):
 
 
 def test_every_path_moves_forward_only(session):
-    from brain_dock.queries import pipeline_path
-    from brain_dock.stages import stage_order
+    from brain_dock.modules.job_search.queries import pipeline_path
+    from brain_dock.modules.job_search.stages import stage_order
 
     application = app_with(session, INTV, S, ONS, INTV, REJ, S)
     path = pipeline_path(application)

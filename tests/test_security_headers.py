@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
+from brain_dock.core.security import CONTENT_SECURITY_POLICY
 from brain_dock.main import TEMPLATES_DIR
-from brain_dock.security import CONTENT_SECURITY_POLICY
 
 
 def directives(policy):

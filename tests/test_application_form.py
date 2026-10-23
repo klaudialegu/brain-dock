@@ -8,9 +8,9 @@ from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from sqlmodel import func, select
 
+from brain_dock.core.security import CSRF_COOKIE, verify_csrf
 from brain_dock.main import app, get_session
-from brain_dock.models import Application, Company, Stage, StageEvent
-from brain_dock.security import CSRF_COOKIE, verify_csrf
+from brain_dock.modules.job_search.models import Application, Company, Stage, StageEvent
 
 from .conftest import BASE_URL, SECRET
 

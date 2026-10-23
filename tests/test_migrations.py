@@ -6,7 +6,7 @@ from alembic.runtime.migration import MigrationContext
 from sqlalchemy import inspect
 from sqlmodel import Session, SQLModel, select
 
-from brain_dock.db import (
+from brain_dock.core.db import (
     BASELINE_REVISION,
     SchemaMismatchError,
     create_db,
@@ -17,7 +17,7 @@ from brain_dock.db import (
     migrate,
     schema_snapshot,
 )
-from brain_dock.models import Company, RoleTrack, create_application
+from brain_dock.modules.job_search.models import Company, RoleTrack, create_application
 
 
 @pytest.fixture

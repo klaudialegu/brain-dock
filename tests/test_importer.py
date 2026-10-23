@@ -6,16 +6,16 @@ import pytest
 from sqlalchemy import func, select
 from sqlmodel import Session
 
-from brain_dock import importer
-from brain_dock.db import get_engine
-from brain_dock.importer import (
+from brain_dock.core.db import get_engine
+from brain_dock.modules.job_search import export, importer
+from brain_dock.modules.job_search.importer import (
     DEMO_JSON,
     REPO_ROOT,
     ImportFileError,
     load_applications,
     rebuild_db,
 )
-from brain_dock.models import Application, Company, Stage, StageEvent
+from brain_dock.modules.job_search.models import Application, Company, Stage, StageEvent
 
 from .conftest import SECRET
 
@@ -407,7 +407,6 @@ def test_empty_database_needs_no_force_or_backup(engine, tmp_path):
 
 
 def test_force_backs_up_completely_before_deleting(filled, tmp_path, monkeypatch):
-    from brain_dock import export
 
     seen_at_backup_time = []
     real_write_backup = export.write_backup
@@ -427,7 +426,6 @@ def test_force_backs_up_completely_before_deleting(filled, tmp_path, monkeypatch
 
 
 def test_failed_backup_aborts_without_wiping(filled, tmp_path, monkeypatch):
-    from brain_dock import export
 
     def broken(*args, **kwargs):
         raise OSError("backup disk full (simulated)")
@@ -447,7 +445,6 @@ def test_demo_database_is_not_locked(paths):
 
 
 def test_command_refuses_then_forces_with_a_backup(paths, capsys):
-    from brain_dock import export
 
     real_json, real_db, _ = paths
     real_json.write_text(json.dumps({"applications": [entry(company=SECRET)]}))
@@ -468,7 +465,6 @@ def test_command_refuses_then_forces_with_a_backup(paths, capsys):
 
 
 def test_command_reports_a_failed_backup(paths, capsys, monkeypatch):
-    from brain_dock import export
 
     real_json, real_db, _ = paths
     real_json.write_text(json.dumps({"applications": [entry()]}))

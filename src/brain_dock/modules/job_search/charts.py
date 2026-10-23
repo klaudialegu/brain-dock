@@ -3,8 +3,8 @@
 Only stage names and numbers go to the page, never company or role names.
 """
 
-from brain_dock.queries import PipelineLink
-from brain_dock.stages import STAGES, stage_label, stage_order
+from brain_dock.modules.job_search.queries import PipelineLink
+from brain_dock.modules.job_search.stages import STAGES, stage_label, stage_order
 
 
 def pipeline_chart_data(links: list[PipelineLink]) -> dict:

@@ -2,15 +2,15 @@ from datetime import date
 
 import pytest
 
-from brain_dock.models import (
+from brain_dock.modules.job_search.models import (
     RoleTrack,
     Stage,
     create_application,
     get_or_create_company,
     record_stage,
 )
-from brain_dock.queries import RESPONSE_MIN_AGE_DAYS, stats
-from brain_dock.stages import INTERVIEW_STAGES, REPLY_STAGES
+from brain_dock.modules.job_search.queries import RESPONSE_MIN_AGE_DAYS, stats
+from brain_dock.modules.job_search.stages import INTERVIEW_STAGES, REPLY_STAGES
 
 TODAY = date(2026, 10, 31)
 OLD = date(2026, 10, 1)  # 30 days before TODAY
