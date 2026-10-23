@@ -23,13 +23,15 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "httpx>=0.28.1",
+    "httpx2>=2.16.0",
     "pytest>=9.1.1",
     "ruff>=0.17.1",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Any warning fails the tests, so deprecations get fixed when they appear, not later.
+filterwarnings = ["error"]
 
 [tool.ruff]
 line-length = 100
