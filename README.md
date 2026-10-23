@@ -4,6 +4,18 @@
 
 A personal, local-first job-search hub: applications, interview prep, inbox triage and learning in one place. Built with Claude Code as a pair programmer, in small reviewed slices.
 
+## Quick start (demo data)
+
+<!-- quickstart:start -->
+```sh
+uv sync
+uv run python -m brain_dock.importer --demo
+BRAIN_DOCK_DB=data/demo.db uv run uvicorn brain_dock.main:app --host 127.0.0.1
+```
+<!-- quickstart:end -->
+
+Then open http://127.0.0.1:8000. A banner marks the fake demo data. CI runs exactly these commands on a fresh clone (`scripts/check_quickstart.sh`).
+
 ## Setup
 
 1. Install [uv](https://docs.astral.sh/uv/) (on macOS: `brew install uv`).
