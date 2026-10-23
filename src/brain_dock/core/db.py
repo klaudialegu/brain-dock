@@ -10,8 +10,6 @@ from sqlalchemy import Connection, Engine, event, inspect
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel, create_engine
 
-from brain_dock.modules.job_search import models  # noqa: F401  (importing registers the tables)
-
 REPO_ROOT = Path(__file__).parents[3]  # src/brain_dock/core/db.py -> repo root
 # Local databases at the repo root, inside the gitignored data/ folder.
 DEFAULT_DB_PATH = REPO_ROOT / "data" / "brain_dock.db"

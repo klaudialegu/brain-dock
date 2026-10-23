@@ -3,9 +3,9 @@ import html
 import pytest
 from fastapi.testclient import TestClient
 
-from brain_dock import main
 from brain_dock.core.security import CONTENT_SECURITY_POLICY
 from brain_dock.main import app, get_session
+from brain_dock.modules.job_search import routes
 
 from .conftest import BASE_URL, SECRET
 
@@ -42,7 +42,7 @@ def test_unexpected_error_is_a_plain_500_page(session, monkeypatch):
     def broken(*args, **kwargs):
         raise RuntimeError(f"database exploded {SECRET}")
 
-    monkeypatch.setattr(main, "list_applications", broken)
+    monkeypatch.setattr(routes, "list_applications", broken)
     app.dependency_overrides[get_session] = lambda: session
     client = TestClient(app, base_url=BASE_URL, raise_server_exceptions=False)
     response = client.get("/applications")

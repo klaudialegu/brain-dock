@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% import "partials/fields.html" as f %}
-{% from "partials/stage_badge.html" import badge %}
+{% from "job_search/partials/stage_badge.html" import badge %}
 
 {% block title %}Edit application · Brain Dock{% endblock %}
 {% block body_class %}page-wide{% endblock %}
@@ -13,7 +13,7 @@
 
 <form class="stack" method="post" action="/applications/{{ detail.id }}">
   {{ f.csrf(csrf_field, csrf_token) }}
-  {% include "partials/application_fields.html" %}
+  {% include "job_search/partials/application_fields.html" %}
   <p><button class="button" type="submit">Save changes</button> <a href="/applications">Cancel</a></p>
 </form>
 

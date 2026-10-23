@@ -12,6 +12,16 @@ from brain_dock.modules.job_search import export
 # must use one of them instead of TestClient's default "testserver".
 BASE_URL = "http://127.0.0.1:8000"
 
+
+def all_templates():
+    """Every template the app can render: the core's and every installed module's."""
+    from brain_dock import registry
+    from brain_dock.core.app import TEMPLATES_DIR
+
+    folders = [TEMPLATES_DIR] + [m.templates for m in registry.installed()]
+    return sorted(p for folder in folders for p in folder.rglob("*.html"))
+
+
 # A distinctive value planted in input, so tests can prove it never shows up in
 # error messages, logs or responses.
 SECRET = "SECRET-VALUE-42"

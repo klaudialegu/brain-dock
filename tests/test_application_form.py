@@ -4,10 +4,10 @@ import re
 from datetime import date
 
 import pytest
-from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 from sqlmodel import func, select
 
+from brain_dock.core.app import api_routes
 from brain_dock.core.security import CSRF_COOKIE, verify_csrf
 from brain_dock.main import app, get_session
 from brain_dock.modules.job_search.models import Application, Company, Stage, StageEvent
@@ -260,7 +260,7 @@ def test_unknown_host_is_refused(session):
 
 
 def test_every_post_route_checks_csrf():
-    post_routes = [r for r in app.routes if isinstance(r, APIRoute) and "POST" in r.methods]
+    post_routes = [r for r in api_routes(app) if "POST" in r.methods]
 
     assert post_routes  # the check covers real routes
     for route in post_routes:
