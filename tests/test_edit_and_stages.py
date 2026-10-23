@@ -6,7 +6,7 @@ from datetime import date
 import pytest
 from sqlmodel import func, select
 
-from brain_dock.models import (
+from brain_dock.modules.job_search.models import (
     Application,
     Company,
     RoleTrack,

@@ -6,10 +6,10 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import select
 
-from brain_dock import db
-from brain_dock.db import get_engine, migrate
+from brain_dock.core import db
+from brain_dock.core.db import get_engine, migrate
 from brain_dock.main import app
-from brain_dock.models import (
+from brain_dock.modules.job_search.models import (
     Application,
     Company,
     RoleTrack,
@@ -17,7 +17,7 @@ from brain_dock.models import (
     create_application,
     record_stage,
 )
-from brain_dock.queries import list_applications, safe_link
+from brain_dock.modules.job_search.queries import list_applications, safe_link
 
 from .conftest import BASE_URL, REAL_DB_PATH
 

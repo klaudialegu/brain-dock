@@ -6,11 +6,12 @@ from datetime import date, datetime
 import pytest
 from sqlmodel import Session, SQLModel, select
 
-from brain_dock import export
-from brain_dock.db import get_engine, migrate
-from brain_dock.export import BackupError, export_applications, write_backup
-from brain_dock.importer import load_applications, rebuild_db
-from brain_dock.models import Application, Company, RoleTrack, Stage, StageEvent
+from brain_dock.core import db
+from brain_dock.core.db import get_engine, migrate
+from brain_dock.modules.job_search import export
+from brain_dock.modules.job_search.export import BackupError, export_applications, write_backup
+from brain_dock.modules.job_search.importer import load_applications, rebuild_db
+from brain_dock.modules.job_search.models import Application, Company, RoleTrack, Stage, StageEvent
 
 NOW = datetime(2026, 10, 21, 12, 0, 0)
 
@@ -273,7 +274,6 @@ def test_validation_runs_on_the_temp_file_before_the_rename(full_db, tmp_path, m
 
 
 def test_export_command_prints_counts_not_names(full_db, tmp_path, monkeypatch, capsys):
-    from brain_dock import db
 
     monkeypatch.setattr(db, "DB_PATH", tmp_path / "full.db")
 

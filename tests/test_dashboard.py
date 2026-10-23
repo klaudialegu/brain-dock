@@ -2,16 +2,16 @@ import json
 import re
 from datetime import date, timedelta
 
-from brain_dock.charts import pipeline_chart_data, pipeline_summary
-from brain_dock.models import (
+from brain_dock.modules.job_search.charts import pipeline_chart_data, pipeline_summary
+from brain_dock.modules.job_search.models import (
     RoleTrack,
     Stage,
     create_application,
     get_or_create_company,
     record_stage,
 )
-from brain_dock.queries import PipelineLink
-from brain_dock.stages import STAGES
+from brain_dock.modules.job_search.queries import PipelineLink
+from brain_dock.modules.job_search.stages import STAGES
 
 
 def add(session, company, role, applied_on, *stages):

@@ -1,6 +1,6 @@
 from sqlalchemy import inspect
 
-from brain_dock.db import DB_PATH, create_db, get_engine
+from brain_dock.core.db import DB_PATH, create_db, get_engine
 
 
 def test_create_db_makes_the_file_and_tables(tmp_path):

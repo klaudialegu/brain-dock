@@ -1,9 +1,15 @@
 from fastapi.testclient import TestClient
 
-from brain_dock import db
-from brain_dock.db import DEFAULT_DB_PATH, DEMO_DB_PATH, database_path, get_engine, is_demo_database
-from brain_dock.importer import load_applications, rebuild_db
+from brain_dock.core import db
+from brain_dock.core.db import (
+    DEFAULT_DB_PATH,
+    DEMO_DB_PATH,
+    database_path,
+    get_engine,
+    is_demo_database,
+)
 from brain_dock.main import app
+from brain_dock.modules.job_search.importer import load_applications, rebuild_db
 
 from .conftest import BASE_URL
 

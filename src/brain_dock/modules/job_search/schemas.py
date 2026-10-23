@@ -4,8 +4,8 @@ from datetime import date
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
-from brain_dock.models import RoleTrack, Stage
-from brain_dock.queries import safe_link
+from brain_dock.modules.job_search.models import RoleTrack, Stage
+from brain_dock.modules.job_search.queries import safe_link
 
 
 class EventIn(BaseModel):

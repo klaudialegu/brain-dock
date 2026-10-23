@@ -14,26 +14,9 @@ from sqlmodel import Session
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from brain_dock import db
-from brain_dock.charts import pipeline_chart_data, pipeline_summary
-from brain_dock.db import get_engine, is_at_head, is_demo_database
-from brain_dock.models import (
-    Application,
-    DateOrderError,
-    add_stage,
-    create_application,
-    get_or_create_company,
-    update_application,
-)
-from brain_dock.queries import (
-    RESPONSE_MIN_AGE_DAYS,
-    application_detail,
-    list_applications,
-    pipeline_links,
-    stats,
-)
-from brain_dock.schemas import ApplicationForm, StageForm, form_errors
-from brain_dock.security import (
+from brain_dock.core import db
+from brain_dock.core.db import get_engine, is_at_head, is_demo_database
+from brain_dock.core.security import (
     ALLOWED_HOSTS,
     CONTENT_SECURITY_POLICY,
     CSRF_FIELD,
@@ -43,7 +26,24 @@ from brain_dock.security import (
     set_csrf_cookie,
     verify_csrf,
 )
-from brain_dock.stages import recordable_stages, stage_css, stage_label
+from brain_dock.modules.job_search.charts import pipeline_chart_data, pipeline_summary
+from brain_dock.modules.job_search.models import (
+    Application,
+    DateOrderError,
+    add_stage,
+    create_application,
+    get_or_create_company,
+    update_application,
+)
+from brain_dock.modules.job_search.queries import (
+    RESPONSE_MIN_AGE_DAYS,
+    application_detail,
+    list_applications,
+    pipeline_links,
+    stats,
+)
+from brain_dock.modules.job_search.schemas import ApplicationForm, StageForm, form_errors
+from brain_dock.modules.job_search.stages import recordable_stages, stage_css, stage_label
 
 TEMPLATES_DIR = Path(__file__).parent / "templates"
 STATIC_DIR = Path(__file__).parent / "static"

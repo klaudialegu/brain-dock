@@ -3,9 +3,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session
 
-from brain_dock import db, export
-from brain_dock.db import create_db, get_engine
+from brain_dock.core import db
+from brain_dock.core.db import create_db, get_engine
 from brain_dock.main import app, get_session
+from brain_dock.modules.job_search import export
 
 # The app only answers to its own host names (TrustedHostMiddleware), so test clients
 # must use one of them instead of TestClient's default "testserver".

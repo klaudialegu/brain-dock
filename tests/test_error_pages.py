@@ -4,8 +4,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from brain_dock import main
+from brain_dock.core.security import CONTENT_SECURITY_POLICY
 from brain_dock.main import app, get_session
-from brain_dock.security import CONTENT_SECURITY_POLICY
 
 from .conftest import BASE_URL, SECRET
 

@@ -6,8 +6,8 @@ from urllib.parse import urlparse
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
-from brain_dock.models import Application, RoleTrack, Stage
-from brain_dock.stages import INTERVIEW_STAGES, REPLY_STAGES, STAGES, stage_order
+from brain_dock.modules.job_search.models import Application, RoleTrack, Stage
+from brain_dock.modules.job_search.stages import INTERVIEW_STAGES, REPLY_STAGES, STAGES, stage_order
 
 
 @dataclass(frozen=True)

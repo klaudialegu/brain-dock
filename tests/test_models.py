@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from brain_dock.models import (
+from brain_dock.modules.job_search.models import (
     Application,
     Company,
     RoleTrack,
