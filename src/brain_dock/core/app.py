@@ -17,6 +17,7 @@ from brain_dock.core import db
 from brain_dock.core.db import get_engine, is_at_head, is_demo_database
 from brain_dock.core.modules import Manifest
 from brain_dock.core.security import ALLOWED_HOSTS, CONTENT_SECURITY_POLICY, add_security_headers
+from brain_dock.core.web import render
 
 TEMPLATES_DIR = Path(__file__).parents[1] / "templates"
 STATIC_DIR = Path(__file__).parents[1] / "static"
@@ -105,6 +106,7 @@ def build_templates(modules: list[Manifest]) -> Jinja2Templates:
     )
     templates = Jinja2Templates(env=jinja2.Environment(loader=loader, autoescape=True))
     templates.env.globals["nav"] = [entry for m in modules for entry in m.nav]
+    templates.env.globals["home_path"] = modules[0].home if modules else "/"
     templates.env.globals["stylesheets"] = [href for m in modules for href in m.stylesheets]
     for m in modules:
         templates.env.globals.update(m.template_globals)
@@ -143,9 +145,11 @@ def create_app(modules: list[Manifest]) -> FastAPI:
     for m in modules:
         app.include_router(m.router)
 
-    @app.get("/")
-    def home() -> RedirectResponse:
+    @app.get("/", response_model=None)
+    def home(request: Request) -> RedirectResponse | HTMLResponse:
         # The first enabled module's page is the home page; one address keeps links simple.
-        return RedirectResponse(modules[0].home, status_code=303)
+        if modules:
+            return RedirectResponse(modules[0].home, status_code=303)
+        return render(request, "home.html")
 
     return app
