@@ -21,6 +21,7 @@ from brain_dock.modules.job_search.models import (
 from brain_dock.modules.job_search.queries import (
     RESPONSE_MIN_AGE_DAYS,
     application_detail,
+    company_detail,
     list_applications,
     pipeline_links,
     stats,
@@ -47,6 +48,14 @@ def applications(request: Request, session: SessionDep) -> HTMLResponse:
         "pipeline_summary": pipeline_summary(links),
     }
     return render(request, "job_search/applications.html", context)
+
+
+@router.get("/companies/{company_id}", response_class=HTMLResponse)
+def company(request: Request, company_id: int, session: SessionDep) -> HTMLResponse:
+    detail = company_detail(session, company_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Not found")
+    return render(request, "job_search/company.html", {"company": detail})
 
 
 @router.get("/applications/new", response_class=HTMLResponse)

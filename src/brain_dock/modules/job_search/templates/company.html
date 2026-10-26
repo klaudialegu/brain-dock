@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "job_search/partials/stage_badge.html" import badge %}
+
+{% block title %}{{ company.name }} · Brain Dock{% endblock %}
+{% block body_class %}page-wide{% endblock %}
+
+{% block content %}
+<h1>{{ company.name }}</h1>
+<p><a href="/applications">All applications</a></p>
+<p>{{ company.applications | length }} application{{ "" if company.applications | length == 1 else "s" }}, newest first.</p>
+
+{% for app in company.applications %}
+<section class="history" aria-labelledby="application-{{ app.id }}">
+  <h2 id="application-{{ app.id }}">
+    {% if app.link %}
+    <a href="{{ app.link }}" target="_blank" rel="noopener noreferrer">{{ app.role_title }}</a>
+    {% else %}
+    {{ app.role_title }}
+    {% endif %}
+  </h2>
+  <p>Applied {{ app.applied_on.isoformat() }} · Current stage: {{ badge(app.current_stage) }} · <a href="/applications/{{ app.id }}/edit">Edit<span class="visually-hidden"> {{ app.role_title }}</span></a></p>
+  <div class="table-wrap">
+    <table>
+      <caption class="visually-hidden">Stage timeline for {{ app.role_title }}</caption>
+      <thead><tr><th scope="col">Date</th><th scope="col">Stage</th><th scope="col">Note</th></tr></thead>
+      <tbody>
+        {% for event in app.events %}
+        <tr>
+          <td class="date">{{ event.happened_on.isoformat() }}</td>
+          <td>{{ badge(event.stage) }}</td>
+          <td>{{ event.note or "" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endfor %}
+{% endblock %}

@@ -32,7 +32,7 @@
     <tbody>
       {% for app in applications %}
       <tr>
-        <td>{{ app.company }}</td>
+        <td><a href="/companies/{{ app.company_id }}">{{ app.company }}</a></td>
         <td>
           {% if app.link %}
           <a href="{{ app.link }}" target="_blank" rel="noopener noreferrer">{{ app.role_title }}</a>

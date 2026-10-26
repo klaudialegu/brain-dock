@@ -14,7 +14,7 @@ manifest = Manifest(
     description="Applications, stages, the pipeline chart and stats.",
     home="/applications",
     router=router,
-    paths=("/applications", "/stages.css"),
+    paths=("/applications", "/companies", "/stages.css"),
     nav=(
         NavEntry("Applications", "/applications"),
         NavEntry("Add application", "/applications/new"),
