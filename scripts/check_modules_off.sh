@@ -27,8 +27,21 @@ from brain_dock.modules.job_search.importer import DEMO_JSON, load_applications,
 engine = get_engine(f"sqlite:///{sys.argv[1]}")
 migrate(engine)
 rebuild_db(engine, load_applications(DEMO_JSON), locked=False)
+from sqlmodel import Session
+from brain_dock.modules.job_search.models import Company
+with Session(engine) as session:
+    # The company page probe below must point at real data, so its 404 means "module off".
+    assert session.get(Company, 1) is not None, "demo data has no company 1"
 engine.dispose()
 PY
+
+# Pages with an id in the path: the manifest only lists path prefixes, so these are added
+# by hand per module, on ids that exist in the demo data above.
+probes() {  # module name
+  case "$1" in
+    job_search) echo "/companies/1" ;;
+  esac
+}
 
 # One line per installed module: "name|path,path|nav label,nav label"
 modules=$(uv run python -c "
@@ -66,6 +79,7 @@ run_with() {  # label, BRAIN_DOCK_MODULES value, the disabled modules' lines
   while IFS='|' read -r name paths labels; do
     [ -z "$name" ] && continue
     IFS=',' read -ra path_list <<< "$paths"
+    for probe in $(probes "$name"); do path_list+=("$probe"); done
     for path in "${path_list[@]}"; do
       local code
       code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$port$path")

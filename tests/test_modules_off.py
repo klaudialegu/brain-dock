@@ -49,6 +49,10 @@ def seed_job_search(engine):
 # Fake data for each module, so "disabling keeps the data" checks real rows.
 SEEDERS = {"job_search": seed_job_search}
 
+# Pages with an id in the path: the manifest only lists path prefixes, so these are checked
+# by hand. Each must answer 200 on the seeded data with the module on (see below).
+PROBES = {"job_search": ("/companies/1",)}
+
 
 def others(m):
     return [x for x in MODULES if x.name != m.name]
@@ -77,7 +81,7 @@ def test_core_runs_with_module_disabled(m):
 
     with TestClient(create_app(others(m)), base_url=BASE_URL) as client:
         home = client.get("/")  # follows the redirect, if another module is the home
-        responses = [home] + [client.get(path) for path in m.paths]
+        responses = [home] + [client.get(p) for p in m.paths + PROBES.get(m.name, ())]
         posted = client.post(m.home, data={})
         static = None
         if m.static is not None:
@@ -116,3 +120,5 @@ def test_disabling_keeps_the_data(m):
     # Turned back on, the same data is there.
     with TestClient(create_app(MODULES), base_url=BASE_URL) as client:
         assert shown in client.get(m.home).text
+        for path in PROBES.get(m.name, ()):
+            assert client.get(path).status_code == 200, path  # so its 404 when off means off

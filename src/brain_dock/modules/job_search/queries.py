@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
-from brain_dock.modules.job_search.models import Application, RoleTrack, Stage
+from brain_dock.modules.job_search.models import Application, Company, RoleTrack, Stage
 from brain_dock.modules.job_search.stages import INTERVIEW_STAGES, REPLY_STAGES, STAGES, stage_order
 
 
@@ -15,6 +15,7 @@ class ApplicationRow:
     """What the list page shows: plain values, so templates never query the database."""
 
     id: int
+    company_id: int
     company: str
     role_title: str
     role_track: RoleTrack
@@ -48,6 +49,7 @@ def list_applications(session: Session) -> list[ApplicationRow]:
     return [
         ApplicationRow(
             id=a.id,
+            company_id=a.company_id,
             company=a.company.name,
             role_title=a.role_title,
             role_track=a.role_track,
@@ -99,6 +101,56 @@ def application_detail(session: Session, application_id: int) -> ApplicationDeta
         values=values,
         current_stage=application.current_stage,
         events=events,
+    )
+
+
+@dataclass(frozen=True)
+class CompanyApplication:
+    id: int
+    role_title: str
+    applied_on: date
+    current_stage: Stage
+    link: str | None  # only ever an http(s) URL, see safe_link()
+    events: list[EventRow]  # the stage timeline, oldest first
+
+
+@dataclass(frozen=True)
+class CompanyDetail:
+    """What the company page shows: its applications, newest first, each with its timeline."""
+
+    id: int
+    name: str
+    applications: list[CompanyApplication]
+
+
+def company_detail(session: Session, company_id: int) -> CompanyDetail | None:
+    # Eager loads: three queries in total, however many applications the company has.
+    company = session.exec(
+        select(Company)
+        .where(Company.id == company_id)
+        .options(selectinload(Company.applications).selectinload(Application.events))
+    ).first()
+    if company is None:
+        return None
+    applications = sorted(company.applications, key=lambda a: (a.applied_on, a.id), reverse=True)
+    return CompanyDetail(
+        id=company.id,
+        name=company.name,
+        applications=[
+            CompanyApplication(
+                id=a.id,
+                role_title=a.role_title,
+                applied_on=a.applied_on,
+                current_stage=a.current_stage,
+                link=safe_link(a.link),
+                # Same day: the order they were recorded in (ids), so the timeline is stable.
+                events=[
+                    EventRow(stage=e.stage, happened_on=e.happened_on, note=e.note)
+                    for e in sorted(a.events, key=lambda e: (e.happened_on, e.id))
+                ],
+            )
+            for a in applications
+        ],
     )
 
 
