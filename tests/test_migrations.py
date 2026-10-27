@@ -8,6 +8,7 @@ from sqlmodel import Session, SQLModel, select
 
 from brain_dock.core.db import (
     BASELINE_REVISION,
+    ForeignKeyError,
     SchemaMismatchError,
     create_db,
     current_revision,
@@ -137,3 +138,27 @@ def test_error_message_contains_no_data(engine):
         migrate(engine)
 
     assert "Acme" not in str(caught.value)
+
+
+# --- Foreign keys during migrations -------------------------------------------
+
+
+def foreign_keys_on(engine):
+    with engine.connect() as connection:
+        return connection.exec_driver_sql("PRAGMA foreign_keys").scalar() == 1
+
+
+def test_migrate_refuses_rows_pointing_at_missing_rows(engine):
+    migrate(engine)
+    with engine.connect() as connection:
+        connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+        connection.exec_driver_sql(
+            "INSERT INTO stageevent (application_id, stage, happened_on) "
+            "VALUES (999, 'applied', '2026-10-01')"
+        )
+        connection.commit()
+        connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+
+    with pytest.raises(ForeignKeyError, match="Nothing was changed"):
+        migrate(engine)
+    assert foreign_keys_on(engine)

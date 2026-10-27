@@ -37,6 +37,10 @@ class SchemaMismatchError(RuntimeError):
     """An existing database doesn't match the schema it would be stamped as."""
 
 
+class ForeignKeyError(RuntimeError):
+    """A migration would leave a row pointing at a row that doesn't exist."""
+
+
 def get_engine(url: str | None = None, **kwargs) -> Engine:
     """Create an engine with foreign keys enforced. Every engine should come from here."""
     # FastAPI runs routes in worker threads; each session still stays on one request,
@@ -128,23 +132,48 @@ def migrate(engine: Engine) -> str:
     schema was checked against migration 0001 first)."""
     if engine.url.database:
         Path(engine.url.database).parent.mkdir(parents=True, exist_ok=True)
-    with engine.begin() as connection:
-        existing = set(inspect(connection).get_table_names())
-        before = current_revision(connection)
-        # Tables but no migration history: made before migrations existed (or by hand).
-        # Only an exact match with the baseline is stamped; anything else stops.
-        if before is None and existing - {"alembic_version"}:
-            if schema_snapshot(connection) != baseline_snapshot():
-                raise SchemaMismatchError(
-                    "The database has tables but no migration history, and its schema "
-                    f"doesn't match migration {BASELINE_REVISION}. Nothing was changed. "
-                    "Export or rebuild it before migrating."
-                )
-            command.stamp(_alembic_config(connection), BASELINE_REVISION)
-            command.upgrade(_alembic_config(connection), "heads")
-            return "stamped"
+    with engine.connect() as connection:
+        # Batch migrations copy a table, drop it and rename the copy, while other tables
+        # still point at it. SQLite only lets foreign keys be switched off outside a
+        # transaction (its documented ALTER TABLE procedure), so: off, migrate in one
+        # transaction, check every reference before committing, then back on.
+        connection.exec_driver_sql("PRAGMA foreign_keys=OFF")
+        connection.commit()
+        if connection.exec_driver_sql("PRAGMA foreign_keys").scalar() != 0:
+            raise RuntimeError("couldn't switch foreign keys off for the migration")
+        connection.commit()
+        try:
+            with connection.begin():
+                result = _migrate(connection)
+                if connection.exec_driver_sql("PRAGMA foreign_key_check").first() is not None:
+                    raise ForeignKeyError(
+                        "The migration would leave rows pointing at missing rows. "
+                        "Nothing was changed."
+                    )
+        finally:
+            connection.exec_driver_sql("PRAGMA foreign_keys=ON")
+            connection.commit()
+    return result
+
+
+def _migrate(connection: Connection) -> str:
+    """migrate() inside its transaction, with foreign keys off."""
+    existing = set(inspect(connection).get_table_names())
+    before = current_revision(connection)
+    # Tables but no migration history: made before migrations existed (or by hand).
+    # Only an exact match with the baseline is stamped; anything else stops.
+    if before is None and existing - {"alembic_version"}:
+        if schema_snapshot(connection) != baseline_snapshot():
+            raise SchemaMismatchError(
+                "The database has tables but no migration history, and its schema "
+                f"doesn't match migration {BASELINE_REVISION}. Nothing was changed. "
+                "Export or rebuild it before migrating."
+            )
+        command.stamp(_alembic_config(connection), BASELINE_REVISION)
         command.upgrade(_alembic_config(connection), "heads")
-        return "up to date" if before == head_revision() else "upgraded"
+        return "stamped"
+    command.upgrade(_alembic_config(connection), "heads")
+    return "up to date" if before == head_revision() else "upgraded"
 
 
 def is_at_head(engine: Engine) -> bool:
