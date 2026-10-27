@@ -25,6 +25,7 @@ from brain_dock.core.agents.ledger import (
     Ledger,
     LedgerWriteError,
     LLMCall,
+    RouteCost,
     RunBudget,
     cost_by_route,
 )
@@ -129,7 +130,10 @@ def test_cost_per_route_adds_up(engine, tmp_path):
     gateway.call(request(route="escalated"))
     gateway.call(request(route="escalated"))
 
-    assert cost_by_route(engine, "run-1") == {"cheap": COST, "escalated": 2 * COST}
+    assert cost_by_route(engine, "run-1") == {
+        "cheap": RouteCost(known_micro_usd=COST, unknown_attempts=0),
+        "escalated": RouteCost(known_micro_usd=2 * COST, unknown_attempts=0),
+    }
 
 
 def test_the_ledger_row_is_written_before_the_call(engine, tmp_path):
@@ -142,7 +146,7 @@ def test_the_ledger_row_is_written_before_the_call(engine, tmp_path):
     gateway, _ = make(engine, tmp_path, [answer])
     gateway.call(request())
 
-    assert seen == [[(1, "started", 0)]]
+    assert seen == [[(1, "started", None)]]  # unknown until the answer comes back
     assert ledger(engine) == [(1, "ok", COST)]
 
 
@@ -207,8 +211,8 @@ def test_spending_carries_across_calls_in_a_run(engine, tmp_path):
 @pytest.mark.parametrize(
     ("failure", "reason", "cost"),
     [
-        (TimeoutError("slow"), "timeout", 0),
-        (ModelServerError("overloaded"), "server_error", 0),
+        (TimeoutError("slow"), "timeout", None),
+        (ModelServerError("overloaded"), "server_error", None),
         (MALFORMED, "malformed", COST),
     ],
     ids=["timeout", "server-error", "malformed"],
@@ -252,7 +256,7 @@ def test_unexpected_errors_are_not_retried(engine, tmp_path):
     with pytest.raises(ValueError):
         gateway.call(request())
 
-    assert len(client.payloads) == 1 and ledger(engine) == [(1, "failed", 0)]
+    assert len(client.payloads) == 1 and ledger(engine) == [(1, "failed", None)]
 
 
 def test_backoff_doubles_up_to_a_cap_and_is_jittered():
@@ -294,7 +298,7 @@ def test_an_attempt_without_usage_charges_its_worst_case(engine, tmp_path, failu
         gateway.call(request())
 
     assert gateway.budget.spent_micro_usd == worst_case(request())
-    assert [cost for _, _, cost in ledger(engine)] == [0]  # the ledger's 0 means "unknown"
+    assert [cost for _, _, cost in ledger(engine)] == [None]  # unknown, not free
 
 
 def test_a_timeout_can_use_up_the_budget(engine, tmp_path):
@@ -325,3 +329,16 @@ def test_a_guard_refusal_is_not_charged(engine, tmp_path):
         gateway.call(request())
 
     assert gateway.budget.spent_micro_usd == 0
+
+
+def test_an_unknown_cost_is_null_and_free_is_zero(engine, tmp_path):
+    # A timeout: unknown (the API may have billed it). Then over budget: free (nothing sent).
+    gateway, _ = make(engine, tmp_path, [TimeoutError()], limit=worst_case(request()) + 1)
+
+    with pytest.raises(BudgetExceededError):
+        gateway.call(request())
+
+    assert ledger(engine) == [(1, "timeout", None), (2, "budget_stopped", 0)]
+    assert cost_by_route(engine, "run-1") == {
+        "escalated": RouteCost(known_micro_usd=0, unknown_attempts=1)
+    }
