@@ -11,7 +11,7 @@ The details behind [ADR 0008](../decisions/0008-agent-harness.md). The ADR recor
   - *replay*: answers from recorded responses; the default in tests and CI;
   - *live*: the real API, used only on purpose.
 - **Redaction before any call:** the gateway only accepts `Redacted` text, made by one redaction step that removes email addresses, phone numbers, signatures and anything else not needed for the task. Plain strings are refused, so forgetting to redact fails loudly. A test spies on the client and plants personal-looking values; none of them may reach it.
-- **Prompt caching:** the stable parts come first (the system prompt, then the tool definitions, frozen and in a fixed order), with a cache breakpoint after them. The email text goes after the breakpoint. Each model has a minimum prefix length below which nothing is cached. The ledger records cache reads and writes, so a prompt too short to cache shows up in the numbers instead of being assumed.
+- **Prompt caching:** the stable parts come first. The API renders the cached prefix as tool definitions (sorted by name, so the bytes never change), then the frozen system prompt, and the cache breakpoint closes the system prompt. The email text comes after the breakpoint, in the messages, inside a marked `<untrusted_email>` block it can't close itself. Each model has a minimum prefix length below which nothing is cached. The ledger records cache reads and writes, so a prompt too short to cache shows up in the numbers instead of being assumed.
 - **Ledger per call:** run, step, module, route, model, prompt version, input/output/cache-read/cache-write tokens, and cost. Cost comes from a dated price table in the repo, never hard-coded in logic.
 - **Hard budget stop:** each run has a budget. Before a call, the gateway works out the worst case (input tokens plus `max_tokens` at output price). If that would go over the budget, the call isn't made: the run stops as `budget_stopped` and the stop is audited.
 - **The gateway owns retries** (the SDK's own retries are off), so every attempt is ledgered and audited. Timeouts, server errors and malformed output are retried with exponential backoff and jitter, up to a limit; then the item is parked (section 4).
@@ -108,6 +108,8 @@ The harness is generic (an agent is a manifest, tools, prompts and a run functio
 - **Fixture guard:** a test checks that every fixture in the repo uses only reserved domains (`example.com`, `.test`) and is marked synthetic.
 
 ## 8. PR plan
+PR 3 (gateway and network guard) has its own detailed plan, with a status line: [pr3-gateway-plan.md](pr3-gateway-plan.md).
+
 Every PR merges green without an API key. No test is removed or renamed. Counts are estimates; each PR's plan lists its exact test IDs.
 
 | PR | Scope | Test IDs (planned) |
