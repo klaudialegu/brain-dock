@@ -46,6 +46,7 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - Create or upgrade the local database (data/brain_dock.db, gitignored; it is the source of truth, ADR 0004): `uv run python -m brain_dock.db`. Run it after pulling model changes; the app refuses to start until the database is migrated.
 - After changing a model, create a migration and review it before committing: `uv run alembic revision --autogenerate -m "describe the change"`. tests/test_migrations.py fails if a model change has no migration.
 - Back up everything to data/backups/ (gitignored, owner-only, same format the importer reads): `uv run python -m brain_dock.export`. Do this before risky changes.
+- Check the agent audit log's hash chain (ADR 0008): `uv run python -m brain_dock.verify_audit`. It prints counts and positions only.
 - First-time setup from data/my_applications.json: `uv run python -m brain_dock.importer`. It refuses to replace a database that already has applications; `--force` replaces it after writing a full, validated backup (if the backup fails, nothing is deleted).
 - Load fake demo data into data/demo.db (never the real database): `uv run python -m brain_dock.importer --demo`
 - Run the app (auto-reloads on save): `uv run uvicorn brain_dock.main:app --host 127.0.0.1 --reload`, then open http://127.0.0.1:8000 (bound to this machine only; never use --host 0.0.0.0)
