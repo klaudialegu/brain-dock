@@ -25,9 +25,12 @@ _TOKEN = object()  # only redact() has it, so only redact() makes Redacted text
 
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 URL_QUERY = re.compile(r"(https?://[^\s?#]+)\?[^\s#]*")
-PHONE_CANDIDATE = re.compile(r"(?<![\w+])\+?\d[\d ().-]{6,}\d(?!\w)")
+PHONE_CANDIDATE = re.compile(r"(?<![\w+(])\+?\(?\d[\d ().-]{6,}\d(?!\w)")
 SIGNATURE = re.compile(r"^-- ?$.*", re.MULTILINE | re.DOTALL)  # the "-- " line and after
 PHONE_MIN_DIGITS = 9  # dates (8 digits) and salaries stay; phone numbers go
+# Local numbers like 555-1234 have only 7 digits, so they get their own pattern. It also
+# catches ranges like "100-1000": over-redaction, the safe direction.
+LOCAL_PHONE = re.compile(r"(?<![\w.,-])\d{3}[-. ]\d{4}(?![\w.,-])")
 
 
 class Redacted:
@@ -56,6 +59,7 @@ def redact(text: str, extra_terms: Iterable[str] = ()) -> Redacted:
     text = EMAIL.sub("[email]", text)
     text = URL_QUERY.sub(r"\1?[query removed]", text)
     text = PHONE_CANDIDATE.sub(_phone, text)
+    text = LOCAL_PHONE.sub("[phone]", text)
     for term in sorted({t.strip() for t in extra_terms if t.strip()}, key=len, reverse=True):
         text = re.sub(re.escape(term), "[redacted]", text, flags=re.IGNORECASE)
     return Redacted(text, _TOKEN)

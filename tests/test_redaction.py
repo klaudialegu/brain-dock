@@ -23,7 +23,7 @@ def test_only_redact_makes_redacted_text():
     [
         ("Write to jane.doe+jobs@example.co.uk today", "jane.doe+jobs@example.co.uk", "[email]"),
         ("Call +44 20 7946 0958 after 5", "7946 0958", "[phone]"),
-        ("Or (555) 010-4477 tomorrow", "010-4477", "[phone]"),
+        ("Or (555) 010-4477 tomorrow", "010-4477", "Or [phone] tomorrow"),  # no stray "("
         (
             "Apply https://jobs.example.com/fde/1?token=SECRET-VALUE-42&utm=x now",
             "SECRET-VALUE-42",
@@ -49,8 +49,10 @@ def test_job_details_survive():
 
 
 def test_known_edge_a_seven_digit_local_number():
-    # Current behavior: only 9+ digit numbers count as phones, so a local number slips past.
-    assert redact("Call 555-1234 today").text == "Call 555-1234 today"
+    # Handled in PR 3c (it used to slip past the 9-digit rule): local numbers are redacted.
+    assert redact("Call 555-1234 or 555.9876 today").text == "Call [phone] or [phone] today"
+    # Side effect, the safe direction: a 3-4 digit range looks like a local number.
+    assert redact("Team of 100-1000 people").text == "Team of [phone] people"
 
 
 def test_known_edge_a_salary_range_without_commas():
