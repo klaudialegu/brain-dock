@@ -30,7 +30,13 @@ The details behind [ADR 0008](../decisions/0008-agent-harness.md). The ADR recor
 - **Only passes the core issued are honored.** The core keeps its own copy of every pass it issues. A pass a module builds itself, or one whose fields were changed after it was issued, is rejected and audited. Like every in-process check, this stops mistakes and honest bugs; code that runs inside the app could still reach anything, which is why the network guard (PR 3) is the guarantee.
 - **Fail closed:** every call is audited **before** anything runs. If the audit row can't be written, the tool doesn't run and the run stops.
 - **Second line:** even if an `outbound` or `delete` tool reached a pass, the dispatcher won't run it.
-- A `write` tool never runs inside an agent run. Calling one creates a **pending approval**. Only the approval route (a CSRF-protected form post by me) runs it. (Until approvals arrive in PR 4, a write is refused and audited.)
+- A `write` tool never runs inside an agent run. Calling one creates a **pending approval** (`core/agents/approvals.py`, PR 4b) holding the exact input and its HMAC. Only `approve()` runs it, which the PR 5 triage page calls from a CSRF-protected form:
+  - **Outside agent runs only:** while any run is active, approve and reject are refused and audited, so an agent can't approve its own write.
+  - **At most once, with exactly the approved input:** a decided approval is never decided again, and if the stored input no longer matches its HMAC, approve refuses and parks it as `input_changed`.
+  - **Crash-safe:** approve re-checks the kill switches and re-validates the input. It then commits **`executing` before the tool runs**, then `executed` or `failed`. At startup, the app parks any approval still `executing` as `needs_review` (`interrupted`) and never reruns it, because the tool may or may not have run.
+  - The tool runs inside the network guard. Every decision is audited with actor **"human"**, and a parked interruption with actor "system".
+  - **Rejecting** never runs the tool and records a short reason code (`not_a_fit`), never free text. That's the start of the rejection log.
+  - **Write inputs are ids, not free text:** the tool policy only allows `int`, `bool`, enum and literal fields for write tools, because an approval stores the input.
 - **The audit log** (`core_audit_event`, the core's own migration branch):
   - **No inputs, only keyed hashes:** HMAC-SHA256 of the input with a local key. The key is random, made on first use, kept next to the database (for the real one, in gitignored `data/`), owner-only, and never logged or printed. A plain hash of a short input (a salary, a city) could be guessed by trying values; a keyed hash can't without the key.
   - **Append-only triggers stop bugs:** UPDATE and DELETE on the table are refused by the database. Someone with the database file and a SQL prompt can drop the triggers, so they aren't a defense against tampering.
@@ -60,11 +66,11 @@ The details behind [ADR 0008](../decisions/0008-agent-harness.md). The ADR recor
   - database uniqueness constraints make "the same email twice" give one suggestion, and "the same role in two emails" give one suggestion with both source emails linked.
 - **Persisted workflow state** (`core/agents/runs.py`, PR 4a):
   - **A declared workflow:** a module declares its states, the allowed changes between them, its final states (always including `needs_review`) and its waiting states (like `pending_approval`), plus a step function per working state. A definition check catches missing steps and final states that move on. For the inbox: `received → ruled → judged → pending_approval → approved | rejected`.
-  - **Work items:** keyed by a **hex digest** of the module's natural key (an email's Message-ID), unique per module, so the same email twice is one item. The core's tables hold **no content**: keys, states, reason codes, counts.
+  - **Work items:** keyed by an **HMAC of the module's natural key** (an email's Message-ID) with the local audit key, made only by `Items.key_for()`, so a plain, guessable hash can't be used (PR 4b). Keys are unique per module, so the same email twice is one item. The core's tables hold **no content**: keys, states, reason codes, counts.
   - **Runs:** saved with their budget and **spending**. The whole run runs inside the network guard, so a thread a tool leaves behind stays guarded for the rest of the run.
   - **Crash and resume:** a crash leaves the run `running`, with its spending saved. Running it again (a fresh process is fine) continues every unfinished item from its last state, and nothing that finished runs twice. A kill switch stops the run (`stopped`), and so does an exhausted budget (`budget_stopped`); either way the items wait and aren't dropped.
   - **The flight recorder's storage** (`core_run_step`): numbered steps per run, and any detail must be `Redacted`.
-  - **Approvals** survive a restart (PR 4b).
+  - **Approvals** survive a restart (PR 4b, above). **Kill switches are checked first** in every run, new or resumed, before the pass, the gateway or any step. With a switch set, new keys are still recorded (dropping them would lose work), and the run stops before anything runs.
 - **Never drop silently:** after the retries run out (timeout, malformed output, refusal), an email is parked as `needs_review` with its reason, on its own page. One invariant is tested: every email that came in ends up suggested, skipped by a rule, rejected, or in `needs_review`.
 - **Email is data, never instructions:** email text goes in a clearly marked untrusted block, and the system prompt says so. The real defense is structural: no outbound tools, writes need approval, and the output is a fixed schema.
 
