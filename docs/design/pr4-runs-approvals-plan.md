@@ -27,7 +27,7 @@ Approved 2026-10-26. Design: [agent-harness.md](agent-harness.md), sections 2 an
 
 ## PR 4b: approvals (migration `core_0005`)
 0. **Two gaps found while reviewing 4a, closed first:**
-   - **Kill switches at the very start of a run, including a resume.** A resumed run checked them before its first item, so nothing ran, but no test covered a resume. And new keys were recorded before the first check. `run()` now checks before anything else, with a resume test.
+   - **Kill switches at the very start of a run, including a resume.** A resumed run checked them before its first item, so nothing ran, but no test covered a resume. `run()` now checks first, before the pass, the gateway or any step. With a switch set, new keys are still recorded as `received` (storing them isn't an agent action, and dropping them would lose work), and then the run stops. With a resume test.
    - **Item keys are keyed hashes**, like the audit log: `key_for()` makes an HMAC with the local audit key, wrapped in an `ItemKey` type (like `Redacted`). `receive()` refuses plain strings, so a module can't use a plain, guessable hash. `test_keys_must_be_hashes_never_content` keeps its 4 IDs; its body changes to "a plain string is refused".
 1. **`core_approval`:** item, run, module, tool, the exact tool input (JSON) and its **HMAC**, status, decided time, decided by, reason code.
    - **Policy:** write-tool inputs are ids, not free text (a contract-test check).

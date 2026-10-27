@@ -7,11 +7,11 @@ network guard for the whole run. Nothing is dropped silently: a step that fails 
 item as needs_review with a reason. Runs, items and steps live in the database, so a run
 interrupted by a crash or restart resumes where it stopped, with its spending.
 
-The core holds no content: item keys are hex digests (the module hashes its natural key),
-and the flight recorder's step detail must be Redacted text.
+The core holds no content: item keys are keyed hashes (HMAC with the local audit key) of
+the module's natural key, made only by Items.key_for(), and the flight recorder's step
+detail must be Redacted text.
 """
 
-import re
 import uuid
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
@@ -21,7 +21,7 @@ from sqlalchemy import Engine
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, func, select
 
-from brain_dock.core.agents.audit import AuditLog
+from brain_dock.core.agents.audit import AuditKey, AuditLog, canonical_json
 from brain_dock.core.agents.gateway import (
     DEFAULT_RETRY,
     AgentsOffError,
@@ -46,7 +46,22 @@ from brain_dock.core.agents.run_tables import AgentRun, RunStep, WorkItem
 
 RECEIVED = "received"  # every item starts here
 NEEDS_REVIEW = "needs_review"  # every workflow can park an item here; always final
-HEX_KEY = re.compile(r"[0-9a-f]{16,128}")
+_KEY_TOKEN = object()  # only Items.key_for() has it
+
+
+class ItemKey:
+    """A work item's key: an HMAC of the module's natural key. Only key_for() makes one, so
+    a plain (guessable) hash or the content itself can never become a key."""
+
+    __slots__ = ("value",)
+
+    def __init__(self, value: str, token: object = None):
+        if token is not _KEY_TOKEN:
+            raise TypeError("item keys come from Items.key_for(), never plain strings")
+        self.value = value
+
+    def __repr__(self) -> str:
+        return f"ItemKey({self.value[:8]}...)"
 
 
 def _now() -> datetime:
@@ -99,13 +114,20 @@ class Workflow:
 
 
 class Items:
-    def __init__(self, engine: Engine):
+    def __init__(self, engine: Engine, key: AuditKey):
         self.engine = engine
+        self._key = key
 
-    def receive(self, module: str, key: str) -> tuple[WorkItem, bool]:
+    def key_for(self, module: str, natural_key: str) -> ItemKey:
+        """The key for a natural key (an email's Message-ID): a keyed hash, so nobody without
+        the local key can guess it by hashing candidates."""
+        return ItemKey(self._key.mac(canonical_json([module, natural_key])), _KEY_TOKEN)
+
+    def receive(self, module: str, item_key: ItemKey) -> tuple[WorkItem, bool]:
         """The item for this key: (existing, False) for a duplicate, (new, True) otherwise."""
-        if not HEX_KEY.fullmatch(key):
-            raise ValueError("work item keys must be hex digests of the natural key, never content")
+        if not isinstance(item_key, ItemKey):
+            raise TypeError("item keys come from Items.key_for(), never plain strings")
+        key = item_key.value
         with Session(self.engine) as session:
             query = select(WorkItem).where(WorkItem.module == module, WorkItem.key == key)
             existing = session.exec(query).first()
@@ -234,7 +256,7 @@ class Runner:
         self.prices = prices
         self.retry = retry
         self._switch_folder = switch_folder
-        self.items = Items(engine)
+        self.items = Items(engine, audit.key)
         self.steps = Steps(engine)
 
     def start(self, module: str, budget_limit_micro_usd: int) -> str:
@@ -261,7 +283,7 @@ class Runner:
                 run.finished_at = _now()
             session.commit()
 
-    def run(self, workflow: Workflow, run_id: str, new_keys: Iterable[str] = ()) -> RunReport:
+    def run(self, workflow: Workflow, run_id: str, new_keys: Iterable[ItemKey] = ()) -> RunReport:
         """Receive new keys, then drive every unfinished item of the module. Also resumes an
         interrupted run: its status is still "running" and its spending is kept."""
         with Session(self.engine) as session:
@@ -269,6 +291,15 @@ class Runner:
             if run is None or run.status != "running" or run.module != workflow.module:
                 raise ValueError("only a running (or interrupted) run of this module can run")
             budget = RunBudget(run.budget_limit_micro_usd, run.spent_micro_usd)
+
+        # Checked before anything runs, new run or resumed. A set switch still records new
+        # keys (storing them isn't an agent action, and dropping them would lose work), then
+        # stops before any step: the items wait for a run started after the switch is cleared.
+        if not agents_allowed(self._switch_folder(), workflow.module):
+            for key in new_keys:
+                self.items.receive(workflow.module, key)
+            self._save(run_id, budget.spent_micro_usd, "stopped")
+            return RunReport(run_id, "stopped", self._counts(workflow))
         gateway = Gateway(
             self.client,
             self.audit,
