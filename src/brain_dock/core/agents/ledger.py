@@ -1,7 +1,8 @@
 """The token and cost ledger (ADR 0008): one row per model call attempt, written before the
 call (outcome "started", fail closed) and completed after it. No prompt or answer text.
 
-A row still "started" after a run means the process stopped mid-call: its cost is unknown.
+Cost is NULL when it's unknown: a row still "started" (the process stopped mid-call) or an
+attempt that got no answer (the API may still have billed it). 0 always means free.
 """
 
 from dataclasses import dataclass
@@ -30,7 +31,7 @@ class LLMCall(SQLModel, table=True):
     output_tokens: int = 0
     cache_read_tokens: int = 0
     cache_write_tokens: int = 0
-    cost_micro_usd: int = 0
+    cost_micro_usd: int | None = None  # NULL: unknown; 0: free
     prices_verified: bool
 
 
@@ -67,7 +68,10 @@ class Ledger:
         except Exception as e:
             raise LedgerWriteError("couldn't write the ledger") from e
 
-    def finish(self, row_id: int, outcome: str, usage: Usage = NO_USAGE, cost: int = 0) -> None:
+    def finish(
+        self, row_id: int, outcome: str, usage: Usage = NO_USAGE, cost: int | None = None
+    ) -> None:
+        """Complete the row. Leave cost as None when it's unknown (no answer came back)."""
         try:
             with Session(self.engine) as session:
                 row = session.get(LLMCall, row_id)
@@ -82,12 +86,22 @@ class Ledger:
             raise LedgerWriteError("couldn't write the ledger") from e
 
 
-def cost_by_route(engine: Engine, run_id: str) -> dict[str, int]:
-    """Micro-dollars per route for one run (the ledger's 'cost per email per route')."""
+@dataclass(frozen=True)
+class RouteCost:
+    known_micro_usd: int  # the sum of every cost that's known
+    unknown_attempts: int  # attempts whose cost is unknown (so the real total may be higher)
+
+
+def cost_by_route(engine: Engine, run_id: str) -> dict[str, RouteCost]:
+    """Cost per route for one run (the ledger's 'cost per email per route')."""
     with Session(engine) as session:
         rows = session.exec(
-            select(LLMCall.route, func.sum(LLMCall.cost_micro_usd))
+            select(
+                LLMCall.route,
+                func.sum(LLMCall.cost_micro_usd),
+                func.count().filter(LLMCall.cost_micro_usd.is_(None)),
+            )
             .where(LLMCall.run_id == run_id)
             .group_by(LLMCall.route)
         )
-        return {route: int(total or 0) for route, total in rows}
+        return {route: RouteCost(int(known or 0), unknown) for route, known, unknown in rows}

@@ -18,7 +18,7 @@ The details behind [ADR 0008](../decisions/0008-agent-harness.md). The ADR recor
 - **Prompt caching:** the stable parts come first. The API renders the cached prefix as tool definitions (sorted by name, so the bytes never change), then the frozen system prompt, and the cache breakpoint closes the system prompt. The email text comes after the breakpoint, in the messages, inside a marked `<untrusted_email>` block it can't close itself. Each model has a minimum prefix length below which nothing is cached. The ledger records cache reads and writes, so a prompt too short to cache shows up in the numbers instead of being assumed.
 - **Ledger per call attempt** (`core_llm_call`): run, module, route, model, prompt version, attempt, outcome, the four token counts, and cost in whole micro-dollars (rounded up, so sums never drift). It holds no prompt or answer text.
   - **The row is written before the call**, with outcome `started` (fail closed: no row, no call), and completed after it. A row still `started` later means the process stopped mid-call and its cost is unknown.
-  - Attempts without an answer (timeouts, server errors, unexpected errors) are recorded with zero tokens and cost 0, meaning **unknown**: the API may still have billed them. **The budget charges their worst case**, so a run can't spend more than its limit by timing out. Only a guard refusal isn't charged, because it stopped the request before it left the machine.
+  - Attempts without an answer (timeouts, server errors, unexpected errors), and rows still `started`, record their cost as **NULL, meaning unknown**: the API may still have billed them. **0 always means free**, e.g. a `budget_stopped` attempt sent nothing. Cost per route reports the known total plus the number of attempts with an unknown cost. **The budget charges their worst case**, so a run can't spend more than its limit by timing out. Only a guard refusal isn't charged, because it stopped the request before it left the machine.
 - **Prices** live in `core/agents/prices.toml`, per model with a source and a date. Values not read from a source (cache-write prices, Haiku's cache-read price) are listed as **estimates**, and each ledger row records whether its prices were all verified. The live client (PR 9) refuses estimated prices. Haiku's prices hold up to 100K input tokens, so larger calls are refused rather than mispriced.
 - **Hard budget stop:** each run has a budget (one gateway per run holds it). Before every attempt, the gateway works out the worst case: input tokens over-estimated at one per 3 bytes (no network needed), all of them at the dearest input rate (writing the cache costs more than plain input), plus every allowed output token. If spent plus worst case would go over the budget, the call isn't made: the attempt is ledgered as `budget_stopped` and audited.
 - **The gateway owns retries** (the SDK's own retries are off), so every attempt is ledgered and audited. Timeouts, server errors and malformed output (an answer that doesn't match the request's output model) are retried, up to 3 attempts. The backoff starts at 1 second, doubles, is capped at 30 seconds, and uses equal jitter (half fixed, half random). Then `NeedsReviewError` hands the item to parking (section 4). The kill switches are checked before every attempt. **A refusal is never retried**, and its cost is still ledgered. **Unexpected errors** (bugs, guard refusals) **aren't retried** either.
@@ -58,10 +58,13 @@ The details behind [ADR 0008](../decisions/0008-agent-harness.md). The ADR recor
 - **Idempotency:**
   - each email gets a key from its Message-ID (for mock emails, a hash of its normalized headers and body), and each role a key from normalized company, title and link;
   - database uniqueness constraints make "the same email twice" give one suggestion, and "the same role in two emails" give one suggestion with both source emails linked.
-- **Persisted workflow state:**
-  - each email moves through `received → ruled → judged → pending_approval → approved | rejected`, plus `retrying` and `needs_review`;
-  - the state is stored in the database, and every step is safe to repeat;
-  - on startup, unfinished work picks up from its last state. A pending approval survives a restart, and approving it afterwards finishes the run (tested with a fresh app instance).
+- **Persisted workflow state** (`core/agents/runs.py`, PR 4a):
+  - **A declared workflow:** a module declares its states, the allowed changes between them, its final states (always including `needs_review`) and its waiting states (like `pending_approval`), plus a step function per working state. A definition check catches missing steps and final states that move on. For the inbox: `received → ruled → judged → pending_approval → approved | rejected`.
+  - **Work items:** keyed by a **hex digest** of the module's natural key (an email's Message-ID), unique per module, so the same email twice is one item. The core's tables hold **no content**: keys, states, reason codes, counts.
+  - **Runs:** saved with their budget and **spending**. The whole run runs inside the network guard, so a thread a tool leaves behind stays guarded for the rest of the run.
+  - **Crash and resume:** a crash leaves the run `running`, with its spending saved. Running it again (a fresh process is fine) continues every unfinished item from its last state, and nothing that finished runs twice. A kill switch stops the run (`stopped`), and so does an exhausted budget (`budget_stopped`); either way the items wait and aren't dropped.
+  - **The flight recorder's storage** (`core_run_step`): numbered steps per run, and any detail must be `Redacted`.
+  - **Approvals** survive a restart (PR 4b).
 - **Never drop silently:** after the retries run out (timeout, malformed output, refusal), an email is parked as `needs_review` with its reason, on its own page. One invariant is tested: every email that came in ends up suggested, skipped by a rule, rejected, or in `needs_review`.
 - **Email is data, never instructions:** email text goes in a clearly marked untrusted block, and the system prompt says so. The real defense is structural: no outbound tools, writes need approval, and the output is a fixed schema.
 
@@ -116,6 +119,7 @@ The harness is generic (an agent is a manifest, tools, prompts and a run functio
 
 ## 8. PR plan
 PR 3 (gateway and network guard) has its own detailed plan, with a status line: [pr3-gateway-plan.md](pr3-gateway-plan.md).
+PR 4 (durable runs, parking and approvals) too: [pr4-runs-approvals-plan.md](pr4-runs-approvals-plan.md).
 
 Every PR merges green without an API key. No test is removed or renamed. Counts are estimates; each PR's plan lists its exact test IDs.
 

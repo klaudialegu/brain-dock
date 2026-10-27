@@ -262,7 +262,13 @@ def test_core_migrations_are_a_branch_of_their_own():
     # The core's tables are prefixed, so they can never clash with a module's.
     core_tables = {t for t in SQLModel.metadata.tables if t.startswith("core_")}
     module_tables = {t for m in registry.installed() for t in m.tables}
-    assert core_tables == {"core_audit_event", "core_llm_call"}
+    assert core_tables == {
+        "core_audit_event",
+        "core_llm_call",
+        "core_agent_run",
+        "core_work_item",
+        "core_run_step",
+    }
     assert set(SQLModel.metadata.tables) == core_tables | module_tables
 
 
@@ -284,11 +290,84 @@ def test_migration_core_0002_keeps_every_row_and_the_audit_chain(engine):
             connection.exec_driver_sql("SELECT * FROM core_audit_event ORDER BY id")
         )
 
-    migrate(engine)
+    with engine.begin() as connection:  # exactly this migration, not whatever is newest
+        command.upgrade(_alembic_config(connection), "core@core_0002")
 
-    assert revision(engine) == head_revision() and "core_0002" in revision(engine)
+    assert "core_0002" in revision(engine)
     assert all_rows(engine) == before
     with engine.connect() as connection:
         audit_after = list(connection.exec_driver_sql("SELECT * FROM core_audit_event ORDER BY id"))
     assert audit_after == audit_before and len(audit_after) == 3
+    assert verify_chain(engine, key).ok
+
+
+def test_migration_core_0003_marks_unknown_costs_null(engine):
+    at_0001_with_rows(engine)
+    with engine.begin() as connection:  # the ledger as it was: unknown costs stored as 0
+        command.upgrade(_alembic_config(connection), "core@core_0002")
+        for outcome, cost in [
+            ("ok", 4100),
+            ("timeout", 0),
+            ("server_error", 0),
+            ("failed", 0),
+            ("started", 0),
+            ("budget_stopped", 0),
+            ("refused", 2000),
+        ]:
+            connection.exec_driver_sql(
+                "INSERT INTO core_llm_call (at, run_id, module, route, model, prompt_version, "
+                "attempt, outcome, input_tokens, output_tokens, cache_read_tokens, "
+                "cache_write_tokens, cost_micro_usd, prices_verified) VALUES "
+                "('2026-10-26 12:00:00', 'r', 'inbox', 'cheap', 'm', 'v1', 1, ?, 0, 0, 0, 0, ?, 0)",
+                (outcome, cost),
+            )
+
+    migrate(engine)
+
+    with engine.connect() as connection:
+        rows = connection.exec_driver_sql("SELECT outcome, cost_micro_usd FROM core_llm_call")
+        costs = {outcome: cost for outcome, cost in rows}
+    assert costs == {
+        "ok": 4100,
+        "timeout": None,
+        "server_error": None,
+        "failed": None,
+        "started": None,
+        "budget_stopped": 0,  # free: nothing was sent
+        "refused": 2000,
+    }
+
+
+def test_migration_core_0004_keeps_every_row(engine):
+    from brain_dock.core.agents.audit import AuditKey, AuditLog, verify_chain
+
+    at_0001_with_rows(engine)
+    with engine.begin() as connection:
+        command.upgrade(_alembic_config(connection), "core@core_0003")
+        connection.exec_driver_sql(
+            "INSERT INTO core_llm_call (at, run_id, module, route, model, prompt_version, "
+            "attempt, outcome, input_tokens, output_tokens, cache_read_tokens, "
+            "cache_write_tokens, cost_micro_usd, prices_verified) VALUES "
+            "('2026-10-26 12:00:00', 'r', 'inbox', 'cheap', 'm', 'v1', 1, 'timeout', "
+            "0, 0, 0, 0, NULL, 0)"
+        )
+    key = AuditKey(b"k" * 32)
+    AuditLog(engine, key).record(
+        run_id="r", module="inbox", tool="t", outcome="allowed", reason="ok", input_mac="x"
+    )
+    tables = ("company", "application", "stageevent", "core_audit_event", "core_llm_call")
+
+    def everything():
+        with engine.connect() as connection:
+            return {
+                t: [tuple(r) for r in connection.exec_driver_sql(f"SELECT * FROM {t} ORDER BY id")]
+                for t in tables
+            }
+
+    before = everything()
+
+    migrate(engine)
+
+    assert "core_0004" in revision(engine)
+    assert everything() == before
     assert verify_chain(engine, key).ok

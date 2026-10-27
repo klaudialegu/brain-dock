@@ -16,6 +16,9 @@ def test_create_db_makes_the_file_and_tables(tmp_path):
         "stageevent",
         "core_audit_event",
         "core_llm_call",
+        "core_agent_run",
+        "core_work_item",
+        "core_run_step",
     }
     with engine.connect() as conn:
         assert conn.exec_driver_sql("PRAGMA foreign_keys").scalar() == 1

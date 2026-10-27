@@ -275,7 +275,8 @@ class Gateway:
                 raise AgentsOffError("agents are switched off")
             worst = prices.worst_case_micro_usd(estimate_input_tokens(payload), request.max_tokens)
             if self.budget.would_exceed(worst):
-                self.ledger.finish(self.ledger.start(**row, attempt=attempt), "budget_stopped")
+                stopped = self.ledger.start(**row, attempt=attempt)
+                self.ledger.finish(stopped, "budget_stopped", cost=0)  # nothing sent: free
                 audit("blocked", "budget_exceeded")
                 raise BudgetExceededError("this call could go over the run's budget")
 
@@ -303,7 +304,7 @@ class Gateway:
                 reason = RETRYABLE[type(e)]
                 if reason != "malformed":  # a malformed answer was ledgered with its cost
                     # No answer, so no usage: the API may still have billed the request.
-                    # The budget assumes the worst; the ledger's 0 means "unknown".
+                    # The budget assumes the worst; the ledger records the cost as unknown.
                     self.budget.spent_micro_usd += worst
                     self.ledger.finish(row_id, reason)
                 audit("failed", reason)
