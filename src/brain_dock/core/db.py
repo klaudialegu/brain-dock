@@ -10,6 +10,8 @@ from sqlalchemy import Connection, Engine, event, inspect
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel, create_engine
 
+from brain_dock.core.agents import audit  # noqa: F401  (registers the core's own tables)
+
 REPO_ROOT = Path(__file__).parents[3]  # src/brain_dock/core/db.py -> repo root
 # Local databases at the repo root, inside the gitignored data/ folder.
 DEFAULT_DB_PATH = REPO_ROOT / "data" / "brain_dock.db"
@@ -90,7 +92,7 @@ def current_revision(connection: Connection) -> str | None:
 
 
 def schema_snapshot(connection: Connection) -> dict:
-    """Tables, columns, keys and indexes, ignoring Alembic's own version table.
+    """Tables, columns, keys, indexes and triggers, ignoring Alembic's own version table.
     Structure only: it never reads any rows."""
     inspector = inspect(connection)
     snapshot = {}
@@ -111,6 +113,13 @@ def schema_snapshot(connection: Connection) -> dict:
             "indexes": sorted(
                 (ix["name"], tuple(ix["column_names"]), bool(ix["unique"]))
                 for ix in inspector.get_indexes(table)
+            ),
+            "triggers": sorted(
+                name
+                for (name,) in connection.exec_driver_sql(
+                    "SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = ?",
+                    (table,),
+                )
             ),
         }
     return snapshot

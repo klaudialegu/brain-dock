@@ -11,6 +11,7 @@ from brain_dock.core.db import get_engine, migrate
 from brain_dock.modules.job_search import export
 from brain_dock.modules.job_search.export import BackupError, export_applications, write_backup
 from brain_dock.modules.job_search.importer import load_applications, rebuild_db
+from brain_dock.modules.job_search.manifest import manifest as job_search
 from brain_dock.modules.job_search.models import Application, Company, RoleTrack, Stage, StageEvent
 
 NOW = datetime(2026, 10, 21, 12, 0, 0)
@@ -123,7 +124,9 @@ def test_round_trip_keeps_everything(full_db, tmp_path):
 
 
 def test_every_column_is_exported_or_explained():
-    columns = {f"{t.name}.{c.name}" for t in SQLModel.metadata.sorted_tables for c in t.columns}
+    # The backup is job search's: its tables only (the core's audit log isn't exported).
+    tables = [SQLModel.metadata.tables[name] for name in job_search.tables]
+    columns = {f"{t.name}.{c.name}" for t in tables for c in t.columns}
 
     assert columns == set(EXPORTED) | set(NOT_EXPORTED)
     assert not set(EXPORTED) & set(NOT_EXPORTED)
