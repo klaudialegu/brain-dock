@@ -1,7 +1,7 @@
 # Plan: harness PR 3, the LLM gateway and network guard
-**Status:** 3a merged (PR #34, 2026-10-26). 3b in progress. 3c not started.
+**Status:** 3a merged (PR #34, 2026-10-26). 3b in review (all 19 break tests caught). 3c not started.
 
-Approved 2026-10-26. Design: [docs/design/agent-harness.md](../design/agent-harness.md), sections 1 and 6. Decision: ADR 0008.
+Approved 2026-10-26. Design: [agent-harness.md](agent-harness.md), sections 1 and 6. Decision: ADR 0008.
 
 **Why:** PR 2 controls which *tools* an agent may call. PR 3 controls the only other way out, the model call itself. Every model call goes through one gateway, and while an agent runs, the process can't reach anywhere else. This is the guarantee the tool-name tripwire (PR 2a) points to.
 
@@ -25,7 +25,7 @@ Split into three PRs, each about an hour. Only 3c changes the database. Every PR
 ## PR 3b: the gateway with a scripted client (no database)
 1. `core/agents/gateway.py` is the only code that talks to a model. Its request is our own dataclass, so no SDK is needed yet; the SDK arrives in PR 9.
 2. **`Redacted`:** only `redact()` makes it. It strips email addresses, phone numbers, signatures after `-- `, tokens in URL query strings, and extra terms from the caller (personal values come from the gitignored local config in PR 5). The gateway refuses plain `str`.
-3. **Cache layout:** frozen system prompt, then tools in a fixed order, then a cache breakpoint. Untrusted text comes after it, in a marked block.
+3. **Cache layout:** the API renders the cached prefix as tools (in a fixed order), then the frozen system prompt. The cache breakpoint closes the system prompt. Untrusted text comes after it, in the messages, inside a marked block it can't close. (Corrected while building 3b: the first version of this plan had system before tools.)
 4. **Clients:** `Scripted` (replays scripted responses or errors) and the client interface. Replay comes in PR 6, live in PR 9.
 5. **Audit entry per call, written before the call** (fail closed). The kill switches are checked first, and the call runs inside the guard.
 
