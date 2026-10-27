@@ -1,5 +1,5 @@
 # Plan: harness PR 3, the LLM gateway and network guard
-**Status:** 3a merged (PR #34, 2026-10-26). 3b merged (PR #35, 2026-10-26). 3c in progress (with the 7-digit phone fix from the 3b review).
+**Status:** 3a merged (PR #34, 2026-10-26). 3b merged (PR #35, 2026-10-26). 3c in review (all 23 break tests caught; migration rehearsed on copies of the real and demo databases; real database not migrated yet).
 
 Approved 2026-10-26. Design: [agent-harness.md](agent-harness.md), sections 1 and 6. Decision: ADR 0008.
 
