@@ -20,7 +20,7 @@ from typing import Protocol
 from pydantic import BaseModel, ValidationError
 
 from brain_dock.core.agents.audit import AuditLog
-from brain_dock.core.agents.guard import guarded_run
+from brain_dock.core.agents.guard import NetworkGuardError, guarded_run
 from brain_dock.core.agents.killswitch import agents_allowed
 from brain_dock.core.agents.ledger import Ledger, RunBudget
 from brain_dock.core.agents.passes import default_switch_folder
@@ -302,6 +302,9 @@ class Gateway:
             except tuple(RETRYABLE) as e:
                 reason = RETRYABLE[type(e)]
                 if reason != "malformed":  # a malformed answer was ledgered with its cost
+                    # No answer, so no usage: the API may still have billed the request.
+                    # The budget assumes the worst; the ledger's 0 means "unknown".
+                    self.budget.spent_micro_usd += worst
                     self.ledger.finish(row_id, reason)
                 audit("failed", reason)
                 if attempt == self.retry.max_attempts:
@@ -309,7 +312,11 @@ class Gateway:
                 self.retry.sleep(self.retry.delay(attempt))
             except ModelRefusedError:
                 raise
-            except Exception:
+            except Exception as e:
+                # A guard refusal stopped the request before it left this machine; any other
+                # error may have come after sending, so the budget assumes the worst.
+                if not isinstance(e, NetworkGuardError):
+                    self.budget.spent_micro_usd += worst
                 self.ledger.finish(row_id, "failed")
                 audit("failed", "model_error")
                 raise

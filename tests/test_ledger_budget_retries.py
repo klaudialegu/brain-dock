@@ -275,3 +275,53 @@ def test_a_kill_switch_set_between_attempts_stops_the_retry(engine, tmp_path):
 
     assert len(client.payloads) == 1
     assert audit_reasons(engine)[-1] == "kill_switch"
+
+
+# --- Attempts without an answer -------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [TimeoutError("slow"), ModelServerError("overloaded"), ValueError("client bug")],
+    ids=["timeout", "server-error", "unexpected"],
+)
+def test_an_attempt_without_usage_charges_its_worst_case(engine, tmp_path, failure):
+    # One attempt only, so the error surfaces right after the first charge.
+    gateway, _ = make(engine, tmp_path, [failure])
+    gateway.retry = RetryPolicy(max_attempts=1, sleep=lambda _: None)
+
+    with pytest.raises(Exception):  # noqa: B017 (NeedsReviewError or the unexpected error)
+        gateway.call(request())
+
+    assert gateway.budget.spent_micro_usd == worst_case(request())
+    assert [cost for _, _, cost in ledger(engine)] == [0]  # the ledger's 0 means "unknown"
+
+
+def test_a_timeout_can_use_up_the_budget(engine, tmp_path):
+    # Room for one worst case and a little more: after a timeout is charged, no second try.
+    gateway, client = make(
+        engine, tmp_path, [TimeoutError(), GOOD], limit=worst_case(request()) + 1
+    )
+
+    with pytest.raises(BudgetExceededError):
+        gateway.call(request())
+
+    assert len(client.payloads) == 1
+    assert [outcome for _, outcome, _ in ledger(engine)] == ["timeout", "budget_stopped"]
+
+
+def test_a_guard_refusal_is_not_charged(engine, tmp_path):
+    import socket
+
+    from brain_dock.core.agents.guard import NetworkGuardError
+
+    def exfiltrate():
+        socket.getaddrinfo("collector.invalid", 443)  # refused before anything leaves
+        return GOOD
+
+    gateway, _ = make(engine, tmp_path, [exfiltrate])
+
+    with pytest.raises(NetworkGuardError):
+        gateway.call(request())
+
+    assert gateway.budget.spent_micro_usd == 0
