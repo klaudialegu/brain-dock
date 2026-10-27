@@ -9,6 +9,7 @@ import pytest
 from sqlmodel import SQLModel
 
 from brain_dock import registry
+from brain_dock.core.agents.tools import tool_policy_problems
 from brain_dock.core.modules import Manifest, NavEntry
 from brain_dock.core.security import verify_csrf
 
@@ -159,3 +160,9 @@ def test_migrations_match_the_models(m):
     engine.dispose()
 
     assert diff == [], "a model changed without a migration in this module"
+
+
+@pytest.mark.parametrize("m", MODULES, ids=lambda m: m.name)
+def test_agent_tools_follow_the_policy(m):
+    # ADR 0008: no tool may send data out or delete anything without an Accepted ADR.
+    assert tool_policy_problems(m.name, m.agent_tools) == []

@@ -38,5 +38,6 @@ Brain Dock is a core plus modules ([ADR 0007](decisions/0007-core-and-modules.md
 1. Create `src/brain_dock/modules/<name>/` with a `manifest.py` (see `job_search/manifest.py`), its routes, templates and models. Prefix its tables with `<name>_`.
 2. Give it its own migrations folder, starting a branch labelled `<name>`, and add that folder to `version_locations` in `alembic.ini`.
 3. Add it to `INSTALLED` in `src/brain_dock/registry.py`, and a seeder for fake data in `tests/test_modules_off.py`.
-4. Run the tests: the module contract (`tests/test_module_contract.py`) and the modules-off checks cover it automatically. It may only import the core, never another module.
+4. If its agents use tools, declare them in `agent_tools` (see `core/agents/tools.py`): snake_case names, an effect each, no `outbound` or `delete` tools without an Accepted ADR exception.
+5. Run the tests: the module contract (`tests/test_module_contract.py`) and the modules-off checks cover it automatically. It may only import the core, never another module.
 

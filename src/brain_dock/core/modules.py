@@ -7,6 +7,8 @@ from pathlib import Path
 
 from fastapi import APIRouter
 
+from brain_dock.core.agents.tools import AgentTool
+
 
 @dataclass(frozen=True)
 class NavEntry:
@@ -31,5 +33,7 @@ class Manifest:
     permissions: tuple[str, ...] = ()  # core services it uses; enforced once they exist
     jobs: tuple = ()  # scheduled jobs; none until the scheduler exists
     mcp_tools: tuple = ()  # later
+    # Tools its agents may use (ADR 0008); every one must pass core.agents.tools' policy.
+    agent_tools: tuple[AgentTool, ...] = ()
     # Documented exception (ADR 0007): table names allowed without the module-name prefix.
     legacy_table_names: tuple[str, ...] = ()
