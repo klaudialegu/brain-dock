@@ -262,5 +262,33 @@ def test_core_migrations_are_a_branch_of_their_own():
     # The core's tables are prefixed, so they can never clash with a module's.
     core_tables = {t for t in SQLModel.metadata.tables if t.startswith("core_")}
     module_tables = {t for m in registry.installed() for t in m.tables}
-    assert core_tables == {"core_audit_event"}
+    assert core_tables == {"core_audit_event", "core_llm_call"}
     assert set(SQLModel.metadata.tables) == core_tables | module_tables
+
+
+def test_migration_core_0002_keeps_every_row_and_the_audit_chain(engine):
+    from brain_dock.core.agents.audit import AuditKey, AuditLog, verify_chain
+
+    at_0001_with_rows(engine)
+    with engine.begin() as connection:  # the core at core_0001, before the ledger
+        command.upgrade(_alembic_config(connection), "core@core_0001")
+    key = AuditKey(b"k" * 32)
+    log = AuditLog(engine, key)
+    for n in range(3):
+        log.record(
+            run_id="r", module="inbox", tool="t", outcome="allowed", reason="ok", input_mac=str(n)
+        )
+    before = all_rows(engine)
+    with engine.connect() as connection:
+        audit_before = list(
+            connection.exec_driver_sql("SELECT * FROM core_audit_event ORDER BY id")
+        )
+
+    migrate(engine)
+
+    assert revision(engine) == head_revision() and "core_0002" in revision(engine)
+    assert all_rows(engine) == before
+    with engine.connect() as connection:
+        audit_after = list(connection.exec_driver_sql("SELECT * FROM core_audit_event ORDER BY id"))
+    assert audit_after == audit_before and len(audit_after) == 3
+    assert verify_chain(engine, key).ok

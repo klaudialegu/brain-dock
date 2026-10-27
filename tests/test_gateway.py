@@ -14,11 +14,13 @@ from brain_dock.core.agents.gateway import (
     Gateway,
     ModelRequest,
     ModelResponse,
+    RetryPolicy,
     ScriptedClient,
     payload_text,
     redact,
 )
 from brain_dock.core.agents.guard import NetworkGuardError
+from brain_dock.core.agents.ledger import Ledger, RunBudget
 from brain_dock.core.agents.tools import AgentTool, Effect
 from brain_dock.core.db import get_engine, migrate
 
@@ -45,7 +47,14 @@ def engine(tmp_path):
 
 
 def gateway(engine, client, folder):
-    return Gateway(client, AuditLog(engine, AuditKey(b"k" * 32)), switch_folder=lambda: folder)
+    return Gateway(
+        client,
+        AuditLog(engine, AuditKey(b"k" * 32)),
+        Ledger(engine),
+        RunBudget(limit_micro_usd=1_000_000),  # $1: plenty for these calls
+        retry=RetryPolicy(sleep=lambda _: None),
+        switch_folder=lambda: folder,
+    )
 
 
 def request(untrusted="Senior Support Engineer at Acme Analytics", system=SYSTEM, tools=()):
@@ -189,8 +198,9 @@ def test_a_client_reaching_outside_the_allowlist_is_refused(engine, tmp_path):
 
 
 def test_a_model_error_is_audited_and_raised(engine, tmp_path):
-    with pytest.raises(TimeoutError):
-        gateway(engine, ScriptedClient([TimeoutError("slow")]), tmp_path).call(request())
+    # An unexpected error: not retried (timeouts are, see test_ledger_budget_retries.py).
+    with pytest.raises(RuntimeError, match="exploded"):
+        gateway(engine, ScriptedClient([RuntimeError("API exploded")]), tmp_path).call(request())
 
     assert audit_rows(engine)[-1] == ("model:claude-haiku-5-5", "failed", "model_error")
 

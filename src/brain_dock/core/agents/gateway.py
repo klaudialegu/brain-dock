@@ -1,22 +1,30 @@
 """The LLM gateway (ADR 0008, design section 1): the only code that talks to a model.
 
 Every call: text must be Redacted (plain strings are refused), the kill switches are
-checked, an audit row is written before anything is sent (fail closed), and the client
-runs inside the network guard with only the model API allowed. Retries, the ledger and
-budgets come in PR 3c; the live client in PR 9.
+checked, the run's budget is checked against the worst case, an audit row and a ledger
+row are written before anything is sent (fail closed), and the client runs inside the
+network guard with only the model API allowed. Timeouts, server errors and malformed
+output are retried with backoff; a refusal never is. The live client comes in PR 9.
 """
 
 import json
+import math
+import random
 import re
+import time
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 
+from pydantic import BaseModel, ValidationError
+
 from brain_dock.core.agents.audit import AuditLog
 from brain_dock.core.agents.guard import guarded_run
 from brain_dock.core.agents.killswitch import agents_allowed
+from brain_dock.core.agents.ledger import Ledger, RunBudget
 from brain_dock.core.agents.passes import default_switch_folder
+from brain_dock.core.agents.prices import ModelPrices, PriceError, Usage, load_prices
 from brain_dock.core.agents.tools import AgentTool
 
 # --- Redaction ---------------------------------------------------------------------------
@@ -82,14 +90,7 @@ class ModelRequest:
     untrusted: Redacted  # the email: data, never instructions
     tools: Sequence[AgentTool] = ()
     max_tokens: int = 1024
-
-
-@dataclass(frozen=True)
-class Usage:
-    input_tokens: int = 0
-    output_tokens: int = 0
-    cache_read_tokens: int = 0
-    cache_write_tokens: int = 0
+    output_model: type[BaseModel] | None = None  # the answer must match it, or it's malformed
 
 
 @dataclass(frozen=True)
@@ -152,6 +153,12 @@ def build_payload(request: ModelRequest) -> dict:
     return payload
 
 
+def estimate_input_tokens(payload: dict) -> int:
+    """A deliberate over-estimate for the budget check: one token per 3 bytes (real text
+    averages closer to 4), so the worst case is never too low. Needs no network."""
+    return math.ceil(len(payload_text(payload).encode()) / 3)
+
+
 # --- The gateway -------------------------------------------------------------------------
 
 
@@ -159,16 +166,75 @@ class AgentsOffError(RuntimeError):
     """A kill switch is set (or couldn't be checked). Nothing was sent."""
 
 
+class BudgetExceededError(RuntimeError):
+    """The call's worst case would go over the run's budget. Nothing was sent."""
+
+
+class ModelServerError(RuntimeError):
+    """The model API failed on its side (5xx, overloaded). Retried."""
+
+
+class MalformedOutputError(RuntimeError):
+    """The answer didn't match the request's output model. Retried."""
+
+
+class ModelRefusedError(RuntimeError):
+    """The model declined. Never retried: asking again wouldn't change the answer."""
+
+
+class NeedsReviewError(RuntimeError):
+    """Every attempt failed. The item is parked for a person to look at (PR 4)."""
+
+    def __init__(self, reason: str):
+        super().__init__(f"needs review after repeated {reason}")
+        self.reason = reason
+
+
+RETRYABLE = {
+    TimeoutError: "timeout",
+    ModelServerError: "server_error",
+    MalformedOutputError: "malformed",
+}
+
+
+@dataclass(frozen=True)
+class RetryPolicy:
+    max_attempts: int = 3
+    base_delay: float = 1.0  # seconds before the 2nd attempt; doubles each time
+    max_delay: float = 30.0
+    sleep: Callable[[float], None] = time.sleep
+    jitter: Callable[[], float] = random.random  # 0..1
+
+    def delay(self, attempt: int) -> float:
+        """Exponential backoff with equal jitter: half fixed, half random, so many waiting
+        callers don't all retry at the same moment."""
+        ceiling = min(self.max_delay, self.base_delay * 2 ** (attempt - 1))
+        return ceiling / 2 + self.jitter() * ceiling / 2
+
+
+DEFAULT_RETRY = RetryPolicy()
+
+
 class Gateway:
+    """One gateway per run: it holds the run's budget."""
+
     def __init__(
         self,
         client: ModelClient,
         audit: AuditLog,
+        ledger: Ledger,
+        budget: RunBudget,
+        prices: dict[str, ModelPrices] | None = None,
+        retry: RetryPolicy = DEFAULT_RETRY,
         allow: Iterable[tuple[str, int]] = (),  # the model API's host:port (PR 9)
         switch_folder: Callable[[], Path] = default_switch_folder,
     ):
         self.client = client
         self.audit = audit
+        self.ledger = ledger
+        self.budget = budget
+        self.prices = prices if prices is not None else load_prices()
+        self.retry = retry
         self.allow = tuple(allow)
         self._switch_folder = switch_folder
 
@@ -188,18 +254,66 @@ class Gateway:
         if not (isinstance(request.system, Redacted) and isinstance(request.untrusted, Redacted)):
             audit("refused", "not_redacted")
             raise TypeError("the gateway only sends Redacted text; use redact()")
-        if not agents_allowed(self._switch_folder(), request.module):
-            audit("blocked", "kill_switch")
-            raise AgentsOffError("agents are switched off")
-
+        prices = self.prices.get(request.model)
+        if prices is None:
+            audit("refused", "no_price")
+            raise PriceError(f"no price for {request.model}")
         payload = build_payload(request)
-        audit("allowed", "ok", payload)  # before anything is sent; raises if it can't
-        try:
-            with guarded_run(self.allow, on_refusal=lambda reason: audit("blocked", reason)):
-                return self.client.complete(payload)
-        except Exception:
-            audit("failed", "model_error")
-            raise
+        row = {
+            "run_id": request.run_id,
+            "module": request.module,
+            "route": request.route,
+            "model": request.model,
+            "prompt_version": request.prompt_version,
+            "prices_verified": prices.verified,
+        }
+
+        for attempt in range(1, self.retry.max_attempts + 1):
+            # Checked before every attempt, so a switch set mid-run stops the next one.
+            if not agents_allowed(self._switch_folder(), request.module):
+                audit("blocked", "kill_switch")
+                raise AgentsOffError("agents are switched off")
+            worst = prices.worst_case_micro_usd(estimate_input_tokens(payload), request.max_tokens)
+            if self.budget.would_exceed(worst):
+                self.ledger.finish(self.ledger.start(**row, attempt=attempt), "budget_stopped")
+                audit("blocked", "budget_exceeded")
+                raise BudgetExceededError("this call could go over the run's budget")
+
+            # Both rows before anything is sent; either raises if it can't be written.
+            row_id = self.ledger.start(**row, attempt=attempt)
+            audit("allowed", "ok", payload)
+            try:
+                with guarded_run(self.allow, on_refusal=lambda reason: audit("blocked", reason)):
+                    response = self.client.complete(payload)
+                cost = prices.cost_micro_usd(response.usage)
+                self.budget.spent_micro_usd += cost
+                if response.stop_reason == "refusal":
+                    self.ledger.finish(row_id, "refused", response.usage, cost)
+                    audit("failed", "refused")
+                    raise ModelRefusedError("the model declined")
+                if request.output_model is not None:
+                    try:
+                        request.output_model.model_validate(response.content)
+                    except ValidationError:
+                        self.ledger.finish(row_id, "malformed", response.usage, cost)
+                        raise MalformedOutputError("the answer didn't match") from None
+                self.ledger.finish(row_id, "ok", response.usage, cost)
+                return response
+            except tuple(RETRYABLE) as e:
+                reason = RETRYABLE[type(e)]
+                if reason != "malformed":  # a malformed answer was ledgered with its cost
+                    self.ledger.finish(row_id, reason)
+                audit("failed", reason)
+                if attempt == self.retry.max_attempts:
+                    raise NeedsReviewError(reason) from e
+                self.retry.sleep(self.retry.delay(attempt))
+            except ModelRefusedError:
+                raise
+            except Exception:
+                self.ledger.finish(row_id, "failed")
+                audit("failed", "model_error")
+                raise
+        raise AssertionError("unreachable")
 
 
 def payload_text(payload: dict) -> str:
