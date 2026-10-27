@@ -10,7 +10,7 @@ from sqlalchemy import Connection, Engine, event, inspect
 from sqlalchemy.pool import StaticPool
 from sqlmodel import SQLModel, create_engine
 
-from brain_dock.core.agents import audit, ledger  # noqa: F401  (registers the core's own tables)
+from brain_dock.core.agents import audit, ledger, run_tables  # noqa: F401  (registers the core's own tables)
 
 REPO_ROOT = Path(__file__).parents[3]  # src/brain_dock/core/db.py -> repo root
 # Local databases at the repo root, inside the gitignored data/ folder.
