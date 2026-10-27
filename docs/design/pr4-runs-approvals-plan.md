@@ -1,5 +1,5 @@
 # Plan: harness PR 4, durable runs, parking and approvals
-**Status:** 4a merged (PR #37), real database migrated 2026-10-26. 4b in review (all 20 break tests caught; migration rehearsed on copies; real database not migrated yet).
+**Status:** 4a merged (PR #37). 4b merged (PR #38). Real database migrated to core_0005 on 2026-10-26. PR 4 complete.
 
 Approved 2026-10-26. Design: [agent-harness.md](agent-harness.md), sections 2 and 4. Decision: ADR 0008. Previous: [pr3-gateway-plan.md](pr3-gateway-plan.md).
 
