@@ -43,3 +43,18 @@ def test_redaction_rules(text, planted, placeholder):
 
 def test_job_details_survive():
     assert redact(JOB).text == JOB  # dates, salaries, years and the link path stay
+
+
+# --- Known edge cases (pinned, so any change in behavior is a visible, reviewed diff) -----
+
+
+def test_known_edge_a_seven_digit_local_number():
+    # Current behavior: only 9+ digit numbers count as phones, so a local number slips past.
+    assert redact("Call 555-1234 today").text == "Call 555-1234 today"
+
+
+def test_known_edge_a_salary_range_without_commas():
+    # Over-redaction, the safe direction: a 12-digit range looks like a phone number. The
+    # salary math reads the email before redaction (design section 3), so nothing is lost.
+    assert redact("Salary 120000-150000 a year").text == "Salary [phone] a year"
+    assert redact("Salary 120,000-150,000").text == "Salary 120,000-150,000"
