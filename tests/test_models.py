@@ -148,6 +148,7 @@ def test_stage_event_for_missing_application_is_rejected(session):
 
 def test_all_stages_and_tracks():
     assert [s.value for s in Stage] == [
+        "interested",
         "applied",
         "screen",
         "interview",

@@ -13,23 +13,26 @@ from brain_dock.modules.job_search.models import Stage
 class StageInfo:
     label: str
     order: int  # position in the pipeline, left to right
-    kind: str  # "active" (still moving), "won" (offer) or "closed" (ended without one)
+    # "saved" (interested, not an application yet), "active" (still moving), "won" (offer)
+    # or "closed" (ended without one)
+    kind: str
     color: str  # light mode
     dark_color: str  # dark mode
 
 
 STAGES: dict[Stage, StageInfo] = {
-    Stage.applied: StageInfo("Applied", 0, "active", "#1f2328", "#e8e6e3"),
-    Stage.screen: StageInfo("Screen", 1, "active", "#3b6ea8", "#7aa7d9"),
-    Stage.interview: StageInfo("Interview", 2, "active", "#3b6ea8", "#7aa7d9"),
-    Stage.onsite: StageInfo("Onsite", 3, "active", "#3b6ea8", "#7aa7d9"),
-    Stage.offer: StageInfo("Offer", 4, "won", "#2f7d4f", "#6cc191"),
-    Stage.rejected: StageInfo("Rejected", 5, "closed", "#6b6f76", "#9a9ea6"),
-    Stage.ghosted: StageInfo("Ghosted", 6, "closed", "#6b6f76", "#9a9ea6"),
-    Stage.withdrawn: StageInfo("Withdrawn", 7, "closed", "#6b6f76", "#9a9ea6"),
+    Stage.interested: StageInfo("Interested", 0, "saved", "#6a4fa3", "#ad98dc"),
+    Stage.applied: StageInfo("Applied", 1, "active", "#1f2328", "#e8e6e3"),
+    Stage.screen: StageInfo("Screen", 2, "active", "#3b6ea8", "#7aa7d9"),
+    Stage.interview: StageInfo("Interview", 3, "active", "#3b6ea8", "#7aa7d9"),
+    Stage.onsite: StageInfo("Onsite", 4, "active", "#3b6ea8", "#7aa7d9"),
+    Stage.offer: StageInfo("Offer", 5, "won", "#2f7d4f", "#6cc191"),
+    Stage.rejected: StageInfo("Rejected", 6, "closed", "#6b6f76", "#9a9ea6"),
+    Stage.ghosted: StageInfo("Ghosted", 7, "closed", "#6b6f76", "#9a9ea6"),
+    Stage.withdrawn: StageInfo("Withdrawn", 8, "closed", "#6b6f76", "#9a9ea6"),
 }
 
-KINDS = {"active", "won", "closed"}
+KINDS = {"saved", "active", "won", "closed"}
 
 # Stages that count as hearing back from the company (for the response rate).
 # Ghosted and withdrawn are endings without a reply.
@@ -47,8 +50,10 @@ def stage_label(stage: Stage | str) -> str:
 
 
 def recordable_stages() -> list[Stage]:
-    """Stages a person can record; "applied" comes from the applied date."""
-    return [s for s in sorted(STAGES, key=lambda s: STAGES[s].order) if s != Stage.applied]
+    """Stages a person can record on an application; "applied" comes from the applied date,
+    and "interested" only from saving a job before applying."""
+    skip = {Stage.interested, Stage.applied}
+    return [s for s in sorted(STAGES, key=lambda s: STAGES[s].order) if s not in skip]
 
 
 def stage_css() -> str:

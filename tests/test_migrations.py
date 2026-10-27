@@ -1,15 +1,17 @@
 from datetime import date
 
 import pytest
+from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.runtime.migration import MigrationContext
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 from sqlmodel import Session, SQLModel, select
 
 from brain_dock.core.db import (
     BASELINE_REVISION,
     ForeignKeyError,
     SchemaMismatchError,
+    _alembic_config,
     create_db,
     current_revision,
     get_engine,
@@ -18,7 +20,14 @@ from brain_dock.core.db import (
     migrate,
     schema_snapshot,
 )
-from brain_dock.modules.job_search.models import Company, RoleTrack, create_application
+from brain_dock.modules.job_search.models import (
+    Company,
+    RoleTrack,
+    Stage,
+    create_application,
+    record_stage,
+    save_interested,
+)
 
 
 @pytest.fixture
@@ -34,8 +43,15 @@ def engine(db_file):
 
 
 def legacy_db(engine):
-    """A database made the old way (create_all, no migration history), with one row."""
-    create_db(engine)
+    """A database made the old way (create_all, no migration history), with one row.
+
+    Legacy databases were made by the models of their time, so this builds the schema of
+    migration 0001 (create_all with today's models would be the newer schema) and then
+    removes the migration history.
+    """
+    with engine.begin() as connection:
+        command.upgrade(_alembic_config(connection), BASELINE_REVISION)
+        connection.execute(text("DROP TABLE alembic_version"))
     with Session(engine) as session:
         company = Company(name="Acme Analytics")
         session.add(company)
@@ -162,3 +178,57 @@ def test_migrate_refuses_rows_pointing_at_missing_rows(engine):
     with pytest.raises(ForeignKeyError, match="Nothing was changed"):
         migrate(engine)
     assert foreign_keys_on(engine)
+
+
+# --- 0002: the interested stage -------------------------------------------------------
+
+
+TABLES = ("company", "application", "stageevent")
+
+
+def at_0001_with_rows(engine):
+    """A database at migration 0001 holding two applications and their stage events."""
+    with engine.begin() as connection:
+        command.upgrade(_alembic_config(connection), BASELINE_REVISION)
+    with Session(engine) as session:
+        company = Company(name="Acme Analytics")
+        session.add(company)
+        first = create_application(session, company, "Engineer", RoleTrack.fde, date(2026, 9, 1))
+        create_application(session, company, "Support Lead", RoleTrack.support, date(2026, 9, 2))
+        record_stage(session, first, Stage.screen, date(2026, 9, 5), note="Fake note")
+        record_stage(session, first, Stage.withdrawn, date(2026, 9, 9))
+        session.commit()
+
+
+def all_rows(engine):
+    with engine.connect() as connection:
+        return {
+            t: [tuple(r) for r in connection.exec_driver_sql(f"SELECT * FROM {t} ORDER BY id")]
+            for t in TABLES
+        }
+
+
+def test_migration_0002_keeps_every_row(engine):
+    at_0001_with_rows(engine)
+    before = all_rows(engine)
+    assert len(before["stageevent"]) == 4  # rows that point at applications really exist
+
+    assert migrate(engine) == "upgraded"
+
+    assert revision(engine) == head_revision()
+    assert all_rows(engine) == before
+    assert foreign_keys_on(engine)  # switched back on for the connections that follow
+    with Session(engine) as session:  # and a saved job now fits
+        save_interested(session, Company(name="Globex"), "Role", RoleTrack.fde, date(2026, 10, 1))
+        session.commit()
+
+
+def test_downgrade_refuses_while_saved_jobs_exist(engine):
+    migrate(engine)
+    with Session(engine) as session:
+        save_interested(session, Company(name="Acme"), "Role", RoleTrack.fde, date(2026, 10, 1))
+        session.commit()
+
+    with engine.begin() as connection, pytest.raises(RuntimeError, match="1 saved job"):
+        command.downgrade(_alembic_config(connection), "job_search@0001")
+    assert revision(engine) == head_revision()

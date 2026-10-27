@@ -19,9 +19,13 @@ def test_every_stage_has_metadata():
 
 def test_pipeline_order_is_unique_and_starts_with_applied():
     orders = [info.order for info in STAGES.values()]
+    applications = [s for s in STAGES if STAGES[s].kind != "saved"]
 
     assert sorted(orders) == list(range(len(Stage)))
-    assert min(STAGES, key=lambda s: STAGES[s].order) == Stage.applied
+    # Interested comes first but isn't an application; the pipeline starts at applied.
+    assert [s for s in STAGES if STAGES[s].kind == "saved"] == [Stage.interested]
+    assert min(STAGES, key=lambda s: STAGES[s].order) == Stage.interested
+    assert min(applications, key=lambda s: STAGES[s].order) == Stage.applied
 
 
 def test_kinds_are_known_and_offer_is_the_win():
@@ -32,8 +36,9 @@ def test_kinds_are_known_and_offer_is_the_win():
 def test_labels_and_recordable_stages():
     assert stage_label("screen") == "Screen"
     assert Stage.applied not in recordable_stages()
+    assert Stage.interested not in recordable_stages()  # only from saving a job
     assert recordable_stages()[0] == Stage.screen
-    assert len(recordable_stages()) == len(Stage) - 1
+    assert len(recordable_stages()) == len(Stage) - 2
 
 
 def test_css_has_light_and_dark_colors_for_every_stage():

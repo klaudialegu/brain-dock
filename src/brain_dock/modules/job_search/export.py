@@ -13,7 +13,7 @@ from sqlmodel import Session, select
 from brain_dock.core import db
 from brain_dock.core.db import get_engine, is_at_head
 from brain_dock.modules.job_search.importer import ImportFileError, load_applications
-from brain_dock.modules.job_search.models import Application, Stage
+from brain_dock.modules.job_search.models import Application, creation_event, interested_event
 
 # Backups live in the gitignored data/ folder.
 BACKUP_DIR = db.REPO_ROOT / "data" / "backups"
@@ -43,15 +43,18 @@ def export_applications(session: Session) -> dict:
         events = sorted(app.events, key=lambda e: (e.happened_on, e.id))
         # The first "applied" event is the one create_application() adds from applied_on;
         # the importer recreates it, so it isn't listed.
-        creation = next(
-            (e for e in sorted(app.events, key=lambda e: e.id) if e.stage == Stage.applied), None
-        )
+        creation = creation_event(app)
+        # Same for the "interested" event save_interested() adds from interested_on.
+        saved = interested_event(app)
         entry = {
             "company": app.company.name,
             "role_title": app.role_title,
             "role_track": app.role_track.value,
-            "applied_on": app.applied_on.isoformat(),
         }
+        if saved is not None:
+            entry["interested_on"] = saved.happened_on.isoformat()
+        if app.applied_on is not None:
+            entry["applied_on"] = app.applied_on.isoformat()
         for field in ("link", "notes"):
             if getattr(app, field) is not None:
                 entry[field] = getattr(app, field)
@@ -61,7 +64,7 @@ def export_applications(session: Session) -> dict:
             {"stage": e.stage.value, "happened_on": e.happened_on.isoformat()}
             | ({"note": e.note} if e.note is not None else {})
             for e in events
-            if e is not creation
+            if e is not creation and e is not saved
         ]
         exported.append(entry)
     return {"applications": exported}

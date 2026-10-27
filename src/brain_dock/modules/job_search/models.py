@@ -7,6 +7,7 @@ from sqlmodel import Field, Relationship, Session, SQLModel, func, select
 # Members are lowercase on purpose: SQLAlchemy stores an enum's member *name*,
 # so lowercase names keep the database readable ("screen", not "SCREEN").
 class Stage(StrEnum):
+    interested = "interested"  # saved, not applied yet (applied_on is None)
     applied = "applied"
     screen = "screen"
     interview = "interview"
@@ -35,7 +36,7 @@ class Application(SQLModel, table=True):
     company_id: int = Field(foreign_key="company.id", index=True)
     role_title: str
     role_track: RoleTrack
-    applied_on: date
+    applied_on: date | None = None  # None: saved as interested, not applied yet
     # Only record_stage() should change this; it always matches the latest StageEvent.
     current_stage: Stage = Stage.applied
     link: str | None = None
@@ -98,6 +99,51 @@ def create_application(
     return application
 
 
+def save_interested(
+    session: Session,
+    company: Company,
+    role_title: str,
+    role_track: RoleTrack | str,
+    interested_on: date,
+    *,
+    link: str | None = None,
+    notes: str | None = None,
+    follow_up_on: date | None = None,
+) -> Application:
+    """Save a job I'm considering, with its "interested" stage event. The caller commits.
+
+    It isn't an application yet: applied_on stays None until mark_applied().
+    """
+    application = Application(
+        company=company,
+        role_title=role_title,
+        role_track=RoleTrack(role_track),
+        link=link,
+        notes=notes,
+        follow_up_on=follow_up_on,
+    )
+    session.add(application)
+    record_stage(session, application, Stage.interested, interested_on)
+    return application
+
+
+def interested_event(application: Application) -> StageEvent | None:
+    """The "interested" event save_interested() added, if the job was saved first."""
+    saved = [e for e in application.events if e.stage == Stage.interested]
+    return min(saved, key=lambda e: e.id) if saved else None
+
+
+def mark_applied(session: Session, application: Application, applied_on: date) -> StageEvent:
+    """Turn a saved job into an application. The caller commits."""
+    if application.applied_on is not None:
+        raise ValueError("already applied")
+    saved = interested_event(application)
+    if saved is not None and applied_on < saved.happened_on:
+        raise DateOrderError("applied_on is before the interested date")
+    application.applied_on = applied_on
+    return record_stage(session, application, Stage.applied, applied_on)
+
+
 def record_stage(
     session: Session,
     application: Application,
@@ -124,6 +170,10 @@ class DateOrderError(ValueError):
     """A date would put an application's history out of order. Nothing was changed."""
 
 
+class NotAppliedError(ValueError):
+    """Only applications can be edited or move through stages; a saved job can't yet."""
+
+
 def creation_event(application: Application) -> StageEvent | None:
     """The "applied" event create_application() added (the first one recorded)."""
     applied = [e for e in application.events if e.stage == Stage.applied]
@@ -148,10 +198,15 @@ def update_application(
     with it. Renaming the company reuses an existing one (ignoring case and spaces); if the
     new name matches the current company, its spelling is updated instead.
     """
+    if application.applied_on is None:
+        raise NotAppliedError("not applied yet")
     creation = creation_event(application)
-    later = [e.happened_on for e in application.events if e is not creation]
+    saved = interested_event(application)
+    later = [e.happened_on for e in application.events if e is not creation and e is not saved]
     if later and applied_on > min(later):
         raise DateOrderError("applied_on is after a recorded stage")
+    if saved is not None and applied_on < saved.happened_on:
+        raise DateOrderError("applied_on is before the interested date")
 
     old_company = application.company
     if company_key(old_company.name) == company_key(company_name):
@@ -193,6 +248,8 @@ def add_stage(
     note: str | None = None,
 ) -> StageEvent:
     """record_stage() for people: refuses a date before the application was sent."""
+    if application.applied_on is None:
+        raise NotAppliedError("not applied yet")
     if happened_on < application.applied_on:
         raise DateOrderError("happened_on is before applied_on")
     return record_stage(session, application, stage, happened_on, note)
