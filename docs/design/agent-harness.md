@@ -108,6 +108,8 @@ The harness is generic (an agent is a manifest, tools, prompts and a run functio
 - **Fixture guard:** a test checks that every fixture in the repo uses only reserved domains (`example.com`, `.test`) and is marked synthetic.
 
 ## 8. PR plan
+PR 3 (gateway and network guard) has its own detailed plan, with a status line: [pr3-gateway-plan.md](pr3-gateway-plan.md).
+
 Every PR merges green without an API key. No test is removed or renamed. Counts are estimates; each PR's plan lists its exact test IDs.
 
 | PR | Scope | Test IDs (planned) |
