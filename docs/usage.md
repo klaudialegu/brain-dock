@@ -12,6 +12,7 @@ The app only listens on this machine. Open it at `http://127.0.0.1:8000` or `htt
 
 - **Back up**: `uv run python -m brain_dock.export` writes a complete, validated JSON backup to `data/backups/applications-<date>-<time>.json` (owner-only).
 - **Check the audit log**: `uv run python -m brain_dock.verify_audit` checks that the agent audit log's hash chain is intact. Its key sits next to the database (`<database>.audit-key`, owner-only); without it, the log can't be verified.
+- **Stop agents**: `touch data/agents-off` stops every agent at its next step, even mid-run; `touch data/agents-off-<module>` stops one module's. Delete the file to turn them back on. If the check itself fails, agents count as off.
 - **Import**: `uv run python -m brain_dock.importer` is for first-time setup from a JSON file in the backup format. It refuses to replace a database that already has applications unless you pass `--force`, which writes a backup first.
 - **Demo data**: `uv run python -m brain_dock.importer --demo` loads `demo/applications.json` into `data/demo.db`. Start the app with `BRAIN_DOCK_DB=data/demo.db` to use it; a banner marks it as fake.
 
