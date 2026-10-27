@@ -81,7 +81,20 @@ The details behind [ADR 0008](../decisions/0008-agent-harness.md). The ADR recor
 ## 6. Threat model
 **The lethal trifecta:** an agent becomes dangerous when it combines **private data** (my applications, later my real email), **untrusted content** (any email can contain instructions), and **a way to send data out**. Brain Dock keeps the first two by design, so it removes the third:
 - **No outbound tools:** no send-email, no arbitrary web requests, no delete. The contract test enforces this for every module, with an Accepted ADR exception as the only way around it. The tool-name check is a tripwire; the network guard is the guarantee.
-- **One exit only:** the gateway's call to the model API, carrying redacted, minimal text. During agent runs in tests, every other network connection is blocked and fails the test.
+- **One exit only:** the gateway's call to the model API, carrying redacted, minimal text. The **network guard** (`core/agents/guard.py`, PR 3a) enforces it:
+  - It uses Python audit hooks, which are called before every DNS lookup, socket connect, UDP send, process start and `ctypes` library load, and can't be removed once added.
+  - While a run is active, in every thread of the process:
+    - a lookup of any host not on the run's `host:port` allowlist is refused;
+    - a connect is allowed only to an address an allowed host resolves to, on its port, so literal IPs and Unix sockets are refused;
+    - UDP sends, process starts (`subprocess`, `os.system`, `exec`, `fork`, `spawn`) and native libraries (`ctypes.dlopen`) are refused.
+  - Every refusal is audited, and it stands even if the audit write fails.
+  - Tool calls run with an empty allowlist. Only the gateway's model calls (3b) get one, and only for the model API (PR 9).
+- **Kill switches** (files next to the database): `data/agents-off` stops every agent, and `data/agents-off-<module>` stops one module. They're checked before every tool call and model call, so they work mid-run. **Fail closed:** if checking fails, agents count as off.
+- **Honest limits of the guard:**
+  - Audit hooks see Python-level calls, so a compiled extension making raw system calls could slip past.
+  - An IP allowlist can't tell two sites on one shared CDN address apart; the DNS check is the main line.
+  - A thread a tool leaves running after its call is unguarded once the call ends, until whole runs are guarded (PR 4).
+  - This is the strongest guard inside Python, not an operating-system sandbox. A container whose only network is the model API belongs to the Deployment Day phase.
 - **No exfiltration through the page:** suggestions are shown as escaped text. Links pass `safe_link` and are never auto-loaded, and the CSP already blocks images and scripts from other sites.
 - **Proof:** the injected-email rogue test (section 2) shows the agent has no way to send data out, and that the attempt is audited.
 
