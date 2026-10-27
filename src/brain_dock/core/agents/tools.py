@@ -7,11 +7,13 @@ guarantee; the guarantee is the network guard in the gateway (harness PR 3).
 """
 
 import re
+import types
 from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from enum import StrEnum
+from enum import Enum, StrEnum
 from pathlib import Path
+from typing import Literal, Union, get_args, get_origin
 
 from pydantic import BaseModel
 
@@ -57,6 +59,18 @@ class AgentTool:
     handler: Callable[[BaseModel], dict]
 
 
+def _is_reference(annotation) -> bool:
+    """An id-like type: int, bool, an enum or a literal (or an optional one of those)."""
+    origin = get_origin(annotation)
+    if origin in (Union, types.UnionType):
+        return all(_is_reference(a) for a in get_args(annotation) if a is not type(None))
+    if origin is Literal:
+        return True
+    if isinstance(annotation, type) and issubclass(annotation, Enum):
+        return True
+    return annotation in (int, bool)
+
+
 def adr_status(path: Path) -> str | None:
     """The **Status:** of an ADR file, or None when the file or the line is missing."""
     if not path.is_file():
@@ -88,6 +102,12 @@ def tool_policy_problems(
             )
         if words & DELETE_WORDS and tool.effect != Effect.delete:
             problems.append(f"{where}: the name says it deletes, but effect is {tool.effect}")
+        if tool.effect == Effect.write:
+            # An approval stores a write's exact input, so it must be references (ids), not
+            # content: the core's tables hold no free text.
+            for field, info in tool.input_model.model_fields.items():
+                if not _is_reference(info.annotation):
+                    problems.append(f"{where}: write inputs are ids, not free text ({field!r})")
         if tool.effect in FORBIDDEN:
             adr = exceptions.get((module, tool.name))
             if adr is None:

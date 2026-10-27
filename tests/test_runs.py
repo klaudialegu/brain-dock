@@ -326,10 +326,13 @@ def test_a_kill_switch_stops_the_run_and_items_wait(db_path, tmp_path):
     (tmp_path / "agents-off-inbox").touch()
     runner, engine = make_runner(db_path, tmp_path)
 
-    report = runner.run(WORKFLOW, runner.start("inbox", 1_000_000), [key("ok")])
+    run_id = runner.start("inbox", 1_000_000)
+    report = runner.run(WORKFLOW, run_id, [key("ok")])
 
     assert report.status == "stopped" and calls == []
-    assert states(engine) == {"ok": ("received", None)}
+    assert states(engine) == {"ok": ("received", None)}  # recorded, not dropped
+    with Session(engine) as session:  # stopped before the run began: nothing recorded
+        assert session.exec(select(RunStep).where(RunStep.run_id == run_id)).all() == []
     (tmp_path / "agents-off-inbox").unlink()
     runner.run(WORKFLOW, runner.start("inbox", 1_000_000))  # a new run picks it up
     assert states(engine) == {"ok": ("suggested", None)}

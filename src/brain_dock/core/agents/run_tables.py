@@ -52,3 +52,23 @@ class RunStep(SQLModel, table=True):
     cost_micro_usd: int | None = None
     detail: str | None = None  # Redacted text only
     at: datetime
+
+
+class Approval(SQLModel, table=True):
+    """A write an agent asked for, waiting for my decision (harness PR 4b)."""
+
+    __tablename__ = "core_approval"
+
+    id: int | None = Field(default=None, primary_key=True)
+    run_id: str = Field(index=True)
+    module: str
+    item_id: int | None = None
+    tool: str
+    input_json: str  # the exact input that will run; ids only, by the write-tool policy
+    input_mac: str  # HMAC of that input when the approval was created; checked before running
+    # pending -> executing -> executed | failed; or rejected; or needs_review (with a reason)
+    status: str
+    reason: str | None = None  # a short code, never free text
+    created_at: datetime
+    decided_at: datetime | None = None
+    decided_by: str | None = None  # "human"

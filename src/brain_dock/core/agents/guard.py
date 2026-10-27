@@ -115,6 +115,12 @@ def _hook(event: str, args: tuple) -> None:
                 _refuse("guard_connect")
 
 
+def run_active() -> bool:
+    """True while any agent run is in progress (in any thread). Approvals check this: an
+    agent must never approve its own writes."""
+    return bool(_runs)
+
+
 def install() -> None:
     """Add the audit hook once per process. It can't be removed, by design."""
     global _installed

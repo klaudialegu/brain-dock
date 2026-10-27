@@ -10,6 +10,7 @@ from sqlmodel import Session, select
 from brain_dock import registry
 from brain_dock.core.agents.audit import AuditEvent, AuditKey, AuditLog, AuditWriteError
 from brain_dock.core.agents.passes import CapabilityPass, Dispatcher, PassOffice
+from brain_dock.core.agents.run_tables import Approval
 from brain_dock.core.agents.tools import AgentTool, Effect
 from brain_dock.core.db import get_engine, migrate
 
@@ -160,10 +161,15 @@ def test_invalid_input_is_refused_and_audited(setup, engine):
 def test_write_tool_never_runs_inside_a_run(setup, engine):
     office, dispatcher = setup
 
-    result = dispatcher.call(office.issue("inbox", "run-1"), "mark_interested", QUERY)
+    result = dispatcher.call(office.issue("inbox", "run-1"), "mark_interested", QUERY, item_id=7)
 
-    assert not result.ok and calls == []
-    assert audit_rows(engine) == [("inbox", "mark_interested", "refused", "write_needs_approval")]
+    # Since PR 4b: not refused but a pending approval, holding the exact input. Still never run.
+    assert not result.ok and calls == [] and result.approval_id is not None
+    assert audit_rows(engine) == [("inbox", "mark_interested", "pending", "pending_approval")]
+    with Session(engine) as session:
+        approval = session.get(Approval, result.approval_id)
+    assert (approval.status, approval.tool, approval.item_id) == ("pending", "mark_interested", 7)
+    assert approval.input_json == '{"company":"Acme Analytics"}'
 
 
 def test_tool_failure_is_audited_without_details(setup, engine):
