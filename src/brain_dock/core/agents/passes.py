@@ -6,12 +6,15 @@ audited before anything runs, and if the audit write fails, nothing runs (fail c
 """
 
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 from pydantic import ValidationError
 
 from brain_dock.core.agents.audit import AuditLog
+from brain_dock.core.agents.guard import NetworkGuardError, guarded_run
+from brain_dock.core.agents.killswitch import agents_allowed
 from brain_dock.core.agents.tools import FORBIDDEN, AgentTool, Effect
 from brain_dock.core.modules import Manifest
 
@@ -55,10 +58,23 @@ class ToolResult:
     error: str | None = None
 
 
+def default_switch_folder() -> Path:
+    from brain_dock.core import db
+
+    return db.DB_PATH.parent  # data/ for the real database
+
+
 class Dispatcher:
-    def __init__(self, office: PassOffice, audit: AuditLog, manifests: Sequence[Manifest]):
+    def __init__(
+        self,
+        office: PassOffice,
+        audit: AuditLog,
+        manifests: Sequence[Manifest],
+        switch_folder: Callable[[], Path] = default_switch_folder,
+    ):
         self.office = office
         self.audit = audit
+        self._switch_folder = switch_folder
         self._tools: dict[tuple[str, str], AgentTool] = {
             (m.name, t.name): t for m in manifests for t in m.agent_tools
         }
@@ -77,6 +93,9 @@ class Dispatcher:
                 input_mac=self.audit.input_mac(raw_input),
             )
 
+        if not agents_allowed(self._switch_folder(), module):
+            audit("blocked", "kill_switch")
+            return ToolResult(False, error="Agents are switched off.")
         if not self.office.honors(capability_pass):
             audit("blocked", "forged_pass")
             return ToolResult(False, error="This run has no valid pass.")
@@ -101,7 +120,13 @@ class Dispatcher:
 
         audit("allowed", "ok")
         try:
-            output = tool.handler(data)
+            # Tools get no network, processes or native code (no allowlist): only the
+            # gateway's model calls may leave this machine.
+            with guarded_run(on_refusal=lambda reason: audit("blocked", reason)):
+                output = tool.handler(data)
+        except NetworkGuardError:
+            audit("failed", "guard_refused")
+            return ToolResult(False, error="The tool tried to reach outside its run.")
         except Exception:
             audit("failed", "tool_error")
             return ToolResult(False, error="The tool failed.")
