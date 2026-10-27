@@ -1,5 +1,5 @@
 # Plan: harness PR 4, durable runs, parking and approvals
-**Status:** 4a in progress. 4b not started.
+**Status:** 4a in review (all 23 break tests caught; migrations rehearsed on copies; real database not migrated yet). 4b not started.
 
 Approved 2026-10-26. Design: [agent-harness.md](agent-harness.md), sections 2 and 4. Decision: ADR 0008. Previous: [pr3-gateway-plan.md](pr3-gateway-plan.md).
 
