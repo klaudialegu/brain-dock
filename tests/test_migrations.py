@@ -7,6 +7,7 @@ from alembic.runtime.migration import MigrationContext
 from sqlalchemy import inspect, text
 from sqlmodel import Session, SQLModel, select
 
+from brain_dock import registry
 from brain_dock.core.db import (
     BASELINE_REVISION,
     ForeignKeyError,
@@ -232,3 +233,34 @@ def test_downgrade_refuses_while_saved_jobs_exist(engine):
     with engine.begin() as connection, pytest.raises(RuntimeError, match="1 saved job"):
         command.downgrade(_alembic_config(connection), "job_search@0001")
     assert revision(engine) == head_revision()
+
+
+# --- The core's own branch (ADR 0008) ---------------------------------------------------
+
+
+def test_core_migrations_are_a_branch_of_their_own():
+    from pathlib import Path
+
+    from alembic.script import ScriptDirectory
+
+    from brain_dock.core.db import REPO_ROOT
+
+    core = REPO_ROOT / "src" / "brain_dock" / "core" / "migrations"
+    scripts = ScriptDirectory.from_config(_alembic_config())
+    own = [s for s in scripts.walk_revisions() if Path(s.path).parent == core]
+
+    assert own  # the core really has migrations
+    starts = [s for s in own if s.down_revision is None]
+    assert [s.revision for s in starts] == ["core_0001"] and "core" in starts[0].branch_labels
+    ids = {s.revision for s in own}
+    for script in own:
+        parents = script.down_revision
+        for parent in (
+            () if parents is None else parents if isinstance(parents, tuple) else (parents,)
+        ):
+            assert parent in ids, f"{script.revision} builds on {parent} from elsewhere"
+    # The core's tables are prefixed, so they can never clash with a module's.
+    core_tables = {t for t in SQLModel.metadata.tables if t.startswith("core_")}
+    module_tables = {t for m in registry.installed() for t in m.tables}
+    assert core_tables == {"core_audit_event"}
+    assert set(SQLModel.metadata.tables) == core_tables | module_tables

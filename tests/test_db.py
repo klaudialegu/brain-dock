@@ -10,7 +10,12 @@ def test_create_db_makes_the_file_and_tables(tmp_path):
     create_db(engine)
 
     assert path.exists()
-    assert set(inspect(engine).get_table_names()) == {"company", "application", "stageevent"}
+    assert set(inspect(engine).get_table_names()) == {
+        "company",
+        "application",
+        "stageevent",
+        "core_audit_event",
+    }
     with engine.connect() as conn:
         assert conn.exec_driver_sql("PRAGMA foreign_keys").scalar() == 1
     engine.dispose()

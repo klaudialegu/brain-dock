@@ -3,6 +3,7 @@ so a new module is checked the moment it's added to the registry."""
 
 import ast
 import inspect
+import os
 from pathlib import Path
 
 import pytest
@@ -134,7 +135,8 @@ def test_migrations_are_a_branch_of_their_own(m):
     ini.read(ALEMBIC_INI)
     listed = {
         Path(p.replace("%(here)s", str(ALEMBIC_INI.parent))).resolve()
-        for p in ini.get("alembic", "version_locations", raw=True).split()
+        # path_separator = os: the list is split on os.pathsep, like Alembic does.
+        for p in ini.get("alembic", "version_locations", raw=True).split(os.pathsep)
     }
     assert m.migrations.resolve() in listed
 
