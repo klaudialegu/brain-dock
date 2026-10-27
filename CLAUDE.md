@@ -60,4 +60,5 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - tests/: pytest tests
 - .claude/skills/: repeatable session routines (/resume, /learn, /wrap-up, /explain-diff, /adr)
 - docs/decisions/: ADRs
+- docs/design/: design details behind an ADR (e.g. agent-harness.md for ADR 0008)
 - Personal working notes are local-only and gitignored (see CLAUDE.local.md if present).
