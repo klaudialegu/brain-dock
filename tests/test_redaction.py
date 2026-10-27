@@ -23,7 +23,7 @@ def test_only_redact_makes_redacted_text():
     [
         ("Write to jane.doe+jobs@example.co.uk today", "jane.doe+jobs@example.co.uk", "[email]"),
         ("Call +44 20 7946 0958 after 5", "7946 0958", "[phone]"),
-        ("Or (555) 010-4477 tomorrow", "010-4477", "[phone]"),
+        ("Or (555) 010-4477 tomorrow", "010-4477", "Or [phone] tomorrow"),  # no stray "("
         (
             "Apply https://jobs.example.com/fde/1?token=SECRET-VALUE-42&utm=x now",
             "SECRET-VALUE-42",
@@ -43,3 +43,20 @@ def test_redaction_rules(text, planted, placeholder):
 
 def test_job_details_survive():
     assert redact(JOB).text == JOB  # dates, salaries, years and the link path stay
+
+
+# --- Known edge cases (pinned, so any change in behavior is a visible, reviewed diff) -----
+
+
+def test_known_edge_a_seven_digit_local_number():
+    # Handled in PR 3c (it used to slip past the 9-digit rule): local numbers are redacted.
+    assert redact("Call 555-1234 or 555.9876 today").text == "Call [phone] or [phone] today"
+    # Side effect, the safe direction: a 3-4 digit range looks like a local number.
+    assert redact("Team of 100-1000 people").text == "Team of [phone] people"
+
+
+def test_known_edge_a_salary_range_without_commas():
+    # Over-redaction, the safe direction: a 12-digit range looks like a phone number. The
+    # salary math reads the email before redaction (design section 3), so nothing is lost.
+    assert redact("Salary 120000-150000 a year").text == "Salary [phone] a year"
+    assert redact("Salary 120,000-150,000").text == "Salary 120,000-150,000"
