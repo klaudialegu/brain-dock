@@ -14,6 +14,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from brain_dock.core import db
+from brain_dock.core.agents.approvals import park_interrupted
+from brain_dock.core.agents.audit import AuditLog, key_path_for, load_or_create_key
 from brain_dock.core.db import get_engine, is_at_head, is_demo_database
 from brain_dock.core.modules import Manifest
 from brain_dock.core.security import ALLOWED_HOSTS, CONTENT_SECURITY_POLICY, add_security_headers
@@ -40,6 +42,9 @@ async def lifespan(app: FastAPI):
             "The database needs migrating. Run: uv run python -m brain_dock.db"
         )
     app.state.engine = engine
+    # An approval cut off mid-run (the app stopped while its tool ran) may or may not have
+    # run: park it for review, never run it again. The audit key loads only if needed.
+    park_interrupted(engine, lambda: AuditLog(engine, load_or_create_key(key_path_for(db.DB_PATH))))
     # Shown as a banner, so fake demo data can't be mistaken for real data (or vice versa).
     app.state.is_demo = is_demo_database(db.DB_PATH)
     yield

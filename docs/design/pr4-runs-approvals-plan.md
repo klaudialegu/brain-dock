@@ -1,5 +1,5 @@
 # Plan: harness PR 4, durable runs, parking and approvals
-**Status:** 4a in review (all 23 break tests caught; migrations rehearsed on copies; real database not migrated yet). 4b not started.
+**Status:** 4a merged (PR #37), real database migrated 2026-10-26. 4b in review (all 20 break tests caught; migration rehearsed on copies; real database not migrated yet).
 
 Approved 2026-10-26. Design: [agent-harness.md](agent-harness.md), sections 2 and 4. Decision: ADR 0008. Previous: [pr3-gateway-plan.md](pr3-gateway-plan.md).
 
@@ -26,6 +26,9 @@ Approved 2026-10-26. Design: [agent-harness.md](agent-harness.md), sections 2 an
    - **The invariant:** after a run, every item is in a final or waiting state.
 
 ## PR 4b: approvals (migration `core_0005`)
+0. **Two gaps found while reviewing 4a, closed first:**
+   - **Kill switches at the very start of a run, including a resume.** A resumed run checked them before its first item, so nothing ran, but no test covered a resume. `run()` now checks first, before the pass, the gateway or any step. With a switch set, new keys are still recorded as `received` (storing them isn't an agent action, and dropping them would lose work), and then the run stops. With a resume test.
+   - **Item keys are keyed hashes**, like the audit log: `key_for()` makes an HMAC with the local audit key, wrapped in an `ItemKey` type (like `Redacted`). `receive()` refuses plain strings, so a module can't use a plain, guessable hash. `test_keys_must_be_hashes_never_content` keeps its 4 IDs; its body changes to "a plain string is refused".
 1. **`core_approval`:** item, run, module, tool, the exact tool input (JSON) and its **HMAC**, status, decided time, decided by, reason code.
    - **Policy:** write-tool inputs are ids, not free text (a contract-test check).
 2. **A write tool call creates a pending approval** instead of being refused, and the item moves to `pending_approval`.

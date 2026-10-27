@@ -27,6 +27,8 @@ from brain_dock.core.agents.run_tables import AgentRun, RunStep, WorkItem
 from brain_dock.core.agents.runs import (
     NEEDS_REVIEW,
     IllegalTransitionError,
+    ItemKey,
+    Items,
     Runner,
     Steps,
     Workflow,
@@ -36,14 +38,16 @@ from brain_dock.core.db import get_engine, migrate
 
 from .conftest import SECRET
 
+KEYS = Items(None, AuditKey(b"k" * 32))  # key_for() needs only the audit key
 
-def key(name: str) -> str:
-    """Modules hash their natural key (e.g. an email's Message-ID); tests do the same."""
-    return hashlib.sha256(name.encode()).hexdigest()[:32]
+
+def key(name: str) -> ItemKey:
+    """The key for a natural key (an email's Message-ID): a keyed hash made by the core."""
+    return KEYS.key_for("inbox", name)
 
 
 NAMES = ["ok", "skip", "review", "bug", "wait", "crash", "spend", "dns", "illegal", "worker"]
-BY_KEY = {key(n): n for n in NAMES}
+BY_KEY = {key(n).value: n for n in NAMES}  # stored key -> the test's name for it
 calls: list[tuple[str, str]] = []
 crash_once = {"armed": False}
 
@@ -207,7 +211,8 @@ def test_a_duplicate_key_returns_the_same_item(db_path, tmp_path):
 def test_keys_must_be_hashes_never_content(db_path, tmp_path, bad_key):
     runner, _ = make_runner(db_path, tmp_path)
 
-    with pytest.raises(ValueError, match="hex digests"):
+    # Content, a made-up value, or even a real hex hash: only key_for() makes a key.
+    with pytest.raises(TypeError, match="key_for"):
         runner.items.receive("inbox", bad_key)
 
 
@@ -321,10 +326,13 @@ def test_a_kill_switch_stops_the_run_and_items_wait(db_path, tmp_path):
     (tmp_path / "agents-off-inbox").touch()
     runner, engine = make_runner(db_path, tmp_path)
 
-    report = runner.run(WORKFLOW, runner.start("inbox", 1_000_000), [key("ok")])
+    run_id = runner.start("inbox", 1_000_000)
+    report = runner.run(WORKFLOW, run_id, [key("ok")])
 
     assert report.status == "stopped" and calls == []
-    assert states(engine) == {"ok": ("received", None)}
+    assert states(engine) == {"ok": ("received", None)}  # recorded, not dropped
+    with Session(engine) as session:  # stopped before the run began: nothing recorded
+        assert session.exec(select(RunStep).where(RunStep.run_id == run_id)).all() == []
     (tmp_path / "agents-off-inbox").unlink()
     runner.run(WORKFLOW, runner.start("inbox", 1_000_000))  # a new run picks it up
     assert states(engine) == {"ok": ("suggested", None)}
@@ -399,7 +407,7 @@ def test_steps_are_numbered_in_order(db_path, tmp_path):
 def test_core_run_tables_hold_no_content(db_path, tmp_path):
     runner, engine = make_runner(db_path, tmp_path)
     secret_key = key(f"<message-id-{SECRET}@mail.example.com>")
-    BY_KEY[secret_key] = "ok"
+    BY_KEY[secret_key.value] = "ok"
 
     runner.run(WORKFLOW, runner.start("inbox", 1_000_000), [secret_key])
 
@@ -425,3 +433,36 @@ def test_workflow_definitions_are_checked():
         "inbox: final state 'done' can't move on",
         "inbox: 'received' needs a step",
     ]
+
+
+# --- Added in 4b: kill switches on resume, keyed item keys ------------------------------
+
+
+def test_a_resumed_run_checks_the_kill_switch_before_anything_runs(db_path, tmp_path):
+    crash_once["armed"] = True
+    runner, engine = make_runner(db_path, tmp_path)
+    run_id = runner.start("inbox", 1_000_000)
+    with pytest.raises(Crash):
+        runner.run(WORKFLOW, run_id, [key("ok"), key("crash")])
+    engine.dispose()
+    calls_before = list(calls)
+    (tmp_path / "agents-off").touch()  # someone stops agents before the restart
+
+    restarted, engine = make_runner(db_path, tmp_path)
+    report = restarted.run(WORKFLOW, run_id)
+
+    assert report.status == "stopped" and calls == calls_before  # no step ran
+    assert states(engine)["crash"] == ("judged", None)  # waiting where it stopped
+    (tmp_path / "agents-off").unlink()
+    restarted.run(WORKFLOW, restarted.start("inbox", 1_000_000))
+    assert states(engine)["crash"] == ("suggested", None)
+
+
+def test_item_keys_are_keyed_hashes_not_plain_hashes():
+    natural = "<CAF123@mail.example.com>"
+    ours = KEYS.key_for("inbox", natural).value
+
+    assert ours == KEYS.key_for("inbox", natural).value  # the same email, the same key
+    assert ours != hashlib.sha256(natural.encode()).hexdigest()  # not guessable by hashing
+    assert ours != Items(None, AuditKey(b"j" * 32)).key_for("inbox", natural).value
+    assert ours != KEYS.key_for("prep", natural).value  # each module has its own keys

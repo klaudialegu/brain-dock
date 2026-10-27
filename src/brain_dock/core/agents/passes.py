@@ -12,6 +12,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from brain_dock.core.agents.approvals import create_approval
 from brain_dock.core.agents.audit import AuditLog
 from brain_dock.core.agents.guard import NetworkGuardError, guarded_run
 from brain_dock.core.agents.killswitch import agents_allowed
@@ -56,6 +57,7 @@ class ToolResult:
     ok: bool
     output: dict | None = None
     error: str | None = None
+    approval_id: int | None = None  # set when a write is waiting for my approval
 
 
 def default_switch_folder() -> Path:
@@ -79,7 +81,13 @@ class Dispatcher:
             (m.name, t.name): t for m in manifests for t in m.agent_tools
         }
 
-    def call(self, capability_pass: CapabilityPass, tool_name: str, raw_input: dict) -> ToolResult:
+    def call(
+        self,
+        capability_pass: CapabilityPass,
+        tool_name: str,
+        raw_input: dict,
+        item_id: int | None = None,  # the work item this call is for, if any
+    ) -> ToolResult:
         module = str(getattr(capability_pass, "module", ""))
 
         def audit(outcome: str, reason: str) -> None:
@@ -114,9 +122,18 @@ class Dispatcher:
             audit("refused", "invalid_input")
             return ToolResult(False, error="The input didn't match the tool's schema.")
         if tool.effect == Effect.write:
-            # Writes wait for my approval; approvals arrive in harness PR 4.
-            audit("refused", "write_needs_approval")
-            return ToolResult(False, error="This change needs approval first.")
+            # Never runs here: it becomes a pending approval that only I can run.
+            audit("pending", "pending_approval")
+            approval = create_approval(
+                self.audit.engine,
+                self.audit.key,
+                run_id=capability_pass.run_id,
+                module=module,
+                item_id=item_id,
+                tool=tool_name,
+                raw_input=data.model_dump(mode="json"),
+            )
+            return ToolResult(False, error="Waiting for approval.", approval_id=approval.id)
 
         audit("allowed", "ok")
         try:

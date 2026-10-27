@@ -268,6 +268,7 @@ def test_core_migrations_are_a_branch_of_their_own():
         "core_agent_run",
         "core_work_item",
         "core_run_step",
+        "core_approval",
     }
     assert set(SQLModel.metadata.tables) == core_tables | module_tables
 
@@ -366,8 +367,36 @@ def test_migration_core_0004_keeps_every_row(engine):
 
     before = everything()
 
-    migrate(engine)
+    with engine.begin() as connection:  # exactly this migration, not whatever is newest
+        command.upgrade(_alembic_config(connection), "core@core_0004")
 
     assert "core_0004" in revision(engine)
     assert everything() == before
     assert verify_chain(engine, key).ok
+
+
+def test_migration_core_0005_keeps_every_row(engine):
+    at_0001_with_rows(engine)
+    with engine.begin() as connection:
+        command.upgrade(_alembic_config(connection), "core@core_0004")
+        connection.exec_driver_sql(
+            "INSERT INTO core_work_item (module, key, state, attempts, created_at, updated_at) "
+            "VALUES ('inbox', 'abc123', 'received', 0, '2026-10-26 12:00:00', "
+            "'2026-10-26 12:00:00')"
+        )
+    tables = ("company", "application", "stageevent", "core_work_item")
+
+    def everything():
+        with engine.connect() as connection:
+            return {
+                t: [tuple(r) for r in connection.exec_driver_sql(f"SELECT * FROM {t} ORDER BY id")]
+                for t in tables
+            }
+
+    before = everything()
+
+    with engine.begin() as connection:  # exactly this migration, not whatever is newest
+        command.upgrade(_alembic_config(connection), "core@core_0005")
+
+    assert "core_0005" in revision(engine)
+    assert everything() == before
