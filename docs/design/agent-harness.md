@@ -77,7 +77,7 @@ The details behind [ADR 0008](../decisions/0008-agent-harness.md). The ADR recor
 - **Proof:** the injected-email rogue test (section 2) shows the agent has no way to send data out, and that the attempt is audited.
 
 ## 7. Second agent: daily Gmail brief
-The harness is generic (an agent is a manifest, tools, prompts and a run function), so a read-only daily brief can plug in right after triage. It needs its own ADR and an "ask first" (CLAUDE.md privacy rules) before it's built.
+The harness is generic (an agent is a manifest, tools, prompts and a run function), so a read-only daily brief can plug in right after triage. It needs its own ADR (0010, the next free number; 0009 is the interested stage) and an "ask first" (CLAUDE.md privacy rules) before it's built.
 - **Access:** metadata first, a body only when needed, with the narrowest Gmail scope that works and a narrow search query. The OAuth token is kept in the keychain.
 - **Real email:**
   - never committed;
