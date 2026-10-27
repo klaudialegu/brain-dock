@@ -39,10 +39,16 @@ def safe_link(url: str | None) -> str | None:
     return None
 
 
+# Jobs saved as interested (applied_on is None) aren't applications yet, so the list,
+# the company page and the stats leave them out (the pipeline chart: see pipeline_path).
+APPLIED = Application.applied_on.is_not(None)
+
+
 def list_applications(session: Session) -> list[ApplicationRow]:
     """All applications, newest applied first; same day, most recently added first."""
     applications = session.exec(
         select(Application)
+        .where(APPLIED)
         .options(selectinload(Application.company))
         .order_by(Application.applied_on.desc(), Application.id.desc())
     ).all()
@@ -81,7 +87,7 @@ class ApplicationDetail:
 
 def application_detail(session: Session, application_id: int) -> ApplicationDetail | None:
     application = session.get(Application, application_id)
-    if application is None:
+    if application is None or application.applied_on is None:
         return None
     values = {
         "company": application.company.name,
@@ -132,7 +138,11 @@ def company_detail(session: Session, company_id: int) -> CompanyDetail | None:
     ).first()
     if company is None:
         return None
-    applications = sorted(company.applications, key=lambda a: (a.applied_on, a.id), reverse=True)
+    applications = sorted(
+        (a for a in company.applications if a.applied_on is not None),
+        key=lambda a: (a.applied_on, a.id),
+        reverse=True,
+    )
     return CompanyDetail(
         id=company.id,
         name=company.name,
@@ -166,7 +176,9 @@ def pipeline_path(application: Application) -> list[Stage]:
 
     Starts at applied, then only ever moves forward in STAGES order (a chart can't draw
     loops, so repeated or backwards steps are left out), and ends with the outcome if the
-    application has closed (rejected, ghosted, withdrawn).
+    application has closed (rejected, ghosted, withdrawn). "Interested" comes before
+    applied, so it never enters a path: a job saved first joins the chart at applied, and a
+    job only saved adds no links.
     """
     path = [Stage.applied]
     for event in sorted(application.events, key=lambda e: (e.happened_on, e.id)):
@@ -212,7 +224,9 @@ class Stats:
 
 def stats(session: Session, today: date) -> Stats:
     """The numbers above the list. `today` is passed in, so tests can pick any day."""
-    applications = session.exec(select(Application).options(selectinload(Application.events))).all()
+    applications = session.exec(
+        select(Application).where(APPLIED).options(selectinload(Application.events))
+    ).all()
 
     def reached(application: Application, stages: frozenset) -> bool:
         return any(e.stage in stages for e in application.events)

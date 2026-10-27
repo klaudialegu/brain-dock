@@ -15,7 +15,9 @@ from brain_dock.modules.job_search.models import (
     StageEvent,
     company_key,
     create_application,
+    mark_applied,
     record_stage,
+    save_interested,
 )
 from brain_dock.modules.job_search.schemas import ApplicationIn, ApplicationsFile, describe_error
 
@@ -106,16 +108,28 @@ def rebuild_db(
             if key not in companies:
                 companies[key] = Company(name=entry.company)
                 session.add(companies[key])
-            application = create_application(
-                session,
-                companies[key],
-                entry.role_title,
-                entry.role_track,
-                entry.applied_on,
-                link=entry.link,
-                notes=entry.notes,
-                follow_up_on=entry.follow_up_on,
-            )
+            fields = {"link": entry.link, "notes": entry.notes, "follow_up_on": entry.follow_up_on}
+            if entry.interested_on is not None:
+                # Saved first: the interested event comes before the applied one.
+                application = save_interested(
+                    session,
+                    companies[key],
+                    entry.role_title,
+                    entry.role_track,
+                    entry.interested_on,
+                    **fields,
+                )
+                if entry.applied_on is not None:
+                    mark_applied(session, application, entry.applied_on)
+            else:
+                application = create_application(
+                    session,
+                    companies[key],
+                    entry.role_title,
+                    entry.role_track,
+                    entry.applied_on,
+                    **fields,
+                )
             for event in entry.events:
                 record_stage(session, application, event.stage, event.happened_on, event.note)
 

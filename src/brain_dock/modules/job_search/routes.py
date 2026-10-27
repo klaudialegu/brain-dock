@@ -90,7 +90,8 @@ def add_application(request: Request, session: SessionDep, values: FormValues):
 
 def load_application(session: Session, application_id: int) -> Application:
     application = session.get(Application, application_id)
-    if application is None:
+    # A job saved as interested has no edit page yet (it isn't an application).
+    if application is None or application.applied_on is None:
         raise HTTPException(status_code=404, detail="Not found")
     return application
 

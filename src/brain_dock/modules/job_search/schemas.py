@@ -20,6 +20,8 @@ class EventIn(BaseModel):
     def not_applied(cls, stage: Stage) -> Stage:
         if stage == Stage.applied:
             raise ValueError('"applied" comes from applied_on; don\'t list it as an event')
+        if stage == Stage.interested:
+            raise ValueError('"interested" comes from interested_on; don\'t list it as an event')
         return stage
 
 
@@ -45,12 +47,26 @@ class ApplicationFields(BaseModel):
 
 
 class ApplicationIn(ApplicationFields):
-    """An application in an import file or backup: its fields plus its stage events."""
+    """An application in an import file or backup: its fields plus its stage events.
 
+    A job saved as interested has interested_on and no applied_on (and no events yet);
+    one saved first and applied later has both.
+    """
+
+    applied_on: date | None = None
+    interested_on: date | None = None
     events: list[EventIn] = []
 
     @model_validator(mode="after")
     def events_not_before_applied(self) -> "ApplicationIn":
+        if self.applied_on is None:
+            if self.interested_on is None:
+                raise ValueError("needs applied_on, or interested_on for a saved job")
+            if self.events:
+                raise ValueError("a saved job (no applied_on) can't have stage events yet")
+            return self
+        if self.interested_on is not None and self.interested_on > self.applied_on:
+            raise ValueError("interested_on is after applied_on")
         for i, event in enumerate(self.events, start=1):
             if event.happened_on < self.applied_on:
                 raise ValueError(f"events[{i}] happened_on is before applied_on")
