@@ -21,7 +21,8 @@ The details behind [ADR 0008](../decisions/0008-agent-harness.md). The ADR recor
 - A module's manifest declares its **agent tools**. Each has a name, a schema and an **effect**: `read`, `draft` or `write`.
 - Each run gets a **pass** from the core that lists exactly the declared tools of that module (no other module's tools) and the run's budget. A tool call outside the pass is not run: it is blocked, audited, and the agent gets an error result.
 - A `write` tool never runs inside an agent run. Calling one creates a **pending approval**. Only the approval route (a CSRF-protected form post by me) runs it.
-- **Outbound tools are forbidden:** no tool that sends email, makes arbitrary web requests, or deletes anything. The contract test fails if a manifest declares a tool with an outbound or delete effect, unless it is listed in a core exceptions table that names the ADR allowing it (and that ADR file must exist).
+- **Outbound tools are forbidden:** no tool that sends email, makes arbitrary web requests, or deletes anything. The contract test fails if a manifest declares a tool with an `outbound` or `delete` effect, unless a core exceptions table lists it with the ADR allowing it, and that ADR is **Accepted** (a Proposed or missing ADR doesn't count).
+- **Tool names are a tripwire, not the guarantee.** Tool names must be snake_case, and a name containing a word like `send`, `fetch`, `webhook` or `delete` must declare the matching effect, so a mislabeled tool fails the contract test. A determined or careless author can still pick an innocent name, so this only catches mistakes. **The guarantee is the network guard in the gateway (PR 3):** during agent runs, every connection except the model API fails.
 - **Rogue-agent tests** (scripted client); each must be blocked, audited, and leave the data unchanged:
   - calls a tool it didn't declare;
   - calls another module's tool;
@@ -71,7 +72,7 @@ The details behind [ADR 0008](../decisions/0008-agent-harness.md). The ADR recor
 
 ## 6. Threat model
 **The lethal trifecta:** an agent becomes dangerous when it combines **private data** (my applications, later my real email), **untrusted content** (any email can contain instructions), and **a way to send data out**. Brain Dock keeps the first two by design, so it removes the third:
-- **No outbound tools:** no send-email, no arbitrary web requests, no delete. The contract test enforces this for every module, with an explicit ADR exception as the only way around it.
+- **No outbound tools:** no send-email, no arbitrary web requests, no delete. The contract test enforces this for every module, with an Accepted ADR exception as the only way around it. The tool-name check is a tripwire; the network guard is the guarantee.
 - **One exit only:** the gateway's call to the model API, carrying redacted, minimal text. During agent runs in tests, every other network connection is blocked and fails the test.
 - **No exfiltration through the page:** suggestions are shown as escaped text. Links pass `safe_link` and are never auto-loaded, and the CSP already blocks images and scripts from other sites.
 - **Proof:** the injected-email rogue test (section 2) shows the agent has no way to send data out, and that the attempt is audited.

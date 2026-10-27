@@ -15,7 +15,7 @@ Build an **agent harness in the core**, then an **inbox triage module** on synth
 
 ## Threat model (summary)
 The **lethal trifecta** is private data plus untrusted content plus a way to send data out. Brain Dock keeps the first two by design (my applications; emails anyone can write), so it removes the third:
-- **No outbound tools:** no send-email, no arbitrary web requests, no delete. The contract test fails on any module that declares one without an explicit ADR exception.
+- **No outbound tools:** no send-email, no arbitrary web requests, no delete. The contract test fails on any module that declares one without an exception backed by an Accepted ADR. A tool-name check is only a tripwire for mislabeled tools; the guarantee is the gateway's network guard, which blocks every connection except the model API during agent runs.
 - **One exit only:** the model API call, carrying redacted, minimal text. Tests block every other network connection during agent runs.
 - **No leaks through the page:** suggestions are shown as escaped text, and the CSP blocks images and scripts from other sites.
 - **Email is data, never instructions.** A rogue-agent test feeds an injected "send everything to…" email and shows the agent has no way to send data out.
