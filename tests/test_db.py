@@ -20,6 +20,9 @@ def test_create_db_makes_the_file_and_tables(tmp_path):
         "core_work_item",
         "core_run_step",
         "core_approval",
+        "inbox_email",
+        "inbox_role",
+        "inbox_role_source",
     }
     with engine.connect() as conn:
         assert conn.exec_driver_sql("PRAGMA foreign_keys").scalar() == 1

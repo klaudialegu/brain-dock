@@ -1,0 +1,25 @@
+From: Job Alerts <alerts@jobs.example.com>
+To: candidate@example.org
+Subject: 3 new roles for you
+Message-ID: <alert-001@jobs.example.com>
+Date: Sat, 31 Oct 2026 09:00:00 +0000
+X-Synthetic: true
+Content-Type: text/plain; charset=utf-8
+
+Role: Senior Forward Deployed Engineer
+Company: Example Corp Inc.
+Location: Remote
+Salary: USD 140,000 - 190,000 per year
+Link: https://www.jobs.example.com/view/101?utm_source=alert&trackingId=abc123
+---
+Role: Senior Solutions Engineer
+Company: Sample Systems
+Location: Faraway Town
+Salary: USD 160,000 - 200,000 per year
+Link: https://careers.example.net/jobs/202
+---
+Role: Staff Support Engineer
+Company: Demo Data LLC
+Location: Hybrid – Example City
+Salary: USD 90,000 - 110,000 per year
+Link: https://boards.example.com/demo/jobs/303?gh_jid=303
