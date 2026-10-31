@@ -24,8 +24,8 @@ from .inbox_support import (
     FAKE_CITY,
     FAKE_FLOOR,
     INBOX,
-    KEY,
     all_fixtures,
+    app_key,
     make_runner,
     migrate_app_db,
     run_fixtures,
@@ -79,7 +79,7 @@ def test_accepting_writes_only_inbox_data(inbox_db, tmp_path):
         first = session.exec(select(Approval).order_by(Approval.id)).first()
     job_search_before = {t: table_rows(engine, t) for t in ("company", "application", "stageevent")}
 
-    approvals = Approvals(engine, AuditLog(engine, KEY), [INBOX], lambda: tmp_path)
+    approvals = Approvals(engine, AuditLog(engine, app_key()), [INBOX], lambda: tmp_path)
     result = approvals.approve(first.id)
     again = approvals.approve(first.id)
 
@@ -148,16 +148,3 @@ def test_a_resumed_run_never_asks_twice_for_the_same_role(inbox_db, tmp_path):
         assert len(session.exec(select(Approval)).all()) == 2  # still one per role
         waiting = session.exec(select(WorkItem).where(WorkItem.state == "pending_approval"))
         assert len(waiting.all()) == 2
-
-
-def test_inbox_status_page_shows_counts_only(inbox_db, tmp_path):
-    run_fixtures(tmp_path)
-
-    with TestClient(create_app(registry.installed()), base_url=BASE_URL) as client:
-        page = client.get("/inbox")
-
-    assert page.status_code == 200
-    assert "Suggested: 2" in page.text and "Skipped by rules: 3" in page.text
-    assert "Needs review: 5" in page.text and "1 set aside for review" in page.text
-    for content in ("Example Corp", "jobs.example.com", "Senior"):
-        assert content not in page.text  # counts only until the triage page (5b)

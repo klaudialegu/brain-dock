@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Needs review · Inbox · Brain Dock{% endblock %}
+{% block body_class %}page-wide{% endblock %}
+
+{% block content %}
+<h1>Needs review</h1>
+<p><a href="/inbox">Back to the inbox</a></p>
+<p>The rules set these aside instead of guessing. Each one shows why.</p>
+
+<section aria-labelledby="roles-heading">
+  <h2 id="roles-heading">Roles</h2>
+  {% if roles %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th scope="col">Role</th><th scope="col">Company</th><th scope="col">Why</th></tr></thead>
+      <tbody>
+        {% for role in roles %}
+        <tr>
+          <td>{{ role.title }}</td>
+          <td>{{ role.company }}</td>
+          <td>{{ reason_labels.get(role.reason, role.reason) }} <code>{{ role.reason }}</code></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p>No roles need review.</p>
+  {% endif %}
+</section>
+
+<section aria-labelledby="emails-heading">
+  <h2 id="emails-heading">Emails</h2>
+  {% if emails %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th scope="col">Received</th><th scope="col">Why</th></tr></thead>
+      <tbody>
+        {% for email in emails %}
+        <tr>
+          <td class="date">{{ email.received_at.date().isoformat() }}</td>
+          <td>{{ reason_labels.get(email.reason, email.reason) }} <code>{{ email.reason }}</code></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p>No emails need review.</p>
+  {% endif %}
+</section>
+{% endblock %}
