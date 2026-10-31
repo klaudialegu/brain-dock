@@ -35,6 +35,12 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - Prefer boring, well-documented tools. Ask before adding a dependency.
 - Update README.md when setup steps change.
 
+## GitHub (repo klaudialegu/brain-dock)
+- Without asking: create branches, commit to them, push feature branches, open PRs.
+- Ask first: merging any PR, pushing to main, force-pushing, deleting branches, changing repo settings or visibility.
+- Before any push: confirm config.toml and other personal files are gitignored and not staged (`git check-ignore -v`, `git status --short`).
+- Commit style: conventional messages, no per-commit co-author trailers (the README's disclosure covers how the code was made).
+
 ## Stack (see docs/decisions/0001-stack.md)
 - Python 3.12, FastAPI, SQLite via SQLModel
 - Server-rendered HTML with Jinja2 (plain form posts; HTMX only if a page needs partial updates, see ADR 0001); Apache ECharts, vendored, for charts
