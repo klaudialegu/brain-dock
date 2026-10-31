@@ -17,7 +17,8 @@ from brain_dock.core import db
 from brain_dock.core.agents.approvals import Approvals
 from brain_dock.core.agents.audit import AuditEvent, AuditKey, AuditLog
 from brain_dock.core.agents.passes import Dispatcher, PassOffice
-from brain_dock.core.agents.run_tables import Approval
+from brain_dock.core.agents.run_tables import Approval, WorkItem
+from brain_dock.core.agents.runs import Items
 from brain_dock.core.agents.tools import AgentTool, Effect, tool_policy_problems
 from brain_dock.core.app import create_app
 from brain_dock.core.db import get_engine, migrate
@@ -106,8 +107,8 @@ def make(folder):
     return approvals, dispatcher, office, engine
 
 
-def ask(dispatcher, office, tool_name="mark_interested", job_id=7):
-    result = dispatcher.call(office.issue("inbox", "run-1"), tool_name, {"job_id": job_id}, 1)
+def ask(dispatcher, office, tool_name="mark_interested", job_id=7, item_id=1):
+    result = dispatcher.call(office.issue("inbox", "run-1"), tool_name, {"job_id": job_id}, item_id)
     assert not result.ok and result.approval_id is not None
     return result.approval_id
 
@@ -307,3 +308,77 @@ def test_write_tools_take_ids_not_free_text(model, problems):
     write = AgentTool("save_job", "Saves a job", model, Effect.write, lambda _: {})
 
     assert tool_policy_problems("inbox", [write]) == problems
+
+
+# --- Added in 4c: a decided approval moves its work item --------------------------------
+
+
+def waiting_item(engine, name, module="inbox", state="pending_approval"):
+    """A work item an agent left waiting for my decision."""
+    items = Items(engine, KEY)
+    item, _ = items.receive(module, items.key_for(module, name))
+    with Session(engine) as session:
+        row = session.get(WorkItem, item.id)
+        row.state = state
+        session.add(row)
+        session.commit()
+    return item.id
+
+
+def item_state(engine, item_id):
+    with Session(engine) as session:
+        item = session.get(WorkItem, item_id)
+        return item.state, item.reason
+
+
+def test_an_executed_approval_moves_its_item_to_approved(folder):
+    approvals, dispatcher, office, engine = make(folder)
+    item_id = waiting_item(engine, "m-1")
+    elsewhere = waiting_item(engine, "m-1", module="job_search")  # same id space, not ours
+    approval_id = ask(dispatcher, office, item_id=item_id)
+    assert item_state(engine, item_id) == ("pending_approval", None)
+
+    assert approvals.approve(approval_id).ok
+
+    assert item_state(engine, item_id) == ("approved", None)
+    assert item_state(engine, elsewhere) == ("pending_approval", None)
+
+
+def test_a_rejection_moves_its_item_to_rejected_with_its_reason(folder):
+    approvals, dispatcher, office, engine = make(folder)
+    item_id = waiting_item(engine, "m-1")
+    parked = waiting_item(engine, "m-2", state="needs_review")  # already set aside: stays
+    first = ask(dispatcher, office, item_id=item_id)
+    second = ask(dispatcher, office, item_id=parked)
+
+    approvals.reject(first, "not_a_fit")
+    approvals.reject(second, "not_a_fit")
+
+    assert item_state(engine, item_id) == ("rejected", "not_a_fit")
+    assert item_state(engine, parked) == ("needs_review", None)
+
+
+def test_a_failed_or_parked_approval_parks_its_item(folder):
+    approvals, dispatcher, office, engine = make(folder)
+    failing, changed, cut_off = (waiting_item(engine, n) for n in ("m-1", "m-2", "m-3"))
+    broken_id = ask(dispatcher, office, "broken", item_id=failing)
+    changed_id = ask(dispatcher, office, item_id=changed)
+    crash_id = ask(dispatcher, office, "crash_midway", item_id=cut_off)
+
+    approvals.approve(broken_id)
+    with engine.begin() as connection:  # someone edits what was approved
+        connection.exec_driver_sql(
+            "UPDATE core_approval SET input_json = '{\"job_id\":8}' WHERE id = ?", (changed_id,)
+        )
+    approvals.approve(changed_id)
+    with pytest.raises(Crash):
+        approvals.approve(crash_id)
+    assert item_state(engine, cut_off) == ("pending_approval", None)  # still executing
+    engine.dispose()
+    with TestClient(create_app(registry.installed()), base_url=BASE_URL):  # the app restarts
+        pass
+
+    _, _, _, engine = make(folder)
+    assert item_state(engine, failing) == ("needs_review", "tool_error")
+    assert item_state(engine, changed) == ("needs_review", "input_changed")
+    assert item_state(engine, cut_off) == ("needs_review", "interrupted")

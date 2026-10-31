@@ -142,7 +142,7 @@ WORKFLOW = Workflow(
         "received": frozenset({"judged", "skipped"}),
         "judged": frozenset({"suggested", "pending_approval"}),
     },
-    final=frozenset({"suggested", "skipped", NEEDS_REVIEW}),
+    final=frozenset({"suggested", "skipped", "approved", "rejected", NEEDS_REVIEW}),
     waiting=frozenset({"pending_approval"}),
     steps={"received": on_received, "judged": on_judged},
 )
@@ -466,3 +466,17 @@ def test_item_keys_are_keyed_hashes_not_plain_hashes():
     assert ours != hashlib.sha256(natural.encode()).hexdigest()  # not guessable by hashing
     assert ours != Items(None, AuditKey(b"j" * 32)).key_for("inbox", natural).value
     assert ours != KEYS.key_for("prep", natural).value  # each module has its own keys
+
+
+# --- Added in 4c: decided approvals move their work item ---------------------------------
+
+
+def test_a_workflow_with_waiting_states_declares_approved_and_rejected():
+    no_outcomes = dataclasses.replace(
+        WORKFLOW, final=frozenset({"suggested", "skipped", NEEDS_REVIEW})
+    )
+
+    assert no_outcomes.problems() == [
+        "inbox: 'approved' must be a final state",
+        "inbox: 'rejected' must be a final state",
+    ]
