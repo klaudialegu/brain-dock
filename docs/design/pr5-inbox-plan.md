@@ -1,5 +1,5 @@
 # Plan: harness PR 5, the inbox module (rules only) and the triage page
-**Status:** approved 2026-10-31. 4c next.
+**Status:** 4c merged (PR #43). 5a in review (all of it in one PR; no fallback split needed). Real database migration `inbox_0001` waits for Klaudia.
 
 Design: [agent-harness.md](agent-harness.md), sections 2 to 4. Decisions: ADR 0008, [ADR 0011](../decisions/0011-inbox-writes-stay-in-the-inbox.md) (what "approve" writes). Previous: [pr4-runs-approvals-plan.md](pr4-runs-approvals-plan.md).
 
@@ -107,6 +107,13 @@ All data is synthetic. No API key, no network, no model call in this PR.
 - **5a-2:** config +10, rules +21, workflow +5 (512 → 548).
 
 The real counts come from `pytest --collect-only` at the end of each PR, diffed against main.
+
+**Changes found while building 5a (reported in the PR):**
+- **A status page:** the module contract needs a route, a nav entry and a home page, so 5a has a counts-only `/inbox` page (no role content). The 5b triage page replaces it at the same path. +1 test (`test_inbox_status_page_shows_counts_only`) and +2 automatic template checks.
+- **No double asks on resume:** if a run crashes after the approval is created but before the item moves on, the resumed run must not create a second approval. +1 test (`test_a_resumed_run_never_asks_twice_for_the_same_role`).
+- **Every trailing legal suffix is dropped,** not just one: "Corp" is itself a suffix, so "Example Corp" and "Example Corp, Inc." only agree if both lose all of them.
+- **Not done:** the plan said 5a would check the error message for a module migration folder missing from `alembic.ini`. That stays the open follow-up in NEXT.md; 5a lists its folder correctly and the contract test checks it.
+- **Actual count:** 466 → 552 (+86 = 82 planned + 4 above), none removed or renamed.
 
 **Real database:** `inbox_0001` adds tables only. Same routine as PRs 0 to 4: backup with main's code, rehearse on copies (row checksums and every page compared with main), migrate, `verify_audit`, recount.
 
