@@ -42,10 +42,17 @@ from brain_dock.core.agents.passes import (
     default_switch_folder,
 )
 from brain_dock.core.agents.prices import ModelPrices
-from brain_dock.core.agents.run_tables import AgentRun, RunStep, WorkItem
+from brain_dock.core.agents.run_tables import (
+    APPROVED,
+    NEEDS_REVIEW,
+    PENDING_APPROVAL,
+    REJECTED,
+    AgentRun,
+    RunStep,
+    WorkItem,
+)
 
 RECEIVED = "received"  # every item starts here
-NEEDS_REVIEW = "needs_review"  # every workflow can park an item here; always final
 _KEY_TOKEN = object()  # only Items.key_for() has it
 
 
@@ -107,6 +114,10 @@ class Workflow:
                 problems.append(f"{self.module}: final state {state!r} can't move on")
         if RECEIVED not in self.steps:
             problems.append(f"{self.module}: {RECEIVED!r} needs a step")
+        if PENDING_APPROVAL in self.waiting:  # approvals move items on to these
+            for state in (APPROVED, REJECTED):
+                if state not in self.final:
+                    problems.append(f"{self.module}: {state!r} must be a final state")
         return problems
 
 

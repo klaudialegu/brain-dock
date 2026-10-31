@@ -24,15 +24,46 @@ from sqlmodel import Session, select
 from brain_dock.core.agents.audit import AuditKey, AuditLog, canonical_json
 from brain_dock.core.agents.guard import NetworkGuardError, guarded_run, run_active
 from brain_dock.core.agents.killswitch import agents_allowed
-from brain_dock.core.agents.run_tables import Approval
+from brain_dock.core.agents.run_tables import (
+    APPROVED,
+    NEEDS_REVIEW,
+    PENDING_APPROVAL,
+    REJECTED,
+    Approval,
+    WorkItem,
+)
 from brain_dock.core.agents.tools import AgentTool
 from brain_dock.core.modules import Manifest
 
 REASON_CODE = re.compile(r"[a-z][a-z0-9_]{0,39}")  # e.g. "not_a_fit"; never free text
 
 
+# A decided approval moves its work item out of pending_approval (harness PR 4c).
+ITEM_STATE_AFTER = {
+    "executed": APPROVED,
+    "rejected": REJECTED,
+    "failed": NEEDS_REVIEW,
+    "needs_review": NEEDS_REVIEW,  # input_changed, invalid_input, interrupted
+}
+
+
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+def _settle_item(session: Session, approval: Approval) -> None:
+    """Moves the approval's item on, in the caller's commit, so the decision and the item
+    never disagree. Only an item of the same module still waiting in pending_approval."""
+    to_state = ITEM_STATE_AFTER.get(approval.status)
+    if to_state is None or approval.item_id is None:
+        return
+    item = session.get(WorkItem, approval.item_id)
+    if item is None or item.module != approval.module or item.state != PENDING_APPROVAL:
+        return
+    item.state = to_state
+    item.reason = approval.reason
+    item.updated_at = _now()
+    session.add(item)
 
 
 def create_approval(
@@ -103,6 +134,7 @@ class Approvals:
             approval = session.get(Approval, approval_id)
             for name, value in changes.items():
                 setattr(approval, name, value)
+            _settle_item(session, approval)
             session.commit()
             session.refresh(approval)
             return approval
@@ -198,5 +230,9 @@ def park_interrupted(engine: Engine, audit_for: Callable[[], AuditLog]) -> int:
                 input_mac=approval.input_mac,
                 actor="system",
             )
+        # After the audit rows: loading an item flushes, and the session would then hold
+        # SQLite's write lock while the audit log writes on its own connection.
+        for approval in cut_off:
+            _settle_item(session, approval)
         session.commit()
         return len(cut_off)

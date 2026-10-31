@@ -6,6 +6,12 @@ from datetime import datetime
 from sqlalchemy import Index
 from sqlmodel import Field, SQLModel
 
+# Work-item states the core itself moves items into (shared by runs.py and approvals.py).
+NEEDS_REVIEW = "needs_review"  # every workflow can park an item here; always final
+PENDING_APPROVAL = "pending_approval"  # waiting for my decision on a write
+APPROVED = "approved"  # the approved write ran
+REJECTED = "rejected"  # I said no; the reason code stays on the item
+
 
 class AgentRun(SQLModel, table=True):
     __tablename__ = "core_agent_run"
