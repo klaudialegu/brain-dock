@@ -46,8 +46,38 @@ def seed_job_search(engine):
     return "Acme Analytics"  # a value the module's home page shows
 
 
+def seed_inbox(engine):
+    from datetime import UTC, datetime
+
+    from sqlmodel import Session
+
+    from brain_dock.modules.inbox.models import InboxEmail, InboxRole, InboxRoleSource
+
+    now = datetime.now(UTC)
+    with Session(engine) as session:
+        mail = InboxEmail(key="e" * 64, received_at=now, status="parsed", role_count=1)
+        role = InboxRole(
+            item_key="r" * 64,
+            company="Example Corp",
+            title="Senior Forward Deployed Engineer",
+            location="Remote",
+            company_key="example corp",
+            title_key="senior forward deployed engineer",
+            location_key="remote",
+            link_key="https://jobs.example.com/view/1",
+            location_kind="remote",
+            status="suggested",
+            created_at=now,
+        )
+        session.add_all([mail, role])
+        session.flush()
+        session.add(InboxRoleSource(role_id=role.id, email_id=mail.id))
+        session.commit()
+    return "Suggested: 1"  # the status page shows counts only
+
+
 # Fake data for each module, so "disabling keeps the data" checks real rows.
-SEEDERS = {"job_search": seed_job_search}
+SEEDERS = {"job_search": seed_job_search, "inbox": seed_inbox}
 
 # Pages with an id in the path: the manifest only lists path prefixes, so these are checked
 # by hand. Each must answer 200 on the seeded data with the module on (see below).

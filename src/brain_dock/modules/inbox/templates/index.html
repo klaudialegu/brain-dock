@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Inbox · Brain Dock{% endblock %}
+
+{% block content %}
+<h1>Inbox</h1>
+<p>Job-alert emails, checked by rules first. Approving and rejecting suggestions comes next.</p>
+<p>{{ emails }} email{{ "" if emails == 1 else "s" }} received{% if emails_parked %}, {{ emails_parked }} set aside for review{% endif %}.</p>
+<h2>Roles</h2>
+<ul>
+  {% for label, count in counts %}
+  <li>{{ label }}: {{ count }}</li>
+  {% endfor %}
+</ul>
+{% endblock %}

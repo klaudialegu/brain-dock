@@ -1,0 +1,12 @@
+# Copy to config.toml (gitignored) and put your own values there. Never commit config.toml.
+# These are fake example values; the app never uses this file in place of config.toml.
+
+[inbox]
+# Places that work for you, matched without case. "remote" accepts remote roles; a city
+# accepts on-site and "Hybrid – <city>" roles there.
+locations = ["remote", "Example City"]
+# Levels you're open to: junior, mid, senior, staff, principal, lead.
+seniority = ["senior", "staff"]
+# Yearly floor in `currency`. A role passes when the top of its range is at or above it.
+salary_floor = 100000
+currency = "USD"
