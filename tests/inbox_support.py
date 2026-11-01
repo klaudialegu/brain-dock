@@ -5,13 +5,14 @@ from pathlib import Path
 from sqlmodel import Session, select
 
 from brain_dock import registry
-from brain_dock.core.agents.audit import AuditKey, AuditLog
+from brain_dock.core import db
+from brain_dock.core.agents.audit import AuditKey, AuditLog, key_path_for, load_or_create_key
 from brain_dock.core.agents.gateway import ScriptedClient
 from brain_dock.core.agents.passes import Dispatcher, PassOffice
 from brain_dock.core.agents.runs import Runner
 from brain_dock.core.db import get_engine, migrate
 
-FIXTURES = Path(__file__).parent / "fixtures" / "inbox"
+FIXTURES = Path(__file__).parents[1] / "demo" / "inbox"  # synthetic, also the demo data
 
 # Fake thresholds, never real ones. Distinctive, so tests can prove they never leak.
 FAKE_CONFIG = """\
@@ -75,9 +76,15 @@ def migrate_app_db() -> None:
     engine.dispose()
 
 
+def app_key() -> AuditKey:
+    """The key the app uses for this database (the file next to it), so approvals made by
+    a test run verify when the triage page approves them."""
+    return load_or_create_key(key_path_for(db.DB_PATH))
+
+
 def make_runner(folder: Path):
     engine = get_engine()
-    audit = AuditLog(engine, KEY)
+    audit = AuditLog(engine, app_key())
     office = PassOffice([INBOX])
     dispatcher = Dispatcher(office, audit, [INBOX], lambda: folder)
     runner = Runner(
