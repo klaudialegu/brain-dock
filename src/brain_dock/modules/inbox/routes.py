@@ -25,6 +25,7 @@ ROLE_LABELS = {
     "new": "Not ruled yet",
     "suggested": "Suggested",
     "accepted": "Accepted",
+    "rejected": "Rejected",
     "skipped": "Skipped by rules",
     "needs_review": "Needs review",
 }
@@ -127,11 +128,24 @@ def rejection_log(session: Session) -> list[tuple[str, str, int]]:
     return sorted(rows, key=lambda row: (row[0], -row[2], row[1]))
 
 
+def role_counts(session: Session) -> dict[str, int]:
+    """Roles by status. Rejecting never runs a tool, so a rejected role still says
+    "suggested" in its own row; its work item holds the decision (PR 4c)."""
+    rows = session.exec(
+        select(InboxRole.status, WorkItem.state)
+        .join(WorkItem, WorkItem.key == InboxRole.item_key, isouter=True)
+        .where((WorkItem.module == "inbox") | (WorkItem.id.is_(None)))
+    ).all()
+    counts: dict[str, int] = {}
+    for status, state in rows:
+        shown = "rejected" if state == "rejected" else status
+        counts[shown] = counts.get(shown, 0) + 1
+    return counts
+
+
 @router.get("/inbox", response_class=HTMLResponse)
 def inbox(request: Request, session: SessionDep, done: str | None = None) -> HTMLResponse:
-    by_status = dict(
-        session.exec(select(InboxRole.status, func.count()).group_by(InboxRole.status)).all()
-    )
+    by_status = role_counts(session)
     emails = session.exec(select(func.count()).select_from(InboxEmail)).one()
     return render_form(
         request,

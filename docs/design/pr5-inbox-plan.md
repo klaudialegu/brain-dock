@@ -1,5 +1,5 @@
 # Plan: harness PR 5, the inbox module (rules only) and the triage page
-**Status:** 4c merged (#43). 5a merged (#44); real database migrated to `inbox_0001` 2026-10-31 after a clean rehearsal. 5b in review.
+**Status:** 4c merged (#43). 5a merged (#44); real database migrated to `inbox_0001` 2026-10-31 after a clean rehearsal. 5b in review (Safari check passed).
 
 Design: [agent-harness.md](agent-harness.md), sections 2 to 4. Decisions: ADR 0008, [ADR 0011](../decisions/0011-inbox-writes-stay-in-the-inbox.md) (what "approve" writes). Previous: [pr4-runs-approvals-plan.md](pr4-runs-approvals-plan.md).
 
@@ -138,10 +138,10 @@ The real counts come from `pytest --collect-only` at the end of each PR, diffed 
 3. **The rejection log:** reason codes and counts on the triage page. It has two sources, each labeled: my rejections (from the approvals table) and **rule skips** (from the roles' reason codes), so a skipped role never disappears. Prompt version and model join it in PR 6.
 4. **Safari check (mine):** approve once, reject once, double-submit approve, and the console stays clean under the CSP.
 
-### 5b test IDs (552 → 565, exact, fixed when 5b started)
+### 5b test IDs (552 → 566, exact; 565 when 5b started, +1 after the Safari check)
 **Removed (1):** `tests/test_inbox_workflow.py::test_inbox_status_page_shows_counts_only`. 5a's counts-only page is replaced by the triage page at the same path, as 5a planned, so "counts only" can't stay true. The counts stay on the triage page, and its template keeps the name `index.html`, so its two template checks stay.
 
-**Added (14):**
+**Added (15):**
 - **`tests/test_inbox_triage.py` (+12):**
   - `test_triage_page_lists_pending_suggestions`
   - `test_approve_button_runs_the_approval_once`
@@ -154,8 +154,10 @@ The real counts come from `pytest --collect-only` at the end of each PR, diffed 
   - `test_the_app_starts_without_inbox_config` (promised during the 5a migration review)
   - `test_triage_forms_only_decide_inbox_approvals` (new: the page can't decide another module's approval)
   - `test_inbox_demo_writes_only_the_demo_database` (new: the demo loader, below)
+  - `test_counts_show_rejected_roles_as_rejected` (found in the Safari check: a rejected role was still counted as suggested)
 - **Templates (+2):** `review.html` in `test_security_headers.py` and `test_vendor.py`.
 
 **Also in 5b, found while building:**
 - **A demo loader:** `uv run python -m brain_dock.modules.inbox.demo` runs the synthetic alerts (moved from `tests/fixtures/inbox/` to `demo/inbox/`) through the rules into `data/demo.db` with `config.example.toml`, passed explicitly. It always targets the demo database and refuses one that isn't migrated. This is what the Safari check uses.
+- **Safari check fixes:** the triage table's text cells wrap (the table had overflowed and scrolled, clipping the first column); Approve, the reason and Reject sit in one row; module styles live in `inbox/static/inbox.css`; `.table-wrap` is `position: relative` so hidden button labels can't scroll it.
 - **Test runs now sign approvals with the database's own key file:** the triage page refused approvals a test runner had signed with a fixed test key (`input_changed`). That's the HMAC check working as designed.

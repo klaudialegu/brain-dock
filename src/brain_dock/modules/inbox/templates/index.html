@@ -10,11 +10,11 @@
 {% if notice %}<p role="status">{{ notice }}</p>{% endif %}
 
 {% if config_problem %}
-<p role="alert">Rules aren't set up, so no inbox run can start: {{ config_problem }}.</p>
+<p class="notice" role="alert">Rules aren't set up, so no inbox run can start: {{ config_problem }}.</p>
 {% endif %}
 
 <p>{{ emails }} email{{ "" if emails == 1 else "s" }} received. Set aside for review: <a href="/inbox/review">see why</a>.</p>
-<ul>
+<ul class="counts">
   {% for label, count in counts %}
   <li>{{ label }}: {{ count }}</li>
   {% endfor %}
@@ -24,7 +24,7 @@
   <h2 id="pending-heading">Waiting for you</h2>
   {% if pending %}
   <div class="table-wrap">
-    <table>
+    <table class="triage">
       <thead>
         <tr>
           <th scope="col">Role</th>
@@ -47,9 +47,10 @@
           </td>
           <td>{{ role.company }}</td>
           <td>{{ role.location }}</td>
-          <td>{{ salary_text(role) }}</td>
-          <td>{{ sources }} email{{ "" if sources == 1 else "s" }}</td>
+          <td class="amount">{{ salary_text(role) }}</td>
+          <td class="amount">{{ sources }} email{{ "" if sources == 1 else "s" }}</td>
           <td>
+            <div class="decide">
             <form method="post" action="/inbox/approvals/{{ approval.id }}/approve">
               {{ f.csrf(csrf_field, csrf_token) }}
               <button class="button" type="submit">Approve<span class="visually-hidden"> {{ role.title }} at {{ role.company }}</span></button>
@@ -62,8 +63,9 @@
                 <option value="{{ code }}">{{ label }}</option>
                 {% endfor %}
               </select>
-              <button type="submit">Reject<span class="visually-hidden"> {{ role.title }} at {{ role.company }}</span></button>
+              <button class="button-quiet" type="submit">Reject<span class="visually-hidden"> {{ role.title }} at {{ role.company }}</span></button>
             </form>
+            </div>
           </td>
         </tr>
         {% endfor %}

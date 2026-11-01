@@ -219,3 +219,17 @@ def test_inbox_demo_writes_only_the_demo_database(tmp_path):
         message.startswith("Loaded 5 demo emails") and "pending_approval 3" in message
     )  # example floor
     assert hashlib.sha256(real.read_bytes()).hexdigest() == before
+
+
+# --- Added after the Safari check (reported in the PR) -----------------------------------
+
+
+def test_counts_show_rejected_roles_as_rejected(client):
+    first, second = pending_ids(client.get("/inbox").text)
+
+    post(client, f"/inbox/approvals/{first}/reject", reason="not_a_fit")
+    post(client, f"/inbox/approvals/{second}/approve")
+    page = client.get("/inbox").text
+
+    assert "<li>Suggested: 0</li>" in page  # nothing still waiting is counted as waiting
+    assert "<li>Rejected: 1</li>" in page and "<li>Accepted: 1</li>" in page

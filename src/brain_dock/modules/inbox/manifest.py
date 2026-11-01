@@ -18,6 +18,8 @@ manifest = Manifest(
     tables=("inbox_email", "inbox_role", "inbox_role_source"),
     migrations=MODULE_DIR / "migrations",
     templates=MODULE_DIR / "templates",
+    static=MODULE_DIR / "static",
+    stylesheets=("/static/modules/inbox/inbox.css",),
     permissions=("storage",),
     agent_tools=AGENT_TOOLS,
 )

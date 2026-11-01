@@ -1,0 +1,25 @@
+/* Inbox pages (harness PR 5b). Served only while the inbox module is on. */
+.triage td { white-space: normal; vertical-align: middle; }
+.triage td.amount { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.decide { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.decide form { display: flex; gap: 6px; align-items: center; margin: 0; }
+.decide select,
+.button-quiet {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+}
+.button-quiet { cursor: pointer; font-weight: 600; }
+.decide .button { font-size: 0.875rem; padding: 6px 14px; }
+.notice {
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+.counts { margin: 0 0 1.5rem; padding-left: 1.25rem; color: var(--muted); }
