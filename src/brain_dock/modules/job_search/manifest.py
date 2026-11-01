@@ -11,12 +11,12 @@ TABLES = ("company", "application", "stageevent")
 
 manifest = Manifest(
     name="job_search",
-    description="Applications, stages, the pipeline chart and stats.",
+    description="Career Radar: applications, saved roles, stages, the pipeline chart and stats.",
     home="/applications",
     router=router,
     paths=("/applications", "/companies", "/stages.css"),
     nav=(
-        NavEntry("Applications", "/applications"),
+        NavEntry("Career Radar", "/applications"),
         NavEntry("Add application", "/applications/new"),
         NavEntry("Save a job", "/applications/saved/new"),
     ),

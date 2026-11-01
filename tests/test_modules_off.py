@@ -33,6 +33,17 @@ def test_core_runs_with_no_modules():
         assert response.headers["content-security-policy"] == CONTENT_SECURITY_POLICY
 
 
+def test_home_without_modules_shows_tagline():
+    ready = get_engine()
+    migrate(ready)
+    ready.dispose()
+
+    with TestClient(create_app([]), base_url=BASE_URL) as client:
+        home = client.get("/")
+
+    assert "A modular personal daily-efficiency assistant." in home.text
+
+
 # --- Each module turned off in turn ------------------------------------------------------
 
 

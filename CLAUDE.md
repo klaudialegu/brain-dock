@@ -1,7 +1,7 @@
 # Brain Dock: project rules for Claude
 
 ## What this is
-Brain Dock is a personal, local-first job-search hub: applications, interview prep, inbox triage and learning in one place.
+Brain Dock is a modular personal daily-efficiency assistant: a small local-first core plus modules. Career Radar (code name `job_search`: the job market, skills in demand, interesting roles) is the first module and the inbox the second; a daily brief and projects and learning are planned. Code names stay; display names are wording (ADR 0012).
 It is built with Claude Code as a pair programmer, in small reviewed slices.
 
 ## Working with me
@@ -24,6 +24,7 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - Before running a bulk rewrite across files (a regex or a script), dry-run it and read the diff before running fixers like `ruff --fix`.
 - When Klaudia asks for a list (PRs, estimates, steps), put it first in the reply as a plain bulleted list, not only as a table in the middle of a message.
 - Every check a plan promises gets a test ID in that plan, or it isn't promised.
+- Triage each scanner alert (CodeQL, Dependabot, secret scanning) by reading the flagged code before calling it a false positive; never label alerts as a group.
 - Before merging a PR another open PR is based on, retarget the dependent PR to main first (deleting a merged PR's branch closes any PR based on it).
 
 ## Review rules
@@ -79,7 +80,7 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 
 ## Map
 - src/brain_dock/core/: the dock (ADR 0007): app factory, storage and migrations, security, web helpers, the Manifest type, and agents/ (the agent harness, ADR 0008). Never imports a module.
-- src/brain_dock/modules/<name>/: one module each (job_search is #1): manifest.py, routes, models, its own migrations/, templates/ (loaded as "<name>/..."), static/.
+- src/brain_dock/modules/<name>/: one module each (job_search, shown as Career Radar, is #1): manifest.py, routes, models, its own migrations/, templates/ (loaded as "<name>/..."), static/.
 - src/brain_dock/registry.py: installed and enabled modules (BRAIN_DOCK_MODULES); the only place that imports modules. main.py composes the app.
 - tests/: pytest tests
 - .claude/skills/: repeatable session routines (/resume, /learn, /wrap-up, /explain-diff, /adr, /second-opinion)

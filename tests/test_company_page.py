@@ -132,7 +132,9 @@ def test_company_name_is_escaped_in_title_and_heading(client, session):
 
     escaped = html.escape(name, quote=False)
     assert "<script>alert" not in response.text
-    assert f"<title>{escaped} · Brain Dock</title>" in response.text.replace("&#34;", '"')
+    assert f"<title>{escaped} · Career Radar · Brain Dock</title>" in response.text.replace(
+        "&#34;", '"'
+    )
     assert f"<h1>{escaped}</h1>" in response.text.replace("&#34;", '"')
 
 

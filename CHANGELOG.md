@@ -3,6 +3,11 @@
 All notable changes to Brain Dock. Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 Each line links to the pull request that made the change.
 
+## [Unreleased]
+
+### Changed
+- Brain Dock is described as a modular personal daily-efficiency assistant. The job search module is shown as **Career Radar** (nav, headings, page titles); its code name `job_search` stays (ADR 0012). Planned modules are marked as planned. No behaviour changes. ([#52](https://github.com/klaudialegu/brain-dock/pull/52))
+
 ## [v0.1] - 2026-11-01
 
 First tagged release: the job-search module, the core + modules layout, and the agent harness with its first (rules-only) agent. Local-first; 578 tests.

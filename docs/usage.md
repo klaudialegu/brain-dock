@@ -34,7 +34,7 @@ Moving an application to another company reuses that company (names are matched 
 
 ## Modules
 
-Brain Dock is a core plus modules ([ADR 0007](decisions/0007-core-and-modules.md)). Job search is the first module.
+Brain Dock is a modular personal daily-efficiency assistant: a core plus modules ([ADR 0007](decisions/0007-core-and-modules.md)). The installed modules are `job_search` (shown as Career Radar, the first) and `inbox`; the README lists the planned ones. Code names like `job_search` are what `BRAIN_DOCK_MODULES` takes ([ADR 0012](decisions/0012-display-names-are-not-module-names.md)).
 
 - `BRAIN_DOCK_MODULES` picks the enabled modules, comma-separated (for example `BRAIN_DOCK_MODULES=job_search`). Unset means all installed modules; empty means none. An unknown name stops the app with an error listing the installed modules.
 - Turning a module off hides its pages, nav and files. Its data and migrations are never touched; turn it back on and everything is there.

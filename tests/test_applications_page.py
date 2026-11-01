@@ -169,13 +169,55 @@ def test_html_in_data_is_escaped(client, session):
 
 @pytest.mark.parametrize(
     ("path", "current"),
-    [("/applications", "Applications"), ("/applications/new", "Add application")],
+    [("/applications", "Career Radar"), ("/applications/new", "Add application")],
 )
 def test_nav_on_every_page_marks_the_current_one(client, path, current):
     html = client.get(path).text
 
     assert '<nav aria-label="Main">' in html
     assert f'aria-current="page">{current}</a>' in html
+
+
+# --- Career Radar: the job search module's display name (ADR 0012) -----------
+
+
+def test_applications_page_is_career_radar(client, session):
+    add(session, "Acme", "Support Engineer", date(2026, 10, 1))
+
+    html = client.get("/applications").text
+
+    assert "<h1>Career Radar</h1>" in html
+    assert "Market and skills views are planned." in html
+    # The Applications heading sits after Pipeline and right above the table it names.
+    pipeline = html.index('<h2 id="pipeline-heading">Pipeline</h2>')
+    heading = html.index("<h2>Applications</h2>")
+    table = html.index("application, newest first.")
+    assert pipeline < heading < table
+
+
+def test_applications_heading_shown_when_empty(client):
+    html = client.get("/applications").text
+
+    assert html.index("<h2>Applications</h2>") < html.index("No applications yet.")
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/applications",
+        "/applications/new",
+        "/applications/saved/new",
+        "/applications/{id}/edit",
+        "/companies/{company_id}",
+    ],
+)
+def test_module_pages_title_career_radar(client, session, path):
+    application = add(session, "Acme", "Support Engineer", date(2026, 10, 1))
+
+    html = client.get(path.format(id=application.id, company_id=application.company_id)).text
+
+    title = re.search(r"<title>(.*?)</title>", html).group(1)
+    assert title.endswith("Career Radar · Brain Dock"), title
 
 
 # --- Startup never touches the real database ---------------------------------

@@ -2,11 +2,11 @@
 
 [![CI](https://github.com/klaudialegu/brain-dock/actions/workflows/ci.yml/badge.svg)](https://github.com/klaudialegu/brain-dock/actions/workflows/ci.yml)
 
-**A local-first job-search tracker, built to production standards: tested, secured, and shipped in small reviewed slices.**
+**A modular personal daily-efficiency assistant: a small local-first core plus modules you can turn on and off. Built to production standards: tested, secured, and shipped in small reviewed slices.**
 
-![Brain Dock's applications page with demo data: saved jobs, stats, a pipeline chart from applied to offer, and the applications table](docs/screenshot.png)
+![Brain Dock's Career Radar module with demo data: saved jobs, stats, a pipeline chart from applied to offer, and the applications table](docs/screenshot.png)
 
-*Demo data only (fake companies).*
+*Career Radar, with demo data only (fake companies).*
 
 ## Quick start (demo data)
 
@@ -20,15 +20,26 @@ BRAIN_DOCK_DB=data/demo.db uv run uvicorn brain_dock.main:app --host 127.0.0.1
 
 Open http://127.0.0.1:8000. Needs [uv](https://docs.astral.sh/uv/). CI runs these exact commands on a fresh clone. To fill the demo's inbox with synthetic job alerts: `uv run python -m brain_dock.modules.inbox.demo`.
 
-## Features
+## Modules
 
+**Career Radar** (the first module; code name `job_search`): keeping an eye on the job market, skills in demand, and interesting roles.
 - **Applications**: add, edit and record stages, with each application's history.
 - **Saved jobs**: save a job you're considering, then mark it applied; saved jobs stay out of the stats until then.
 - **Pipeline**: a Sankey chart of how applications moved through stages.
 - **Stats**: response rate, interview rate, days since the last application.
-- **Inbox triage**: job-alert emails are checked by plain-Python rules first; each suggestion waits for my approve or reject, and every skip keeps its reason.
+- **Market trends and skills in demand** *(planned)*: what job alerts say about roles and skills over time.
+
+**Inbox**
+- **Triage**: job-alert emails are checked by plain-Python rules first; each suggestion waits for my approve or reject, and every skip keeps its reason. An accepted role links to a prefilled "Save a job" form in Career Radar; the inbox itself writes nothing there ([ADR 0011](docs/decisions/0011-inbox-writes-stay-in-the-inbox.md)).
+
+**Planned** (not built yet)
+- **Daily brief** *(planned)*: one morning page that pulls from every module.
+- **Projects and learning** *(planned)*: side projects and what I'm learning, in one place.
+
+**Every module gets, from the core**
 - **Backups**: one command writes a complete, validated JSON backup.
 - **Local only**: no accounts, no cloud; pages load nothing from other sites.
+- **On or off**: `BRAIN_DOCK_MODULES` turns a module off without touching its data ([usage](docs/usage.md#modules)).
 
 ## Engineering highlights
 
@@ -42,7 +53,7 @@ Open http://127.0.0.1:8000. Needs [uv](https://docs.astral.sh/uv/). CI runs thes
 
 ## Why I built it
 
-I'm a support engineer growing my agentic development skills by building something I use every day. Brain Dock is where I practice working with an AI pair programmer the way I'd want to ship for a customer: written rules, small slices, tests that are broken on purpose to prove they work, recorded decisions, and an independent review before anything risky. Job search is the first module.
+I'm a support engineer growing my agentic development skills by building something I use every day. Brain Dock is where I practice working with an AI pair programmer the way I'd want to ship for a customer: written rules, small slices, tests that are broken on purpose to prove they work, recorded decisions, and an independent review before anything risky. Career Radar is the first module.
 
 ## Where it's going (roadmap)
 
