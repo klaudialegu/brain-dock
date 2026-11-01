@@ -4,6 +4,10 @@
 
 **A local-first job-search tracker, built to production standards: tested, secured, and shipped in small reviewed slices.**
 
+![Brain Dock's applications page with demo data: saved jobs, stats, a pipeline chart from applied to offer, and the applications table](docs/screenshot.png)
+
+*Demo data only (fake companies).*
+
 ## Quick start (demo data)
 
 <!-- quickstart:start -->
