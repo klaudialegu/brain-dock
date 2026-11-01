@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% import "partials/fields.html" as f %}
+
+{% block title %}Save a job · Brain Dock{% endblock %}
+{% block body_class %}page-wide{% endblock %}
+
+{% set track_options = [("support", "Support"), ("fde", "FDE"), ("other", "Other")] %}
+
+{% block content %}
+<h1>Save a job</h1>
+<p>A job you're considering. It stays out of your applications and stats until you mark it applied.</p>
+
+{{ f.form_errors(errors) }}
+
+<form class="stack" method="post" action="/applications/saved">
+  {{ f.csrf(csrf_field, csrf_token) }}
+  {{ f.input("company", "Company", values, errors, required=True) }}
+  {{ f.input("role_title", "Role", values, errors, required=True) }}
+  {{ f.select("role_track", "Track", values, errors, track_options, required=True) }}
+  {{ f.input("interested_on", "Saved on", values, errors, type="date", required=True) }}
+  {{ f.input("link", "Job link", values, errors, type="url", hint="optional, http or https") }}
+  {{ f.textarea("notes", "Notes", values, errors, hint="optional") }}
+  {{ f.input("follow_up_on", "Follow-up", values, errors, type="date", hint="optional") }}
+  <p><button class="button" type="submit">Save job</button> <a href="/applications">Cancel</a></p>
+</form>
+{% endblock %}

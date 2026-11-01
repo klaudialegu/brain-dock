@@ -1,0 +1,42 @@
+{# Jobs saved as interested (ADR 0009). With a CSRF token, each row gets a mark-applied
+   form; without one (the company page), the list is read-only. #}
+{% macro saved_jobs(saved, show_company=True, csrf_field=None, csrf_token=None, values={}, mark_errors={}) -%}
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th scope="col">Role</th>
+        {% if show_company %}<th scope="col">Company</th>{% endif %}
+        <th scope="col">Saved</th>
+        {% if csrf_token %}<th scope="col">Applied?</th>{% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for job in saved %}
+      <tr>
+        <td>
+          {% if job.link %}
+          <a href="{{ job.link }}" target="_blank" rel="noopener noreferrer">{{ job.role_title }}</a>
+          {% else %}
+          {{ job.role_title }}
+          {% endif %}
+        </td>
+        {% if show_company %}<td><a href="/companies/{{ job.company_id }}">{{ job.company }}</a></td>{% endif %}
+        <td class="date">{{ job.saved_on.isoformat() }}</td>
+        {% if csrf_token %}
+        <td>
+          <form class="inline-form" method="post" action="/applications/{{ job.id }}/applied">
+            <input type="hidden" name="{{ csrf_field }}" value="{{ csrf_token }}">
+            <label for="applied-{{ job.id }}" class="visually-hidden">Applied on, for {{ job.role_title }} at {{ job.company }}</label>
+            <input id="applied-{{ job.id }}" type="date" name="applied_on" value="{{ values.get('applied_on', '') }}" required{% if job.id in mark_errors %} aria-invalid="true" aria-describedby="applied-{{ job.id }}-error"{% endif %}>
+            <button class="button" type="submit">Mark applied<span class="visually-hidden"> {{ job.role_title }} at {{ job.company }}</span></button>
+          </form>
+          {% if job.id in mark_errors %}<span class="field-error" id="applied-{{ job.id }}-error">{{ mark_errors[job.id] }}</span>{% endif %}
+        </td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{%- endmacro %}

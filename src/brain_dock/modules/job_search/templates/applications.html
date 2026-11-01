@@ -2,6 +2,7 @@
 {% from "job_search/partials/stage_badge.html" import badge %}
 {% from "job_search/partials/stats_row.html" import stats_row %}
 {% from "job_search/partials/pipeline_chart.html" import pipeline_chart %}
+{% from "job_search/partials/saved_jobs.html" import saved_jobs %}
 
 {% block title %}Applications · Brain Dock{% endblock %}
 {% block body_class %}page-wide{% endblock %}
@@ -10,7 +11,15 @@
 
 {% block content %}
 <h1>Applications</h1>
-<p><a class="button" href="/applications/new">Add application</a></p>
+<p><a class="button" href="/applications/new">Add application</a> <a class="button button-quiet" href="/applications/saved/new">Save a job</a></p>
+
+{% if saved %}
+<section class="history" aria-labelledby="saved-heading">
+  <h2 id="saved-heading">Saved jobs</h2>
+  <p>{{ saved | length }} saved, not applied yet. They stay out of the stats and the chart.</p>
+  {{ saved_jobs(saved, csrf_field=csrf_field, csrf_token=csrf_token, values=values, mark_errors=mark_errors) }}
+</section>
+{% endif %}
 
 {% if applications %}
 {{ stats_row(stats, min_age) }}

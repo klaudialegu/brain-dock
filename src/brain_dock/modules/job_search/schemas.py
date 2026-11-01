@@ -88,6 +88,41 @@ class ApplicationForm(ApplicationFields):
         return None if isinstance(value, str) and not value.strip() else value
 
 
+class SavedJobForm(BaseModel):
+    """What the save-a-job form posts: a job I'm considering (ADR 0009). Same rules as an
+    application's fields, with the saved date instead of the applied date."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    company: str = Field(min_length=1)
+    role_title: str = Field(min_length=1)
+    role_track: RoleTrack
+    interested_on: date
+    link: str | None = None
+    notes: str | None = None
+    follow_up_on: date | None = None
+
+    @field_validator("link", "notes", "follow_up_on", mode="before")
+    @classmethod
+    def blank_is_none(cls, value):
+        return None if isinstance(value, str) and not value.strip() else value
+
+    @field_validator("link")
+    @classmethod
+    def http_link_only(cls, link: str | None) -> str | None:
+        if link is not None and safe_link(link) is None:
+            raise ValueError("must be an http:// or https:// URL")
+        return link
+
+
+class MarkAppliedForm(BaseModel):
+    """What the mark-applied form posts."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    applied_on: date
+
+
 class StageForm(EventIn):
     """What the record-stage form posts: same rules as an imported event."""
 
@@ -105,6 +140,7 @@ FIELD_LABELS = {
     "role_title": "Role",
     "role_track": "Track",
     "applied_on": "Applied on",
+    "interested_on": "Saved on",
     "link": "Job link",
     "notes": "Notes",
     "follow_up_on": "Follow-up",

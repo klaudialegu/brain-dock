@@ -80,6 +80,22 @@ code { font-size: 0.875em; }
   font: inherit;
   cursor: pointer;
 }
+.button-quiet {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.inline-form { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0; }
+.inline-form input {
+  font: inherit;
+  font-size: 0.875rem;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text);
+}
+.inline-form .button { font-size: 0.875rem; }
 form.stack { display: grid; gap: 14px; max-width: 560px; }
 form.stack label { display: grid; gap: 4px; font-weight: 600; font-size: 0.875rem; }
 form.stack .optional { color: var(--muted); font-weight: 400; }

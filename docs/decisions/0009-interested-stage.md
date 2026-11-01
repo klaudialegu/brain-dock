@@ -22,3 +22,4 @@ I want to save jobs I'm considering before I apply, and the triage agent (ADR 00
 - Good: every future batch migration on a referenced table works, and still refuses to leave broken references.
 - Trade-off: every query that means "applications" must leave out rows with no `applied_on`. Tests check the list, the company page, the stats, the chart and the forms.
 - Trade-off: saved jobs have no UI yet (a follow-up slice adds the list section, saving, and "mark as applied").
+- Update (PR 0b, 2026-10-31): that UI exists now: a "Saved jobs" section on the list, a save-a-job form, "mark applied", and a read-only list on the company page. Saved jobs still have no edit or stage forms (404).

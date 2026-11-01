@@ -21,6 +21,7 @@ The inbox's rules read your own thresholds from a local `config.toml` (gitignore
 ## Features
 
 - **Applications**: add, edit and record stages, with each application's history.
+- **Saved jobs**: save a job you're considering, then mark it applied; saved jobs stay out of the stats until then.
 - **Pipeline**: a Sankey chart of how applications moved through stages.
 - **Stats**: response rate, interview rate, days since the last application.
 - **Inbox triage**: job-alert emails are checked by plain-Python rules first; each suggestion waits for my approve or reject, and every skip keeps its reason.

@@ -6,7 +6,13 @@ from urllib.parse import urlparse
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
-from brain_dock.modules.job_search.models import Application, Company, RoleTrack, Stage
+from brain_dock.modules.job_search.models import (
+    Application,
+    Company,
+    RoleTrack,
+    Stage,
+    interested_event,
+)
 from brain_dock.modules.job_search.stages import INTERVIEW_STAGES, REPLY_STAGES, STAGES, stage_order
 
 
@@ -121,12 +127,52 @@ class CompanyApplication:
 
 
 @dataclass(frozen=True)
+class SavedJobRow:
+    """A job saved as interested (ADR 0009): not an application yet."""
+
+    id: int
+    company_id: int
+    company: str
+    role_title: str
+    saved_on: date
+    link: str | None  # only ever an http(s) URL, see safe_link()
+
+
+def _saved_rows(applications) -> list[SavedJobRow]:
+    rows = [
+        SavedJobRow(
+            id=a.id,
+            company_id=a.company_id,
+            company=a.company.name,
+            role_title=a.role_title,
+            saved_on=interested_event(a).happened_on,
+            link=safe_link(a.link),
+        )
+        for a in applications
+        if a.applied_on is None and interested_event(a) is not None
+    ]
+    return sorted(rows, key=lambda r: (r.saved_on, r.id), reverse=True)
+
+
+def list_saved_jobs(session: Session) -> list[SavedJobRow]:
+    """Jobs saved as interested, newest saved first."""
+    saved = session.exec(
+        select(Application)
+        .where(Application.applied_on.is_(None))
+        .options(selectinload(Application.company), selectinload(Application.events))
+    ).all()
+    return _saved_rows(saved)
+
+
+@dataclass(frozen=True)
 class CompanyDetail:
-    """What the company page shows: its applications, newest first, each with its timeline."""
+    """What the company page shows: its applications, newest first, each with its timeline,
+    and its saved jobs, which aren't applications yet."""
 
     id: int
     name: str
     applications: list[CompanyApplication]
+    saved: list[SavedJobRow]
 
 
 def company_detail(session: Session, company_id: int) -> CompanyDetail | None:
@@ -161,6 +207,7 @@ def company_detail(session: Session, company_id: int) -> CompanyDetail | None:
             )
             for a in applications
         ],
+        saved=_saved_rows(company.applications),
     )
 
 

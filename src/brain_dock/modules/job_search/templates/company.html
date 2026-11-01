@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "job_search/partials/stage_badge.html" import badge %}
+{% from "job_search/partials/saved_jobs.html" import saved_jobs %}
 
 {% block title %}{{ company.name }} · Brain Dock{% endblock %}
 {% block body_class %}page-wide{% endblock %}
@@ -36,4 +37,11 @@
   </div>
 </section>
 {% endfor %}
+{% if company.saved %}
+<section class="history" aria-labelledby="saved-heading">
+  <h2 id="saved-heading">Saved jobs</h2>
+  <p>Not applied yet. <a href="/applications">Mark them applied from the list</a>.</p>
+  {{ saved_jobs(company.saved, show_company=False) }}
+</section>
+{% endif %}
 {% endblock %}

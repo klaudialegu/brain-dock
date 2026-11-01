@@ -15,6 +15,8 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - Any plan that removes or renames tests includes the before/after `pytest --collect-only` test-ID diff, so the approved count is the real one.
 - If a new test is worth adding mid-slice, add it and report the plan change; don't fold it into a planned test just to keep the test-ID diff matching.
 - Before running a bulk rewrite across files (a regex or a script), dry-run it and read the diff before running fixers like `ruff --fix`.
+- When Klaudia asks for a list (PRs, estimates, steps), put it first in the reply as a plain bulleted list, not only as a table in the middle of a message.
+- Every check a plan promises gets a test ID in that plan, or it isn't promised.
 
 ## Privacy rules (non-negotiable; privacy beats convenience every time)
 - Personal data never goes into git: no resumes, emails, mood entries, recruiter names/contacts, salary numbers, or the database file. .gitignore covers *.db, .env, data/, and personal docs.

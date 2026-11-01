@@ -18,6 +18,7 @@ manifest = Manifest(
     nav=(
         NavEntry("Applications", "/applications"),
         NavEntry("Add application", "/applications/new"),
+        NavEntry("Save a job", "/applications/saved/new"),
     ),
     tables=TABLES,
     migrations=MODULE_DIR / "migrations",
