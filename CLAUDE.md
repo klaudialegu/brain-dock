@@ -4,6 +4,13 @@
 Brain Dock is a personal, local-first job-search hub: applications, interview prep, inbox triage and learning in one place.
 It is built with Claude Code as a pair programmer, in small reviewed slices.
 
+## Working with me
+- AI writes the code; I own the decisions, reviews and tests. Bring me decisions, not diffs.
+- Keep messages short and scannable. Lead with what you need from me. Give decisions as A or B with your recommendation first, so I can reply with one letter.
+- Explain why before how, with a quick analogy for new concepts.
+- Privacy comes first. This repo will be public.
+- Default to bigger slices and fewer stops. Keep moving unless a rule below says to stop.
+
 ## How we work
 - One slice at a time. A slice is the smallest change that can be verified: seen working in the browser when it has UI, or proven by tests when it doesn't. If a task looks bigger than ~1 hour, propose splitting it.
 - Plan before code for anything touching more than 2 files: show a short numbered plan and wait for approval.
@@ -17,6 +24,14 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - Before running a bulk rewrite across files (a regex or a script), dry-run it and read the diff before running fixers like `ruff --fix`.
 - When Klaudia asks for a list (PRs, estimates, steps), put it first in the reply as a plain bulleted list, not only as a table in the middle of a message.
 - Every check a plan promises gets a test ID in that plan, or it isn't promised.
+- Before merging a PR another open PR is based on, retarget the dependent PR to main first (deleting a merged PR's branch closes any PR based on it).
+
+## Review rules
+- Run /second-opinion before: asking me to approve a plan, any merge, and anything hard to undo (going public, deleting, rewriting history, migrations, anything sent outside this computer). Skip it for docs-only or typo changes.
+- 🟢 → continue, and tell me in one line.
+- 🟡 → if every fix is reversible and inside the current slice, apply them, re-run the tests, re-review once, then continue. Tell me what changed in one line each.
+- 🔴, or any fix that needs me (personal data, hard to undo, a product or taste choice, outside the slice, costs money or touches accounts) → stop and give me the A/B card.
+- At most 2 review rounds. If you and the reviewer still disagree, bring it to me as A/B.
 
 ## Privacy rules (non-negotiable; privacy beats convenience every time)
 - Personal data never goes into git: no resumes, emails, mood entries, recruiter names/contacts, salary numbers, or the database file. .gitignore covers *.db, .env, data/, and personal docs.
@@ -67,7 +82,8 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - src/brain_dock/modules/<name>/: one module each (job_search is #1): manifest.py, routes, models, its own migrations/, templates/ (loaded as "<name>/..."), static/.
 - src/brain_dock/registry.py: installed and enabled modules (BRAIN_DOCK_MODULES); the only place that imports modules. main.py composes the app.
 - tests/: pytest tests
-- .claude/skills/: repeatable session routines (/resume, /learn, /wrap-up, /explain-diff, /adr)
+- .claude/skills/: repeatable session routines (/resume, /learn, /wrap-up, /explain-diff, /adr, /second-opinion)
+- .claude/agents/: subagents (reviewer: the independent second reviewer behind /second-opinion)
 - docs/decisions/: ADRs
 - docs/design/: design details behind an ADR (e.g. agent-harness.md for ADR 0008)
 - Personal working notes are local-only and gitignored (see CLAUDE.local.md if present).
