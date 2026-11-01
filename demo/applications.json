@@ -60,6 +60,22 @@
       "applied_on": "2026-10-12",
       "link": "https://example.com/jobs/pied-piper-fde",
       "follow_up_on": "2026-10-26"
+    },
+    {
+      "company": "Initech",
+      "role_title": "Forward Deployed Engineer",
+      "role_track": "fde",
+      "interested_on": "2026-10-12",
+      "link": "https://example.com/jobs/initech-fde",
+      "notes": "Fake demo entry: saved, not applied yet.",
+      "events": []
+    },
+    {
+      "company": "Acme Analytics",
+      "role_title": "Solutions Architect",
+      "role_track": "fde",
+      "interested_on": "2026-10-14",
+      "events": []
     }
   ]
 }

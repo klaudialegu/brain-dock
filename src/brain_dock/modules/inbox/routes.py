@@ -5,6 +5,8 @@ Approve and reject go through the core's approvals (exact input, at most once, o
 agent run). Pages show fixed text and reason codes, never an exception or my thresholds.
 """
 
+from urllib.parse import urlencode
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session, func, select
@@ -56,7 +58,7 @@ REASON_LABELS = {
 }
 # Fixed messages after a decision (post/redirect/get), chosen by a short code.
 NOTICES = {
-    "approved": "Accepted.",
+    "approved": "Accepted. Save it as a job from the Accepted list below.",
     "rejected": "Rejected.",
     "refused": "That suggestion couldn't be decided. It may already be decided, or agents "
     "are switched off or running.",
@@ -128,6 +130,15 @@ def rejection_log(session: Session) -> list[tuple[str, str, int]]:
     return sorted(rows, key=lambda row: (row[0], -row[2], row[1]))
 
 
+def save_link(role: InboxRole) -> str:
+    """Job search's save-a-job form, prefilled (ADR 0011): a plain URL, not an import, so
+    the module boundary holds. Option A (a core-brokered handoff) would replace it."""
+    fields = {"company": role.company, "role_title": role.title}
+    if role.link_key:
+        fields["link"] = role.link_key
+    return "/applications/saved/new?" + urlencode(fields)
+
+
 def role_counts(session: Session) -> dict[str, int]:
     """Roles by status. Rejecting never runs a tool, so a rejected role still says
     "suggested" in its own row; its work item holds the decision (PR 4c)."""
@@ -147,11 +158,18 @@ def role_counts(session: Session) -> dict[str, int]:
 def inbox(request: Request, session: SessionDep, done: str | None = None) -> HTMLResponse:
     by_status = role_counts(session)
     emails = session.exec(select(func.count()).select_from(InboxEmail)).one()
+    accepted = session.exec(
+        select(InboxRole).where(InboxRole.status == "accepted").order_by(InboxRole.id.desc())
+    ).all()
+    # Only link to job search while it's enabled; otherwise the link would be a 404.
+    can_save = any(m.name == "job_search" for m in request.app.state.modules)
     return render_form(
         request,
         "inbox/index.html",
         {},
         pending=pending(session),
+        accepted=accepted,
+        save_link=save_link if can_save else None,
         counts=[(label, by_status.get(status, 0)) for status, label in ROLE_LABELS.items()],
         emails=emails,
         log=rejection_log(session),

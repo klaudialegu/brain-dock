@@ -77,6 +77,21 @@
   {% endif %}
 </section>
 
+{% if accepted %}
+<section aria-labelledby="accepted-heading">
+  <h2 id="accepted-heading">Accepted</h2>
+  <p>Approved suggestions. Saving one as a job is still your step (ADR 0011).</p>
+  <ul class="accepted">
+    {% for role in accepted %}
+    <li>
+      {{ role.title }} at {{ role.company }}
+      {% if save_link %}· <a href="{{ save_link(role) }}">Save as interested<span class="visually-hidden">: {{ role.title }} at {{ role.company }}</span></a>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
 <section aria-labelledby="log-heading">
   <h2 id="log-heading">Rejection log</h2>
   {% if log %}
