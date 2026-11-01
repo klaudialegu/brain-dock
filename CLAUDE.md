@@ -24,6 +24,7 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - Before running a bulk rewrite across files (a regex or a script), dry-run it and read the diff before running fixers like `ruff --fix`.
 - When Klaudia asks for a list (PRs, estimates, steps), put it first in the reply as a plain bulleted list, not only as a table in the middle of a message.
 - Every check a plan promises gets a test ID in that plan, or it isn't promised.
+- Triage each scanner alert (CodeQL, Dependabot, secret scanning) by reading the flagged code before calling it a false positive; never label alerts as a group.
 - Before merging a PR another open PR is based on, retarget the dependent PR to main first (deleting a merged PR's branch closes any PR based on it).
 
 ## Review rules
