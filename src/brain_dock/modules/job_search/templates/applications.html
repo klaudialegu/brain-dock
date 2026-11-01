@@ -4,13 +4,14 @@
 {% from "job_search/partials/pipeline_chart.html" import pipeline_chart %}
 {% from "job_search/partials/saved_jobs.html" import saved_jobs %}
 
-{% block title %}Applications · Brain Dock{% endblock %}
+{% block title %}Career Radar · Brain Dock{% endblock %}
 {% block body_class %}page-wide{% endblock %}
 
 {% set track_labels = {"support": "Support", "fde": "FDE", "other": "Other"} %}
 
 {% block content %}
-<h1>Applications</h1>
+<h1>Career Radar</h1>
+<p>Keeping an eye on the job market, skills in demand, and interesting roles. Market and skills views are planned.</p>
 <p><a class="button" href="/applications/new">Add application</a> <a class="button button-quiet" href="/applications/saved/new">Save a job</a></p>
 
 {% if saved %}
@@ -24,6 +25,7 @@
 {% if applications %}
 {{ stats_row(stats, min_age) }}
 {{ pipeline_chart(pipeline, pipeline_summary) }}
+<h2>Applications</h2>
 <p>{{ applications | length }} application{{ "" if applications | length == 1 else "s" }}, newest first.</p>
 <div class="table-wrap">
   <table>
@@ -60,6 +62,7 @@
   </table>
 </div>
 {% else %}
+<h2>Applications</h2>
 <p class="empty">No applications yet. <a href="/applications/new">Add your first application</a>.</p>
 {% endif %}
 {% endblock %}

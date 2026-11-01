@@ -73,7 +73,7 @@ check() {
     failed=1
   fi
 }
-check "home lands on the applications page" "<h1>Applications</h1>"
+check "home lands on the applications page" "<h1>Career Radar</h1>"
 check "demo banner" "You're looking at fake demo data"
 check "demo data" "Acme Analytics"
 check "pipeline chart data" 'id="pipeline-data"'
