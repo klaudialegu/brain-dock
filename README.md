@@ -14,9 +14,7 @@ BRAIN_DOCK_DB=data/demo.db uv run uvicorn brain_dock.main:app --host 127.0.0.1
 ```
 <!-- quickstart:end -->
 
-Open http://127.0.0.1:8000. Needs [uv](https://docs.astral.sh/uv/). CI runs these exact commands on a fresh clone.
-
-The inbox's rules read your own thresholds from a local `config.toml` (gitignored): copy `config.example.toml` to `config.toml` and edit its `[inbox]` section. Without it, an inbox run refuses to start. To fill the demo's inbox with synthetic job alerts: `uv run python -m brain_dock.modules.inbox.demo` (demo database only).
+Open http://127.0.0.1:8000. Needs [uv](https://docs.astral.sh/uv/). CI runs these exact commands on a fresh clone. To fill the demo's inbox with synthetic job alerts: `uv run python -m brain_dock.modules.inbox.demo`.
 
 ## Features
 
@@ -30,22 +28,23 @@ The inbox's rules read your own thresholds from a local `config.toml` (gitignore
 
 ## Engineering highlights
 
+- **Agent harness, safety first**: each agent run gets a least-privilege tool pass; writes wait for my approval and run exactly once; a hash-chained audit log; a network guard so the only way out is the model API; budgets and kill switches. ([ADR 0008](docs/decisions/0008-agent-harness.md))
 - **Core + modules**: a small core plus removable modules, each with a manifest and its own migrations; CI runs the app with each module turned off. ([ADR 0007](docs/decisions/0007-core-and-modules.md))
 - **Database as source of truth**: migrations, atomic validated backups, an importer that won't wipe data. ([ADR 0004](docs/decisions/0004-database-as-source-of-truth.md))
 - **Localhost security**: CSRF, DNS-rebinding protection, strict CSP, errors that never echo input. ([ADR 0005](docs/decisions/0005-form-security-on-a-localhost-app.md))
 - **Tests that prove themselves**: every security and data-writing check is broken on purpose once to show the tests catch it.
 - **Supply chain**: vendored, checksummed chart library; SHA-pinned actions; Dependabot.
-- **Agentic workflow**: Claude Code guided by project rules ([CLAUDE.md](CLAUDE.md)), skills, ADRs and CI gates, in small reviewed slices.
+- **How it's built**: Claude Code works from written rules ([CLAUDE.md](CLAUDE.md)), reusable skills and an independent reviewer agent. Every slice has a plan with its exact test list ([docs/design/](docs/design/)), and the merged PRs show the process step by step.
 
 ## Why I built it
 
-I work as a support engineer, and I learn best by building things I’ll actually use. Brain Dock is my personal project for learning how to develop software properly with AI: in small reviewed slices, with tests that prove themselves and security taken seriously. Job search is the first piece. More will come as I learn.
+I'm a support engineer growing my agentic development skills by building something I use every day. Brain Dock is where I practice working with an AI pair programmer the way I'd want to ship for a customer: written rules, small slices, tests that are broken on purpose to prove they work, recorded decisions, and an independent review before anything risky. Job search is the first module.
 
 ## Where it's going (roadmap)
 
-- A modular core, with job search as the first module.
+- A model judge for the inbox, with versioned prompts and an offline eval in CI.
+- A flight-recorder page that replays any agent run.
 - A daily brief that pulls from every module.
-- Evals and guardrails for the AI-assisted parts.
 
 ## More
 

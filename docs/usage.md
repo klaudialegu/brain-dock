@@ -8,6 +8,10 @@
 
 The app only listens on this machine. Open it at `http://127.0.0.1:8000` or `http://localhost:8000`; other host names are refused on purpose, and forms only accept posts from the app's own pages ([ADR 0005](decisions/0005-form-security-on-a-localhost-app.md)).
 
+## Inbox rules
+
+The inbox's rules read your own thresholds from a local `config.toml` (gitignored): copy `config.example.toml` to `config.toml` and edit its `[inbox]` section. Without it, an inbox run refuses to start (the app itself still runs). To fill the demo's inbox with synthetic job alerts: `uv run python -m brain_dock.modules.inbox.demo` (demo database only).
+
 ## Backups and import
 
 - **Back up**: `uv run python -m brain_dock.export` writes a complete, validated JSON backup to `data/backups/applications-<date>-<time>.json` (owner-only).
