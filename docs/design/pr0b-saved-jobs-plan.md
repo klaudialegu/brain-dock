@@ -1,5 +1,5 @@
 # Plan: PR 0b, saved jobs UI
-**Status:** approved 2026-10-31; in review, Safari check pending.
+**Status:** merged (PR #46, 2026-11-01) after the Safari check. No migration.
 
 Decision: [ADR 0009](../decisions/0009-interested-stage.md) (saved jobs), [ADR 0011](../decisions/0011-inbox-writes-stay-in-the-inbox.md) (the inbox's prefill link). Previous: [pr5-inbox-plan.md](pr5-inbox-plan.md).
 
