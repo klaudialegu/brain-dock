@@ -16,13 +16,14 @@ BRAIN_DOCK_DB=data/demo.db uv run uvicorn brain_dock.main:app --host 127.0.0.1
 
 Open http://127.0.0.1:8000. Needs [uv](https://docs.astral.sh/uv/). CI runs these exact commands on a fresh clone.
 
-The inbox's rules read your own thresholds from a local `config.toml` (gitignored): copy `config.example.toml` to `config.toml` and edit its `[inbox]` section. Without it, an inbox run refuses to start.
+The inbox's rules read your own thresholds from a local `config.toml` (gitignored): copy `config.example.toml` to `config.toml` and edit its `[inbox]` section. Without it, an inbox run refuses to start. To fill the demo's inbox with synthetic job alerts: `uv run python -m brain_dock.modules.inbox.demo` (demo database only).
 
 ## Features
 
 - **Applications**: add, edit and record stages, with each application's history.
 - **Pipeline**: a Sankey chart of how applications moved through stages.
 - **Stats**: response rate, interview rate, days since the last application.
+- **Inbox triage**: job-alert emails are checked by plain-Python rules first; each suggestion waits for my approve or reject, and every skip keeps its reason.
 - **Backups**: one command writes a complete, validated JSON backup.
 - **Local only**: no accounts, no cloud; pages load nothing from other sites.
 
