@@ -6,7 +6,7 @@ Each line links to the pull request that made the change.
 ## [Unreleased]
 
 ### Changed
-- Brain Dock is described as a modular personal daily-efficiency assistant. The job search module is shown as **Career Radar** (nav, headings, page titles); its code name `job_search` stays (ADR 0012). Planned modules are marked as planned. No behaviour changes.
+- Brain Dock is described as a modular personal daily-efficiency assistant. The job search module is shown as **Career Radar** (nav, headings, page titles); its code name `job_search` stays (ADR 0012). Planned modules are marked as planned. No behaviour changes. ([#52](https://github.com/klaudialegu/brain-dock/pull/52))
 
 ## [v0.1] - 2026-11-01
 
