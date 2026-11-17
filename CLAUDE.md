@@ -75,6 +75,7 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - Load fake demo data into data/demo.db (never the real database): `uv run python -m brain_dock.importer --demo`
 - Run the app (auto-reloads on save): `uv run uvicorn brain_dock.main:app --host 127.0.0.1 --reload`, then open http://127.0.0.1:8000 (bound to this machine only; never use --host 0.0.0.0)
 - Test: `uv run pytest`
+- Browser tests (WebKit, throwaway demo database; run `uv run playwright install webkit` once): `uv run pytest e2e`. Screenshots and index.html go to e2e-artifacts/ (gitignored).
 - Lint: `uv run ruff check .`
 - Format: `uv run ruff format .`
 
@@ -83,6 +84,7 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - src/brain_dock/modules/<name>/: one module each (job_search, shown as Career Radar, is #1): manifest.py, routes, models, its own migrations/, templates/ (loaded as "<name>/..."), static/.
 - src/brain_dock/registry.py: installed and enabled modules (BRAIN_DOCK_MODULES); the only place that imports modules. main.py composes the app.
 - tests/: pytest tests
+- e2e/: browser tests (Playwright + WebKit) for the Safari checklist; support.py holds the real-data guard
 - .claude/skills/: repeatable session routines (/resume, /learn, /wrap-up, /explain-diff, /adr, /second-opinion)
 - .claude/agents/: subagents (reviewer: the independent second reviewer behind /second-opinion)
 - docs/decisions/: ADRs

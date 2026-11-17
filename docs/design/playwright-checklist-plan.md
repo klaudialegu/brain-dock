@@ -56,6 +56,9 @@
 - `e2e/test_server.py::test_e2e_server_uses_a_temp_database`: reports the fixture guard (the target is in the temp folder, and the marker company is served); the guard itself runs before any write.
 - `e2e/test_server.py::test_guard_refuses_repo_data_paths`: `guard_temp_db` refuses `data/demo.db`, `data/brain_dock.db` and a path in the repo, without opening any of them. (Review round 2; replaces the manual break test.)
 
+**Added during the build (2026-11-17): 27 → 28.** WebKit logs "Failed to load resource: … 400" for a page's own document when a form comes back with errors (items 4 and 5, which return 400 on purpose). Those two tests opt in with `recorder.expect_error_page(400)`, which excuses only that status line, only for that document's URL, and only when the navigation really returned 400. CSP violations, JavaScript errors and subresource failures on the page still fail.
+- `e2e/test_detectors.py::test_error_page_opt_in_excuses_only_that_document`: the opt-in excuses that one line and nothing else (a subresource 400, a 500 on the same page, a CSP violation and a pageerror all still count).
+
 Break tests before the PR, each reverted and recorded in the PR:
 - Remove the Saved jobs heading, and test 01 fails.
 - Add an inline `style=` to a template, and test 10 fails.

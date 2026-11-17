@@ -5,6 +5,9 @@ Each line links to the pull request that made the change.
 
 ## [Unreleased]
 
+### Added
+- Browser tests for the 10-item Safari checklist: Playwright drives WebKit (Safari's engine) against the real app on a throwaway demo database, fails on any CSP violation or console error, and saves one screenshot per item. Runs locally with `uv run pytest e2e` and in CI as the `e2e` job, with the screenshots as an artifact. (PR_LINK)
+
 ### Changed
 - Brain Dock is described as a modular personal daily-efficiency assistant. The job search module is shown as **Career Radar** (nav, headings, page titles); its code name `job_search` stays (ADR 0012). Planned modules are marked as planned. No behaviour changes. ([#52](https://github.com/klaudialegu/brain-dock/pull/52))
 
