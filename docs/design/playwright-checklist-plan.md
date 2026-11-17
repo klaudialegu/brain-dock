@@ -1,6 +1,6 @@
 # Plan: Playwright tests for the Safari checklist
 
-**Status:** approved by Klaudia (2026-11-01), after two review rounds (both 🟡, all fixes applied). Build it in the next Brain Dock session. `e2e` is not a required check at first: watch it for a week of PRs, then decide. Branch `test/playwright-checklist`, cut from main after PR #52 merges (the tests use the Career Radar labels). Dependency approved by Klaudia on 2026-11-01.
+**Status:** built in PR #54 (2026-11-17): 28 e2e tests, one added during the build (see Test IDs). Plan approved by Klaudia on 2026-11-01 after two review rounds (both 🟡, all fixes applied); dependency approved the same day. `e2e` is not a required check yet: watch it for a week of PRs, then decide.
 
 **Why:** every UI PR ends with the same 10-item check in Safari, done by hand. Playwright drives a real browser engine, so the checklist can run in CI on every PR and leave one screenshot per item to glance at. WebKit is Safari's engine, so it's the closest match short of Safari itself.
 
@@ -70,6 +70,6 @@ Break tests before the PR, each reverted and recorded in the PR:
 - No secrets; the job has only `contents: read`.
 
 ## Not in this slice
-- Making `e2e` a required check (Klaudia decides; see the card).
+- Making `e2e` a required check (the owner decides after a week of PRs).
 - Real Safari: WebKit is close but not the same (for example the native date picker). A quick look in Safari stays worthwhile for UI-heavy PRs.
 - Regenerating the README screenshot from this job (parked: it could replace the manual retake).
