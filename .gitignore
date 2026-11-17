@@ -69,3 +69,6 @@ build/
 .vscode/*
 !.vscode/extensions.json
 .idea/
+
+# Browser-test screenshots and their index page (uv run pytest e2e); CI uploads them as an artifact
+e2e-artifacts/
