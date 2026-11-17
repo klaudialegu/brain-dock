@@ -5,7 +5,7 @@ The details behind [ADR 0008](../decisions/0008-agent-harness.md). The ADR recor
 **Second agent (later):** a read-only daily brief of real Gmail, in its own phase and ADR.
 
 ## 1. LLM gateway (core)
-- **The only code that talks to a model.** A contract test fails if any module imports the model SDK. The gateway checks the global and per-module kill switches (ADR 0007) before every call.
+- **The only code that talks to a model.** A contract test will fail if any module imports the model SDK; it comes with the SDK in PR 9 (THREAT_MODEL.md, Known gaps). The gateway checks the global and per-module kill switches (ADR 0007) before every call.
 - **Three clients behind one interface:**
   - *scripted*: a fake agent follows a script; used for rogue-agent tests;
   - *replay*: answers from recorded responses; the default in tests and CI;
