@@ -65,6 +65,7 @@ I'm a support engineer growing my agentic development skills by building somethi
 
 - [Using it with your own data, backups, stats](docs/usage.md)
 - [Design decisions](docs/decisions/)
+- [Threat model](THREAT_MODEL.md): what's sensitive, what agents may never do, and what enforces each rule
 - Development: `uv run pytest`, `uv run ruff check .`, `uv run ruff format .`, `scripts/check_quickstart.sh`
 - Browser tests (the Safari checklist in WebKit, on a throwaway demo database): `uv run playwright install webkit` once, then `uv run pytest e2e`. Screenshots and an `index.html` land in `e2e-artifacts/`.
 
