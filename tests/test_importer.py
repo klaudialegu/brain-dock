@@ -350,6 +350,8 @@ def test_invalid_file_imports_nothing_and_hides_values(paths, capsys):
         "data/demo.db",
         "data/backups/applications-20261021-120000.json",
         "anything.db",
+        "config.toml",
+        ".env",
     ],
 )
 def test_personal_data_files_are_gitignored(path):
