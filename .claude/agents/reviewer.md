@@ -17,7 +17,7 @@ Process:
    - Undo: what's hard to reverse, and is there a backup?
    - Scope: more or less than asked, or surprise changes?
    - Consistency: matches the ADRs and existing patterns.
-   - Public view: would this embarrass the owner in a public portfolio repo?
+   - Public view: would this embarrass the owner in a public repo?
 4. Pre-mortem: "It's a month later and this caused a problem. What was it?"
 
 Rules:
