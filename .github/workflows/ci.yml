@@ -84,6 +84,15 @@ jobs:
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Microsoft's Playwright image already holds WebKit and its system packages, so there's
+    # no apt step (a slow Ubuntu mirror used to stall that step until the job timed out).
+    # The tag must equal the playwright version in uv.lock, and it's pinned by digest like
+    # the actions below: tests/test_ci.py fails if either drifts. To update, change the tag
+    # and take the new digest from:
+    #   curl -sI -H "Accept: application/vnd.oci.image.index.v1+json" \
+    #     https://mcr.microsoft.com/v2/playwright/python/manifests/<tag> | grep -i digest
+    container:
+      image: mcr.microsoft.com/playwright/python:v1.65.2-noble@sha256:38dd67fc654b56b3cba611e4c8eb71cd33750e1cd29eea2a5dc00b484817a75f
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -97,8 +106,9 @@ jobs:
       - name: Install dependencies
         run: uv sync --locked
 
-      - name: Install WebKit
-        run: uv run playwright install --with-deps webkit
+      # Already in the image when the versions match, so this finds it and downloads nothing.
+      - name: WebKit (from the image)
+        run: uv run playwright install webkit
 
       - name: Browser tests
         run: uv run pytest e2e
