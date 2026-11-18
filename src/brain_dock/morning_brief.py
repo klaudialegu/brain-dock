@@ -1,4 +1,4 @@
-"""The morning show's script (ADR 0014): short spoken sentences in a fixed order.
+"""The morning brief's script (ADR 0014): short spoken sentences in a fixed order.
 
 Greeting, weather, today's workout, to-dos, job counts, sign-off. Each section is
 optional: a source that's off or failed just isn't mentioned. The script is what

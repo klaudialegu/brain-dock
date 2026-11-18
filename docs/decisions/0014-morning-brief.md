@@ -1,4 +1,4 @@
-# 0014. The spoken brief becomes a morning show
+# 0014. The morning brief: a short spoken script
 **Status:** Accepted
 **Date:** 2026-11-17
 **Changes:** ADR 0013 points 1, 3, 5, 6 and 7 (listed below); the rest of 0013 stands. Point 2 is extended by [ADR 0015](0015-todo-module.md) (marked to-do titles).
@@ -16,7 +16,7 @@ The spoken brief (ADR 0013) read out a few counts. The goal now is a short, warm
 Brain Dock has no calendar and no task list yet. Most meetings are repeating events, which a small reader can't count correctly. ElevenLabs' default voices expire on December 31, 2026, and free-plan keys can't use Voice Library voices through the API. The free plan has 10,000 credits a month with no rollover. The API credit rate for Eleven v3 isn't published (only "discounted" from 1 credit per character).
 
 ## Decision
-1. **The script** (`brain_dock/show.py`): one short spoken sentence per section, with natural connectors and punctuation for rhythm.
+1. **The script** (`brain_dock/morning_brief.py`): one short spoken sentence per section, with natural connectors and punctuation for rhythm.
    - Each section is optional: a source that is off or failed is left out, with a one-line note on stderr that never holds a URL or a body.
    - This PR has the greeting, weather, workout, job counts (at most 2 lines, from the modules' `brief` lines) and the sign-off.
    - To-dos come with the to-do module, then its UI. Meetings come last, in a schedule slice with a real calendar library.

@@ -99,12 +99,12 @@ def test_highlighter_of_the_day_is_saved_and_must_be_a_palette_color(client, ses
 
 
 def test_hidden_module_leaves_the_spoken_brief(session, monkeypatch):
-    """The path the morning show really uses (brief.module_lines → show.gather), not just
+    """The path the morning brief really uses (brief.module_lines → morning_brief.gather), not just
     the core function: a hidden module's counts must never reach ElevenLabs."""
     from contextlib import contextmanager
     from datetime import datetime
 
-    from brain_dock import brief, show
+    from brain_dock import brief, morning_brief
     from brain_dock.modules.todo.models import add_task
 
     @contextmanager
@@ -121,6 +121,6 @@ def test_hidden_module_leaves_the_spoken_brief(session, monkeypatch):
     session.commit()
 
     assert "todo" not in brief.module_lines(now.date())
-    sources = show.gather(now, network=False, cache_dir=None, note=lambda m: None)
-    assert sources.todo_lines == []  # the show's default lines come from module_lines
-    assert "On today's list" not in show.build_script(now.date(), sources)
+    sources = morning_brief.gather(now, network=False, cache_dir=None, note=lambda m: None)
+    assert sources.todo_lines == []  # the morning brief's default lines come from module_lines
+    assert "On today's list" not in morning_brief.build_script(now.date(), sources)

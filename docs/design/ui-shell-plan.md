@@ -21,7 +21,7 @@
   - A (recommended): in the database, in two small core tables. The database is the source of truth (ADR 0004), so settings survive a browser change.
   - B: in the browser's localStorage. No migration, but per browser and invisible to backups.
 - **D3: turning a module off in Settings.**
-  - A (recommended): soft. It leaves Home, the rail, the text brief and the morning show (so a hidden module's counts never reach ElevenLabs). Its own pages and data stay. `BRAIN_DOCK_MODULES` remains the hard switch that removes routes (ADR 0007).
+  - A (recommended): soft. It leaves Home, the rail, the text brief and the morning brief (so a hidden module's counts never reach ElevenLabs). Its own pages and data stay. `BRAIN_DOCK_MODULES` remains the hard switch that removes routes (ADR 0007).
   - B: hard. Settings would change the enabled list and need an app restart.
 - **D4: Play brief in the browser.**
   - A (recommended): the orb plays today's audio if it was already generated (cached, no credits). When there's none, it says "No brief audio yet" and shows the command. The web server never calls ElevenLabs (ADR 0014 point 7).

@@ -1,4 +1,4 @@
-"""The morning show (ADR 0014, building on ADR 0013): a short spoken script, read aloud with
+"""The morning brief (ADR 0014, building on ADR 0013): a short spoken script, read aloud with
 ElevenLabs text-to-speech.
 
 Off by default. When `[voice] enabled = true` is in config.toml:
@@ -36,6 +36,7 @@ from urllib.parse import quote
 from brain_dock.core.agents.guard import guarded_run
 from brain_dock.core.db import REPO_ROOT
 from brain_dock.core.masking import scrub
+from brain_dock.morning_brief import MAX_SCRIPT_CHARS, build_script, gather
 from brain_dock.outbound import (
     FetchError,
     RefusedError,
@@ -44,7 +45,6 @@ from brain_dock.outbound import (
     private_dir,
     write_private,
 )
-from brain_dock.show import MAX_SCRIPT_CHARS, build_script, gather
 
 CONFIG_PATH = REPO_ROOT / "config.toml"
 CACHE_DIR = REPO_ROOT / "data" / "voice_cache"  # gitignored (data/)
@@ -383,7 +383,7 @@ def play(path: Path, run: Callable = subprocess.run) -> None:
 
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="python -m brain_dock.voice", description="Read this morning's show aloud."
+        prog="python -m brain_dock.voice", description="Read this morning's brief aloud."
     )
     p.add_argument(
         "--dry-run",
@@ -441,7 +441,7 @@ def main(
     except VoiceError as e:
         print(f"Voice: {e}", file=sys.stderr)
         return 1
-    print("Playing this morning's show.")
+    print("Playing this morning's brief.")
     player(audio)
     return 0
 

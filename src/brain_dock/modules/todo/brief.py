@@ -1,4 +1,4 @@
-"""The to-do lines for the daily brief and the morning show (ADR 0015).
+"""The to-do lines for the daily brief and the morning brief (ADR 0015).
 
 A count of today's open tasks, then, only for tasks marked "ok to read aloud", their
 titles: at most 2, cleaned and trimmed. The one exception to "the brief holds counts and

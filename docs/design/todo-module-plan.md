@@ -74,10 +74,10 @@
      - It records the one exception to "the brief holds counts and dates only": titles you mark "ok to read aloud".
    - THREAT_MODEL rows: task data in the local database, never in git and never logged; titles reach ElevenLabs only when marked; the D1 Known gap.
    - Every public statement about what reaches ElevenLabs, updated to "titles of tasks you mark ok to read aloud":
-     - README: the morning show's ElevenLabs list and its "Nothing else is sent" line.
+     - README: the morning brief's ElevenLabs list and its "Nothing else is sent" line.
      - THREAT_MODEL: the ElevenLabs row (its contents list and tests) and the "ElevenLabs keeps the script" Known gap.
      - The `Manifest.brief` comment in `core/modules.py` ("counts and dates only, never names or free text") gets the one exception.
-     - The `show.py` docstring.
+     - The `morning_brief.py` docstring.
    - README (Modules, and the backup sentence), CLAUDE.md Map, CHANGELOG.
 
 **Wording (ADR 0012 and the wording plan):** the code name `todo` is stable. "To do", "Today" and "Can wait" are wording. Labels and docs are neutral and general-purpose, with nothing about why the module was built.
@@ -107,7 +107,7 @@
 - `test_brief_counts_todays_open_tasks`
 - `test_only_tasks_marked_read_aloud_are_named`
 - `test_spoken_titles_are_cleaned_trimmed_and_at_most_two`
-- `test_show_reads_todos_before_job_counts_and_drops_titles_first`
+- `test_morning_brief_reads_todos_before_job_counts_and_drops_titles_first`
 - `test_todo_demo_writes_only_the_demo_database`: whatever `BRAIN_DOCK_DB` says. Cited in THREAT_MODEL's row for tests and demos.
 
 **Changed, not renamed:**
@@ -123,7 +123,7 @@ The module's three templates (`index.html`, `edit.html`, `task_fields.html`) add
 **Added after the PR review: 671 → 672.** The review found that titles were cleaned before they were masked. Cleaning removed the "@", "=" and "_" the masking looks for, so "Reply to sam@example.org" or "wifi pwd=…" in a marked title would have reached ElevenLabs. Workout names had the same order.
 - The masking moved from `voice.py` to `core/masking.py` (`scrub()`), so a module can use it.
 - To-do titles and workout names are now masked first, then cleaned and trimmed.
-- New test: `test_show.py::test_free_text_is_masked_before_it_is_cleaned_or_trimmed`. Break-tested for both sources.
+- New test: `test_morning_brief.py::test_free_text_is_masked_before_it_is_cleaned_or_trimmed`. Break-tested for both sources.
 - A single long word was trimmed to 41 characters; it's now 40, with a case added to `test_spoken_titles_are_cleaned_trimmed_and_at_most_two`.
 
 **Also changed during the build (not renamed):**

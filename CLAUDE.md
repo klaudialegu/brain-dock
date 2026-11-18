@@ -80,14 +80,14 @@ Describe features plainly and briefly, as product docs. Never record where an id
 - Test: `uv run pytest`
 - Browser tests (WebKit, throwaway demo database; run `uv run playwright install webkit` once): `uv run pytest e2e`. Screenshots and index.html go to e2e-artifacts/ (gitignored).
 - Print today's brief (nothing is sent): `uv run python -m brain_dock.brief`
-- Morning show (opt-in, ADR 0013/0014; sends the masked script to ElevenLabs, rounded coordinates to Open-Meteo, reads the Runna feed): `uv run python -m brain_dock.voice` (`--dry-run` shows the exact script and sends nothing to ElevenLabs; `--voices` lists usable voices). The ElevenLabs key and the Runna feed URL are in the macOS keychain (services `brain-dock-elevenlabs`, `brain-dock-runna-ics`); never read, print or ask for them.
+- Morning brief (opt-in, ADR 0013/0014; sends the masked script to ElevenLabs, rounded coordinates to Open-Meteo, reads the Runna feed): `uv run python -m brain_dock.voice` (`--dry-run` shows the exact script and sends nothing to ElevenLabs; `--voices` lists usable voices). The ElevenLabs key and the Runna feed URL are in the macOS keychain (services `brain-dock-elevenlabs`, `brain-dock-runna-ics`); never read, print or ask for them.
 - Lint: `uv run ruff check .`
 - Format: `uv run ruff format .`
 
 ## Map
 - src/brain_dock/core/: the dock (ADR 0007): app factory, storage and migrations, security, web helpers, the Manifest and Card types, the shell (shell.py: rail, Home, Settings, the Brief card; layout.py; palette.py; brief.py, ADR 0016), and agents/ (the agent harness, ADR 0008). Never imports a module.
 - src/brain_dock/modules/<name>/: one module each (job_search, shown as Career Radar, is #1): manifest.py, routes, models, its own migrations/, templates/ (loaded as "<name>/..."), static/.
-- src/brain_dock/brief.py: the daily brief as text, from each enabled module's `Manifest.brief` (ADR 0013). voice.py reads the morning show aloud (ElevenLabs, opt-in): show.py writes the script, weather.py (Open-Meteo), ics.py (Runna feed), outbound.py (guarded read-only fetches, keychain, private files).
+- src/brain_dock/brief.py: the daily brief as text, from each enabled module's `Manifest.brief` (ADR 0013). voice.py reads the morning brief aloud (ElevenLabs, opt-in): morning_brief.py writes the script, weather.py (Open-Meteo), ics.py (Runna feed), outbound.py (guarded read-only fetches, keychain, private files).
 - src/brain_dock/registry.py: installed and enabled modules (BRAIN_DOCK_MODULES); the only place that imports modules. main.py composes the app.
 - THREAT_MODEL.md: what's sensitive, what agents may never do, and the code and test ID that enforce each rule. A change that adds sensitive data, an agent capability or an outside service updates it.
 - tests/: pytest tests

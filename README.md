@@ -38,16 +38,16 @@ Home shows one card per module on a calm grid: a washi-tape label in the module'
 
 **To do**
 - **Tasks**: Today and Can wait, each with an optional due date, an estimate, and ordered steps with their own minutes. Overdue tasks surface in Today; a task can move between the two.
-- **Read aloud, only if you say so**: the morning show counts today's tasks and reads a title only when you tick "ok to read aloud" on that task (off by default) ([ADR 0015](docs/decisions/0015-todo-module.md)).
+- **Read aloud, only if you say so**: the morning brief counts today's tasks and reads a title only when you tick "ok to read aloud" on that task (off by default) ([ADR 0015](docs/decisions/0015-todo-module.md)).
 
 **Planned** (not built yet)
-- **Daily brief** *(planned)*: one morning page that pulls from every module. The first pieces exist: the Brief card on Home and its page (`/brief`), the same lines that `uv run python -m brain_dock.brief` prints, and the optional morning show below reads aloud.
+- **Daily brief** *(planned)*: one morning page that pulls from every module. The first pieces exist: the Brief card on Home and its page (`/brief`), the same lines that `uv run python -m brain_dock.brief` prints, and the optional morning brief below reads aloud.
 - **Projects and learning** *(planned)*: side projects and what I'm learning, in one place.
 
 **Every module gets, from the core**
 - **A card on Home, a place in the rail, and Settings**: it declares its cards in its manifest; the shell draws them all the same way.
 - **Backups**: one command writes a complete, validated JSON backup of Career Radar. To-dos aren't in it yet: backups for every module are planned.
-- **Local only**: no accounts, no cloud; pages load nothing from other sites. The one exception is the optional morning show, off unless you turn it on.
+- **Local only**: no accounts, no cloud; pages load nothing from other sites. The one exception is the optional morning brief, off unless you turn it on.
 - **On or off**: `BRAIN_DOCK_MODULES` turns a module off without touching its data ([usage](docs/usage.md#modules)).
 
 ## Engineering highlights
@@ -64,9 +64,9 @@ Home shows one card per module on a calm grid: a washi-tape label in the module'
 
 I'm a support engineer growing my agentic development skills by building something I use every day. Brain Dock is where I practice working with an AI pair programmer the way I'd want to ship for a customer: written rules, small slices, tests that are broken on purpose to prove they work, recorded decisions, and an independent review before anything risky. Career Radar is the first module.
 
-## Morning show (optional)
+## Morning brief (optional)
 
-A voice feature that reads a short morning script aloud with [ElevenLabs](https://elevenlabs.io) text-to-speech: a greeting, today's weather, today's workout from a Runna calendar feed, today's to-dos, job counts, and a sign-off. It's off by default ([ADR 0013](docs/decisions/0013-spoken-brief-with-elevenlabs.md), [ADR 0014](docs/decisions/0014-morning-show.md)).
+A voice feature that reads a short morning script aloud with [ElevenLabs](https://elevenlabs.io) text-to-speech: a greeting, today's weather, today's workout from a Runna calendar feed, today's to-dos, job counts, and a sign-off. It's off by default ([ADR 0013](docs/decisions/0013-spoken-brief-with-elevenlabs.md), [ADR 0014](docs/decisions/0014-morning-brief.md)).
 
 **What leaves your Mac when it's on:**
 - **ElevenLabs** gets the script text only: your greeting name (if you set one), the weather numbers, the workout's name, minutes and distance, how many to-dos you have today plus the titles of tasks you marked "ok to read aloud", and job counts. Anything shaped like a secret is masked first. ElevenLabs keeps text and audio by default under its privacy policy (zero retention is for enterprise accounts only).
