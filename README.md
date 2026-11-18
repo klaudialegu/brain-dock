@@ -32,12 +32,16 @@ Open http://127.0.0.1:8000. Needs [uv](https://docs.astral.sh/uv/). CI runs thes
 **Inbox**
 - **Triage**: job-alert emails are checked by plain-Python rules first; each suggestion waits for my approve or reject, and every skip keeps its reason. An accepted role links to a prefilled "Save a job" form in Career Radar; the inbox itself writes nothing there ([ADR 0011](docs/decisions/0011-inbox-writes-stay-in-the-inbox.md)).
 
+**To do**
+- **Tasks**: Today and Can wait, each with an optional due date, an estimate, and ordered steps with their own minutes. Overdue tasks surface in Today; a task can move between the two.
+- **Read aloud, only if you say so**: the morning show counts today's tasks and reads a title only when you tick "ok to read aloud" on that task (off by default) ([ADR 0015](docs/decisions/0015-todo-module.md)).
+
 **Planned** (not built yet)
 - **Daily brief** *(planned)*: one morning page that pulls from every module. The first piece exists: a short text brief (counts and dates) that `uv run python -m brain_dock.brief` prints, and the optional morning show below reads aloud.
 - **Projects and learning** *(planned)*: side projects and what I'm learning, in one place.
 
 **Every module gets, from the core**
-- **Backups**: one command writes a complete, validated JSON backup.
+- **Backups**: one command writes a complete, validated JSON backup of Career Radar. To-dos aren't in it yet: backups for every module are planned.
 - **Local only**: no accounts, no cloud; pages load nothing from other sites. The one exception is the optional morning show, off unless you turn it on.
 - **On or off**: `BRAIN_DOCK_MODULES` turns a module off without touching its data ([usage](docs/usage.md#modules)).
 
@@ -57,14 +61,14 @@ I'm a support engineer growing my agentic development skills by building somethi
 
 ## Morning show (optional)
 
-A voice feature that reads a short morning script aloud with [ElevenLabs](https://elevenlabs.io) text-to-speech: a greeting, today's weather, today's workout from a Runna calendar feed, job counts, and a sign-off. It's off by default ([ADR 0013](docs/decisions/0013-spoken-brief-with-elevenlabs.md), [ADR 0014](docs/decisions/0014-morning-show.md)).
+A voice feature that reads a short morning script aloud with [ElevenLabs](https://elevenlabs.io) text-to-speech: a greeting, today's weather, today's workout from a Runna calendar feed, today's to-dos, job counts, and a sign-off. It's off by default ([ADR 0013](docs/decisions/0013-spoken-brief-with-elevenlabs.md), [ADR 0014](docs/decisions/0014-morning-show.md)).
 
 **What leaves your Mac when it's on:**
-- **ElevenLabs** gets the script text only: your greeting name (if you set one), the weather numbers, the workout's name, minutes and distance, and job counts. Anything shaped like a secret is masked first. ElevenLabs keeps text and audio by default under its privacy policy (zero retention is for enterprise accounts only).
+- **ElevenLabs** gets the script text only: your greeting name (if you set one), the weather numbers, the workout's name, minutes and distance, how many to-dos you have today plus the titles of tasks you marked "ok to read aloud", and job counts. Anything shaped like a secret is masked first. ElevenLabs keeps text and audio by default under its privacy policy (zero retention is for enterprise accounts only).
 - **Open-Meteo** gets your coordinates rounded to about 10 km. Their server logs may keep them for 90 days.
 - **Runna's calendar feed** is read (read-only). Its address stays in your keychain, and only today's workout is used.
 
-Nothing else is sent. No event notes, locations, feed addresses or exact coordinates ever reach ElevenLabs.
+Nothing else is sent. No event notes, locations, feed addresses, exact coordinates or unmarked task titles ever reach ElevenLabs.
 
 1. Store your ElevenLabs API key in the macOS keychain. It asks at a hidden prompt, so the key never lands in a file or your shell history:
    `security add-generic-password -s brain-dock-elevenlabs -a brain-dock -w`

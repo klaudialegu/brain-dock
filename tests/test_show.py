@@ -125,3 +125,26 @@ def test_script_never_has_event_details_feed_urls_or_coordinates(tmp_path):
         "45.7",
     ]:
         assert leak not in script, leak
+
+
+def test_free_text_is_masked_before_it_is_cleaned_or_trimmed(session):
+    from brain_dock import ics
+    from brain_dock.modules.todo.brief import brief_lines
+    from brain_dock.modules.todo.models import add_task
+
+    from .show_fixtures import LOCAL, event, feed
+
+    key = "sk_" + "live" + "0123456789abcdef0123"
+    add_task(session, "Reply to sam@example.org", ok_to_read_aloud=True)
+    add_task(session, f"wifi pwd=Hunter2x and {key}", ok_to_read_aloud=True)
+    session.commit()
+    workout = ics.todays_workout(
+        feed(event("Run with coach@example.org", "DTSTART;VALUE=DATE:20261118")), TODAY, LOCAL
+    )
+    sources = Sources(todo_lines=brief_lines(session, TODAY), workout=workout)
+
+    script = prepare_text(build_script(TODAY, sources))
+
+    assert script.count("[email]") == 2 and "[secret]" in script
+    for raw in ["sam", "example", "Hunter2x", "pwd", "coach", key, "live0123"]:
+        assert raw not in script, raw  # neither whole nor as cleaned-up pieces

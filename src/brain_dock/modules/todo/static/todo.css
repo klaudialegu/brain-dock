@@ -1,0 +1,39 @@
+/* To do: a simple card for now; the full visual design comes in the UI slice. */
+.todo-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin: 1rem 0 2rem;
+}
+.todo-head { display: flex; align-items: baseline; gap: 10px; margin-top: 0.5rem; }
+.todo-head h2 { margin: 0; font-size: 1.125rem; }
+.todo-count, .todo-meta { color: var(--muted); font-size: 0.8125rem; }
+.todo-list { list-style: none; margin: 0.5rem 0 1rem; padding: 0; }
+.todo-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+.todo-title { flex: 1 1 12rem; min-width: 0; overflow-wrap: anywhere; }
+.todo-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.875rem; }
+.todo-actions a { color: var(--accent); }
+.todo-check {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.is-done > .todo-title, li.is-done { color: var(--muted); text-decoration: line-through; }
+.todo-steps { flex-basis: 100%; margin: 4px 0 0 2.5rem; padding-left: 1rem; color: var(--muted); }
+.todo-steps-edit { margin-left: 0; color: inherit; }
+.todo-steps-edit li { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; padding: 4px 0; }
+.todo-empty { color: var(--muted); }
+form.stack label.todo-checkbox { display: flex; gap: 8px; align-items: baseline; font-weight: 400; }
+form.stack label.todo-checkbox input { width: auto; }

@@ -18,6 +18,7 @@ from brain_dock.modules.job_search.models import (
     record_stage,
     save_interested,
 )
+from brain_dock.modules.todo.models import add_step, add_task
 
 TODAY = date(2026, 11, 17)
 
@@ -100,11 +101,17 @@ def test_brief_never_names_companies_roles_notes_or_links(session):
         notes="saved-note-qwfp",
         link="https://jobs.example/vex",
     )
+    # Every module's data, through the whole brief: unmarked to-dos are counted, not named.
+    task = add_task(session, "Unmarked qwfp task", due_on=TODAY)
+    add_step(session, task, "Step qwfp detail", 5)
+    add_task(session, "Parked qwfp task", bucket="can_wait")
     session.commit()
 
     text = brief.build_brief(session, TODAY, registry.installed())
 
     assert "1 follow-up is due today." in text  # the data was read
+    assert "On today's list: 1 thing." in text
+    assert "qwfp" not in text.lower()
     for value in [*planted, "Vexmoor", "Plinth Lead", "saved-note-qwfp", "jobs.example"]:
         assert value.lower() not in text.lower()
 

@@ -95,7 +95,7 @@ def run_main(
         list(argv),
         config_path=path,
         now=NOW,
-        gather_options={**NO_NETWORK, "lines": lambda day: list(lines)},
+        gather_options={**NO_NETWORK, "lines": lambda day: {"job_search": list(lines)}},
         player=lambda audio: (played if played is not None else []).append(audio),
         **fake.options(tmp_path / "cache"),
     )
@@ -518,7 +518,7 @@ def test_dry_run_with_voice_off_reaches_no_network(tmp_path, capsys, monkeypatch
     options = {
         "secret": no_network,
         "fetch_fn": no_network,
-        "lines": lambda d: ["1 offer is open."],
+        "lines": lambda d: {"job_search": ["1 offer is open."]},
     }
 
     assert (

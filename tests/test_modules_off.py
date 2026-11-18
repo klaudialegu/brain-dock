@@ -88,11 +88,23 @@ def seed_inbox(engine):
 
 
 # Fake data for each module, so "disabling keeps the data" checks real rows.
-SEEDERS = {"job_search": seed_job_search, "inbox": seed_inbox}
+def seed_todo(engine):
+    from sqlmodel import Session
+
+    from brain_dock.modules.todo.models import add_step, add_task
+
+    with Session(engine) as session:
+        task = add_task(session, "Water the example plants")
+        add_step(session, task, "Fill the can", 5)
+        session.commit()
+    return "Water the example plants"
+
+
+SEEDERS = {"job_search": seed_job_search, "inbox": seed_inbox, "todo": seed_todo}
 
 # Pages with an id in the path: the manifest only lists path prefixes, so these are checked
 # by hand. Each must answer 200 on the seeded data with the module on (see below).
-PROBES = {"job_search": ("/companies/1",)}
+PROBES = {"job_search": ("/companies/1",), "todo": ("/todo/1/edit",)}
 
 
 def others(m):

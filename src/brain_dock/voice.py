@@ -33,9 +33,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
 
-from brain_dock.core.agents.gateway import redact
 from brain_dock.core.agents.guard import guarded_run
 from brain_dock.core.db import REPO_ROOT
+from brain_dock.core.masking import scrub
 from brain_dock.outbound import (
     FetchError,
     RefusedError,
@@ -75,18 +75,6 @@ ID = re.compile(r"[A-Za-z0-9_]{1,64}")
 NAME = re.compile(r"[^\W\d_](?:[^\W\d_]|[ '.-]){0,39}")
 ERROR_CODE = re.compile(r"[a-z_]{1,40}")
 UNITS = ("fahrenheit", "celsius")
-
-# Anything secret-shaped becomes [secret] before the text leaves this machine.
-SECRET_SHAPES = [
-    re.compile(r"\b(?:password|passwd|pwd|token|secret|api[_-]?key)\s*[:=]\s*\S+", re.I),
-    re.compile(r"\bBearer\s+[A-Za-z0-9._~+/=-]{8,}", re.I),
-    re.compile(r"\b(?:sk|pk|rk)[-_][A-Za-z0-9_-]{16,}"),  # sk-ant-…, sk_… (ElevenLabs)
-    re.compile(r"\bAKIA[0-9A-Z]{16}\b"),  # AWS access key
-    re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})"),
-    re.compile(r"\bxox[abprs]-[A-Za-z0-9-]{10,}"),  # Slack
-    re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{4,}"),  # JWT
-    re.compile(r"[A-Za-z0-9+/_-]{32,}={0,2}"),  # any long hex or base64 run
-]
 
 
 class VoiceError(RuntimeError):
@@ -176,16 +164,11 @@ def load_config(path: Path = CONFIG_PATH) -> VoiceConfig:
     )
 
 
-def mask_secrets(text: str) -> str:
-    for shape in SECRET_SHAPES:
-        text = shape.sub("[secret]", text)
-    return text
-
-
 def prepare_text(script: str) -> str:
     """What may leave this machine: secret shapes masked, then emails, phone numbers and
-    URL query strings removed by the gateway's redact()."""
-    return redact(mask_secrets(script)).text
+    URL query strings removed (core.masking.scrub). The free-text parts were already
+    scrubbed before they were cleaned and trimmed; this pass covers the whole script."""
+    return scrub(script)
 
 
 def keychain_key(run: Callable = subprocess.run) -> str:

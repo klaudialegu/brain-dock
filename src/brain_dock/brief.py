@@ -60,19 +60,18 @@ def database_session() -> Iterator[Session]:
         engine.dispose()
 
 
-def module_lines(today: date | None = None) -> list[str]:
-    """Each enabled module's lines for today (counts and dates only)."""
+def module_lines(today: date | None = None) -> dict[str, list[str]]:
+    """Each enabled module's lines for today, by module name, in nav order."""
     with database_session() as session:
-        modules = registry.enabled()
-        return [
-            line for m in modules if m.brief for line in m.brief(session, today or date.today())
-        ]
+        today = today or date.today()
+        return {m.name: m.brief(session, today) for m in registry.enabled() if m.brief}
 
 
 def current_brief(today: date | None = None) -> str:
     """Today's brief from the configured database."""
     today = today or date.today()
-    return cap([greeting(today), *(module_lines(today) or [NOTHING])])
+    lines = [line for module in module_lines(today).values() for line in module]
+    return cap([greeting(today), *(lines or [NOTHING])])
 
 
 def main() -> int:

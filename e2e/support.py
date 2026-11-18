@@ -8,7 +8,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = REPO_ROOT / "e2e-artifacts"
-MODULES = "job_search,inbox"
+MODULES = "job_search,inbox,todo"
 VIEWPORT = {"width": 1280, "height": 900}
 
 
@@ -57,20 +57,35 @@ def wait_for_entry(page, recorder, kind: str, timeout_ms: int = 5000) -> None:
 
 
 # The pages items 9 and 10 visit. Edit and company need an id from the demo data, so
-# they're found through the applications table.
-PAGES = ["applications", "add", "save-a-job", "edit", "company", "inbox", "inbox-review"]
+# they're found through the applications table; the to-do edit page through /todo.
+PAGES = [
+    "applications",
+    "add",
+    "save-a-job",
+    "edit",
+    "company",
+    "inbox",
+    "inbox-review",
+    "todo",
+    "todo-edit",
+]
 FIXED_PATHS = {
     "applications": "/applications",
     "add": "/applications/new",
     "save-a-job": "/applications/saved/new",
     "inbox": "/inbox",
     "inbox-review": "/inbox/review",
+    "todo": "/todo",
 }
 
 
 def open_named_page(page, name: str) -> None:
     if name in FIXED_PATHS:
         page.goto(FIXED_PATHS[name])
+        return
+    if name == "todo-edit":
+        page.goto("/todo")
+        page.goto(page.locator('a[href$="/edit"]').first.get_attribute("href"))
         return
     page.goto("/applications")
     table = applications_table(page)
