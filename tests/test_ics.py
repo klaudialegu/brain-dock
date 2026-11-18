@@ -79,6 +79,8 @@ def test_long_workout_titles_are_trimmed(tmp_path):
     assert len(workout.name) <= ics.NAME_LIMIT
     assert workout.name == "Tempo Run - 6 x 800m 5K pace w/ 90s"
     assert "🏃" not in workout.name and "@" not in workout.name
+    word = "'".join(["abcdefghij"] * 6)  # one 65-character word, not key-shaped
+    assert ics.clean_name(word) == word[:40]  # cut at 40, not 41
     net = FakeNet(runna=long_feed)
     script = build_script(TODAY, gather(NOW, cache_dir=tmp_path, **net.options()))
     assert workout.name in script
