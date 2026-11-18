@@ -4,7 +4,7 @@
 **Changes:** extends ADR 0013 point 1 and ADR 0014 point 2 (what the brief and the script may hold).
 
 ## Context
-Brain Dock needs a place for small tasks: some for today, some that can wait, some broken into steps with their own minutes. The morning show (ADR 0014) should say how many tasks today holds, and read a few of them aloud. The visual design (a dot meter for estimates, Focus mode for one task at a time, the home layout) comes in a later UI slice, which should need no migration of its own.
+Brain Dock needs a place for small tasks: some for today, some that can wait, some broken into steps with their own minutes. The morning brief (ADR 0014) should say how many tasks today holds, and read a few of them aloud. The visual design (a dot meter for estimates, Focus mode for one task at a time, the home layout) comes in a later UI slice, which should need no migration of its own.
 
 Task titles are a new kind of personal data. Until now the brief held counts and dates only, never free text, because ElevenLabs keeps what it receives by default.
 
@@ -24,7 +24,7 @@ Task titles are a new kind of personal data. Until now the brief held counts and
    - At most 2 titles, each masked first (`core/masking.py`: secret shapes, then `redact()`), then cleaned (letters in any language, digits, basic punctuation) and trimmed to 40 characters. Masking comes first, because cleaning removes the "@" or "=" the masking looks for, and trimming can cut an address in half. Workout names get the same order.
    - With nothing for today, the module adds no line at all.
    - This is the one exception to "counts and dates only" (ADR 0013), and only for tasks the owner marks.
-4. **The show's order:** greeting, weather, workout, to-dos, job counts, sign-off. If the script is over the cap, to-do titles are dropped first; the count stays. Module lines are kept per module so the show can place them.
+4. **The morning brief's order:** greeting, weather, workout, to-dos, job counts, sign-off. If the script is over the cap, to-do titles are dropped first; the count stays. Module lines are kept per module so the morning brief can place them.
 5. **No delete in this slice.** To-dos aren't in any backup yet: `brain_dock.export` covers Career Radar only. A deleted task couldn't come back, so deleting tasks waits for the delete/remove slice, which plans an export first. Removing a step is allowed.
 6. **Plain form posts, no scripts:** CSRF on every post (ADR 0005), errors next to their fields, never echoing what was typed.
 

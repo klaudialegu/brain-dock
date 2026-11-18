@@ -1,4 +1,4 @@
-"""The morning show's script (ADR 0014): short spoken sentences in a fixed order.
+"""The morning brief's script (ADR 0014): short spoken sentences in a fixed order.
 
 Greeting, weather, today's workout, to-dos, job counts, sign-off. Each section is
 optional: a source that's off or failed just isn't mentioned. The script is what
@@ -28,7 +28,7 @@ RUNNA_SERVICE = "brain-dock-runna-ics"  # keychain service holding the feed's se
 
 @dataclass
 class Sources:
-    """What the show knows this morning. None means the section is left out."""
+    """What the morning brief knows this morning. None means the section is left out."""
 
     greeting_name: str = ""
     weather: Weather | None = None

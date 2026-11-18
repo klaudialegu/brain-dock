@@ -5,7 +5,7 @@
 {{ f.input("estimate_minutes", "Estimate in minutes", values, errors, type="number", hint="optional") }}
 <label class="todo-checkbox">
   <input type="checkbox" name="ok_to_read_aloud" value="on"{% if values.get("ok_to_read_aloud") == "on" %} checked{% endif %}>
-  Ok to read aloud in the morning show
+  Ok to read aloud in the morning brief
   <span class="optional">(the title is then sent to the voice service)</span>
 </label>
 {% if errors.get("ok_to_read_aloud") %}<span class="field-error">{{ errors["ok_to_read_aloud"] }}</span>{% endif %}

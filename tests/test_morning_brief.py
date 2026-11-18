@@ -1,13 +1,21 @@
-"""The morning show's script (ADR 0014): order, spoken style, the cap, and what stays out."""
+"""The morning brief's script (ADR 0014): order, spoken style, the cap, and what stays out."""
 
 from datetime import date
 
 from brain_dock.ics import Workout
-from brain_dock.show import REST, SIGN_OFF, Sources, build_script, gather, greeting, ordinal
+from brain_dock.morning_brief import (
+    REST,
+    SIGN_OFF,
+    Sources,
+    build_script,
+    gather,
+    greeting,
+    ordinal,
+)
 from brain_dock.voice import prepare_text
 from brain_dock.weather import parse
 
-from .show_fixtures import COORDS, FEED_URL, FORECAST, NOW, WEATHER_LINE, FakeNet
+from .brief_fixtures import COORDS, FEED_URL, FORECAST, NOW, WEATHER_LINE, FakeNet
 
 TODAY = NOW.date()  # Wednesday, November 18
 JOBS = ["2 follow-ups are overdue.", "1 offer is open.", "3 inbox roles are waiting."]
@@ -132,7 +140,7 @@ def test_free_text_is_masked_before_it_is_cleaned_or_trimmed(session):
     from brain_dock.modules.todo.brief import brief_lines
     from brain_dock.modules.todo.models import add_task
 
-    from .show_fixtures import LOCAL, event, feed
+    from .brief_fixtures import LOCAL, event, feed
 
     key = "sk_" + "live" + "0123456789abcdef0123"
     add_task(session, "Reply to sam@example.org", ok_to_read_aloud=True)

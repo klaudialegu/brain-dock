@@ -1,4 +1,4 @@
-# Plan: the spoken brief becomes a morning show
+# Plan: the morning brief, a short spoken script
 
 **Status:** approved by the owner on 2026-11-17 with D1–D3 all A (after one review round, 🟡, fixes applied).
 
@@ -46,7 +46,7 @@ The mood question goes away for now.
   - A (recommended): build with Sarah as the default, plus `--voices`, which lists the names and IDs your key can actually use (one GET, nothing of yours sent). Decide the 2027 voice by December 15: a paid plan, your own voice, or macOS `say`. NEXT.md gets that date.
   - B: pause the build until you've checked your account's voices.
 - **D2: where to-dos come from.** Brain Dock has no task list, so the per-task "ok to read aloud" flag needs one.
-  - A (recommended): a second PR right after this one, a small to-do module. Each task has a title, a due date, done, and "ok to read aloud" (off by default), on its own page. That PR gets its own short plan. Until it lands, the show has no to-do section.
+  - A (recommended): a second PR right after this one, a small to-do module. Each task has a title, a due date, done, and "ok to read aloud" (off by default), on its own page. That PR gets its own short plan. Until it lands, the morning brief has no to-do section.
   - B: one PR for everything, which is much bigger and includes a UI and a migration.
 
 ## Decided by this plan (no need to choose)
@@ -97,7 +97,7 @@ The mood question goes away for now.
    - Keeps only today's events, in memory, and never stores the feed.
    - Workout: the name, a duration from the start and end times (or from the text, like "40 min"), and a distance from text like "5 km" or "3.1 mi". No workout today means "rest day".
    - The Runna feed URL comes from the keychain (`brain-dock-runna-ics`). A missing entry skips that section with a one-line note on stderr.
-5. **`brain_dock/show.py`:** the script, one short spoken sentence per section, with natural connectors.
+5. **`brain_dock/morning_brief.py`:** the script, one short spoken sentence per section, with natural connectors.
    - Each section is optional: a source that is off or failed just isn't mentioned.
    - Job counts reuse the modules' `brief` lines ("On the job front, …").
    - When over 420 characters, it drops whole sentences in this order: to-do titles (PR 2), then job lines from the end, then the weather tip. The greeting and sign-off always stay.
@@ -130,7 +130,7 @@ Added, `tests/test_voice.py` (7):
 - `test_default_model_is_v3_with_one_fallback_to_multilingual_v2`
 - `test_v3_request_sends_only_stability_and_similarity`
 - `test_monthly_character_budget_stops_before_the_free_plan_limit`
-- `test_show_asks_nothing_and_plays_at_normal_speed`
+- `test_brief_asks_nothing_and_plays_at_normal_speed`
 - `test_dry_run_prints_the_script_and_sends_nothing_to_elevenlabs`
 - `test_dry_run_with_voice_off_reaches_no_network`
 - `test_voices_lists_names_and_ids_only`
@@ -152,7 +152,7 @@ Added, `tests/test_ics.py` (7, Runna only with D1 A):
 - `test_feed_fetch_runs_under_the_guard_with_only_its_host`
 - `test_webcal_urls_are_fetched_over_https_only`
 
-Added, `tests/test_show.py` (6):
+Added, `tests/test_morning_brief.py` (6):
 - `test_greeting_uses_the_configured_name_or_none`
 - `test_greeting_says_the_day_and_an_ordinal_date`
 - `test_sections_come_in_order_and_read_like_speech`

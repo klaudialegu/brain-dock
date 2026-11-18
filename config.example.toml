@@ -12,7 +12,7 @@ salary_floor = 100000
 currency = "USD"
 
 [voice]
-# Optional: a short morning show read aloud with ElevenLabs (ADR 0013, 0014). Off unless
+# Optional: a short morning brief read aloud with ElevenLabs (ADR 0013, 0014). Off unless
 # enabled = true. When enabled, the script (greeting name, weather numbers, today's workout,
 # job counts) is sent to ElevenLabs, which keeps it by default. The API key and the Runna
 # feed address never go in this file: they live in the macOS keychain (README).

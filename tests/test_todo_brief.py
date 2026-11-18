@@ -1,4 +1,4 @@
-"""To-dos in the brief and the morning show (ADR 0015): a count, and titles only for tasks
+"""To-dos in the brief and the morning brief (ADR 0015): a count, and titles only for tasks
 marked "ok to read aloud"."""
 
 import hashlib
@@ -11,7 +11,7 @@ from brain_dock.core.db import get_engine, migrate
 from brain_dock.modules.todo import demo
 from brain_dock.modules.todo.brief import brief_lines, spoken_title
 from brain_dock.modules.todo.models import TodoTask, add_task, set_done
-from brain_dock.show import SIGN_OFF, Sources, build_script
+from brain_dock.morning_brief import SIGN_OFF, Sources, build_script
 
 TODAY = date(2026, 11, 18)
 
@@ -66,7 +66,7 @@ def test_spoken_titles_are_cleaned_trimmed_and_at_most_two(session):
     assert "Third" not in " ".join(lines)
 
 
-def test_show_reads_todos_before_job_counts_and_drops_titles_first():
+def test_morning_brief_reads_todos_before_job_counts_and_drops_titles_first():
     sources = Sources(
         greeting_name="Avery",
         todo_lines=["On today's list: 3 things.", "First up: Water the plants."],

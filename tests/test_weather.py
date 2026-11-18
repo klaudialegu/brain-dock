@@ -1,4 +1,4 @@
-"""Today's weather for the morning show (ADR 0014): rounded coordinates out, numbers back."""
+"""Today's weather for the morning brief (ADR 0014): rounded coordinates out, numbers back."""
 
 import http.client
 import inspect
@@ -10,10 +10,10 @@ from urllib.parse import parse_qs, urlsplit
 
 from brain_dock import outbound, weather
 from brain_dock.core.agents.guard import guarded_run
-from brain_dock.show import build_script, gather
+from brain_dock.morning_brief import build_script, gather
 from brain_dock.weather import Weather
 
-from .show_fixtures import COORDS, FORECAST, NOW, WEATHER_LINE, FakeGuard, FakeNet
+from .brief_fixtures import COORDS, FORECAST, NOW, WEATHER_LINE, FakeGuard, FakeNet
 
 
 def test_weather_request_sends_only_rounded_coordinates_and_units(tmp_path):

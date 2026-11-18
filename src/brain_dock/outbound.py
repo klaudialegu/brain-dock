@@ -1,4 +1,4 @@
-"""Read-only calls to outside services for the morning show (ADR 0014), and the private
+"""Read-only calls to outside services for the morning brief (ADR 0014), and the private
 files they leave behind.
 
 - fetch(): HTTPS GET only, inside the network guard with only that URL's host allowed.

@@ -1,5 +1,5 @@
 # 0013. A text brief from module contributions, read aloud by ElevenLabs (opt-in)
-**Status:** Accepted; points 1, 3, 5, 6 and 7 changed by [ADR 0014](0014-morning-show.md) (the morning show; mood removed)
+**Status:** Accepted; points 1, 3, 5, 6 and 7 changed by [ADR 0014](0014-morning-brief.md) (the morning brief; mood removed)
 **Date:** 2026-11-17
 
 ## Context

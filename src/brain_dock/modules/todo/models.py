@@ -1,7 +1,7 @@
 """To do: tasks for today and later, with optional ordered steps (ADR 0015).
 
 Titles are personal data: they stay in the local database, never in logs or errors, and
-reach the morning show only when a task is marked "ok to read aloud" (off by default).
+reach the morning brief only when a task is marked "ok to read aloud" (off by default).
 """
 
 from datetime import UTC, date, datetime, timedelta, tzinfo

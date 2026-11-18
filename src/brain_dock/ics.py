@@ -1,4 +1,4 @@
-"""Today's workout from the Runna iCalendar feed, for the morning show (ADR 0014).
+"""Today's workout from the Runna iCalendar feed, for the morning brief (ADR 0014).
 
 A small reader for single events: folded lines, all-day dates, UTC times, TZID times and
 floating times. Repeating rules (RRULE) aren't expanded; Runna lists each workout as its

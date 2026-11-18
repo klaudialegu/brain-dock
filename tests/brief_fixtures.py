@@ -1,4 +1,4 @@
-"""Shared fakes for the morning show tests: a forecast, a feed, and a network stand-in.
+"""Shared fakes for the morning brief tests: a forecast, a feed, and a network stand-in.
 Nothing here reaches the network; the coordinates and URLs are made up."""
 
 import json

@@ -61,7 +61,7 @@
    - **The lines:**
      - a count, like "On today's list: 3 things." With nothing for today, no to-do line at all, so the brief keeps saying "Nothing needs your attention today." when that's true.
      - then, only for tasks marked "ok to read aloud": "First up: <title>, and <title>." At most 2 titles, each cleaned (letters, digits, basic punctuation) and trimmed to 40 characters at a word boundary.
-   - **In the show:** the to-do sentence comes after the workout and before job counts. That needs module lines kept per module (`brief.module_lines` returns them by module name).
+   - **In the morning brief:** the to-do sentence comes after the workout and before job counts. That needs module lines kept per module (`brief.module_lines` returns them by module name).
    - **Cap order:** to-do titles are dropped first (the count stays), as ADR 0014 planned.
    - Titles go through the same masking (secret shapes, then `redact()`) as the rest of the script.
 5. **Demo and checks:**
@@ -74,10 +74,10 @@
      - It records the one exception to "the brief holds counts and dates only": titles you mark "ok to read aloud".
    - THREAT_MODEL rows: task data in the local database, never in git and never logged; titles reach ElevenLabs only when marked; the D1 Known gap.
    - Every public statement about what reaches ElevenLabs, updated to "titles of tasks you mark ok to read aloud":
-     - README: the morning show's ElevenLabs list and its "Nothing else is sent" line.
+     - README: the morning brief's ElevenLabs list and its "Nothing else is sent" line.
      - THREAT_MODEL: the ElevenLabs row (its contents list and tests) and the "ElevenLabs keeps the script" Known gap.
      - The `Manifest.brief` comment in `core/modules.py` ("counts and dates only, never names or free text") gets the one exception.
-     - The `show.py` docstring.
+     - The `morning_brief.py` docstring.
    - README (Modules, and the backup sentence), CLAUDE.md Map, CHANGELOG.
 
 **Wording (ADR 0012 and the wording plan):** the code name `todo` is stable. "To do", "Today" and "Can wait" are wording. Labels and docs are neutral and general-purpose, with nothing about why the module was built.
@@ -107,12 +107,12 @@
 - `test_brief_counts_todays_open_tasks`
 - `test_only_tasks_marked_read_aloud_are_named`
 - `test_spoken_titles_are_cleaned_trimmed_and_at_most_two`
-- `test_show_reads_todos_before_job_counts_and_drops_titles_first`
+- `test_morning_brief_reads_todos_before_job_counts_and_drops_titles_first`
 - `test_todo_demo_writes_only_the_demo_database`: whatever `BRAIN_DOCK_DB` says. Cited in THREAT_MODEL's row for tests and demos.
 
 **Changed, not renamed:**
 - `test_brief.py::test_brief_never_names_companies_roles_notes_or_links` also plants unmarked to-do titles. This was the review's pre-mortem: every module's data, run through the whole brief.
-- The show tests and fixtures move to per-module lines.
+- The morning brief's tests and fixtures move to per-module lines.
 
 **Found during the build: 665 → 671.** Two existing tests run once per template:
 - `test_security_headers.py::test_templates_have_no_inline_scripts_or_styles`
@@ -123,7 +123,7 @@ The module's three templates (`index.html`, `edit.html`, `task_fields.html`) add
 **Added after the PR review: 671 → 672.** The review found that titles were cleaned before they were masked. Cleaning removed the "@", "=" and "_" the masking looks for, so "Reply to sam@example.org" or "wifi pwd=…" in a marked title would have reached ElevenLabs. Workout names had the same order.
 - The masking moved from `voice.py` to `core/masking.py` (`scrub()`), so a module can use it.
 - To-do titles and workout names are now masked first, then cleaned and trimmed.
-- New test: `test_show.py::test_free_text_is_masked_before_it_is_cleaned_or_trimmed`. Break-tested for both sources.
+- New test: `test_morning_brief.py::test_free_text_is_masked_before_it_is_cleaned_or_trimmed`. Break-tested for both sources.
 - A single long word was trimmed to 41 characters; it's now 40, with a case added to `test_spoken_titles_are_cleaned_trimmed_and_at_most_two`.
 
 **Also changed during the build (not renamed):**

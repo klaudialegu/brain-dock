@@ -1,4 +1,4 @@
-"""The to-do lines for the daily brief and the morning show (ADR 0015).
+"""The to-do lines for the daily brief and the morning brief (ADR 0015).
 
 A count of today's open tasks, then, only for tasks marked "ok to read aloud", their
 titles: at most 2, cleaned and trimmed. The one exception to "the brief holds counts and
@@ -32,7 +32,7 @@ def spoken_title(title: str) -> str:
 def brief_lines(session: Session, today: date) -> list[str]:
     tasks = todays_open(session, today)
     if not tasks:
-        return []  # nothing for today: the show says nothing about to-dos
+        return []  # nothing for today: the morning brief says nothing about to-dos
     things = "1 thing" if len(tasks) == 1 else f"{len(tasks)} things"
     lines = [f"On today's list: {things}."]
     named = [spoken_title(t.title) for t in tasks if t.ok_to_read_aloud]

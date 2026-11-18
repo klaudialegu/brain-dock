@@ -12,9 +12,9 @@ import pytest
 from brain_dock import ics, outbound, voice
 from brain_dock.core.agents.guard import guarded_run
 from brain_dock.ics import Workout
-from brain_dock.show import REST, RUNNA_SERVICE, build_script, gather
+from brain_dock.morning_brief import REST, RUNNA_SERVICE, build_script, gather
 
-from .show_fixtures import FEED_URL, LOCAL, NOW, RUNNA_FEED, FakeGuard, FakeNet, event, feed
+from .brief_fixtures import FEED_URL, LOCAL, NOW, RUNNA_FEED, FakeGuard, FakeNet, event, feed
 
 TODAY = NOW.date()
 

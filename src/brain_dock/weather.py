@@ -1,9 +1,9 @@
-"""Today's weather for the morning show (ADR 0014), from Open-Meteo: free, no key.
+"""Today's weather for the morning brief (ADR 0014), from Open-Meteo: free, no key.
 
 Only the coordinates go out, rounded to 1 decimal (about 10 km, city level), plus fixed
 settings. The answer is always in Fahrenheit, so the tip rules have one scale; only the
 spoken numbers are converted for Celsius. The forecast is cached for the morning (and then
-per hour), so re-running the show produces the same script and hits the audio cache.
+per hour), so re-running the morning brief produces the same script and hits the audio cache.
 """
 
 import json

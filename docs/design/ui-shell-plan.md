@@ -21,7 +21,7 @@
   - A (recommended): in the database, in two small core tables. The database is the source of truth (ADR 0004), so settings survive a browser change.
   - B: in the browser's localStorage. No migration, but per browser and invisible to backups.
 - **D3: turning a module off in Settings.**
-  - A (recommended): soft. It leaves Home, the rail, the text brief and the morning show (so a hidden module's counts never reach ElevenLabs). Its own pages and data stay. `BRAIN_DOCK_MODULES` remains the hard switch that removes routes (ADR 0007).
+  - A (recommended): soft. It leaves Home, the rail, the text brief and the morning brief (so a hidden module's counts never reach ElevenLabs). Its own pages and data stay. `BRAIN_DOCK_MODULES` remains the hard switch that removes routes (ADR 0007).
   - B: hard. Settings would change the enabled list and need an app restart.
 - **D4: Play brief in the browser.**
   - A (recommended): the orb plays today's audio if it was already generated (cached, no credits). When there's none, it says "No brief audio yet" and shows the command. The web server never calls ElevenLabs (ADR 0014 point 7).
@@ -122,7 +122,7 @@
    - **Reduced motion:** no movement; it only changes color when playing.
    - Hidden tab: the drawing loop stops.
    - **Audio** (D4 A):
-     - After each successful show, the voice command writes `data/voice_cache/today.json` (owner-only), holding only the date and the audio file's name.
+     - After each successful morning brief, the voice command writes `data/voice_cache/today.json` (owner-only), holding only the date and the audio file's name.
      - `/brief/audio` reads that pointer and serves the file only when the date is today and the name is a bare cache file name (64 hex characters + `.mp3`) inside `data/voice_cache/`, with `Cache-Control: no-store`.
      - The server never rebuilds the script, reads the keychain or touches the network.
      - With no file, the button says "No brief audio yet" and the brief page shows the command.

@@ -1,4 +1,4 @@
-"""The spoken morning show (ADR 0013, 0014). Every test uses a fake sender, guard, keychain
+"""The spoken morning brief (ADR 0013, 0014). Every test uses a fake sender, guard, keychain
 and sources: nothing here reaches the network, the real keychain or the speaker."""
 
 import inspect
@@ -450,9 +450,9 @@ def test_monthly_character_budget_stops_before_the_free_plan_limit(tmp_path):
     assert len(fake.requests) == 2
 
 
-def test_show_asks_nothing_and_plays_at_normal_speed(tmp_path, monkeypatch):
+def test_brief_asks_nothing_and_plays_at_normal_speed(tmp_path, monkeypatch):
     def no_prompt(*args):
-        raise AssertionError("the show must not ask anything")
+        raise AssertionError("the morning brief must not ask anything")
 
     monkeypatch.setattr("builtins.input", no_prompt)
     played = []
@@ -468,7 +468,7 @@ def test_show_asks_nothing_and_plays_at_normal_speed(tmp_path, monkeypatch):
 
 
 def test_dry_run_prints_the_script_and_sends_nothing_to_elevenlabs(tmp_path, capsys):
-    from .show_fixtures import COORDS, FEED_URL, FakeNet
+    from .brief_fixtures import COORDS, FEED_URL, FakeNet
 
     path = tmp_path / "config.toml"
     path.write_text(
