@@ -21,7 +21,7 @@ Task titles are a new kind of personal data. Until now the brief held counts and
 3. **Titles are spoken only when marked.**
    - The brief counts today's open tasks.
    - Titles are read only for tasks with `ok_to_read_aloud` on. It is off by default, and the add form never pre-checks it.
-   - At most 2 titles, cleaned (letters in any language, digits, basic punctuation) and trimmed to 40 characters. They are masked with the rest of the script before sending.
+   - At most 2 titles, each masked first (`core/masking.py`: secret shapes, then `redact()`), then cleaned (letters in any language, digits, basic punctuation) and trimmed to 40 characters. Masking comes first, because cleaning removes the "@" or "=" the masking looks for, and trimming can cut an address in half. Workout names get the same order.
    - With nothing for today, the module adds no line at all.
    - This is the one exception to "counts and dates only" (ADR 0013), and only for tasks the owner marks.
 4. **The show's order:** greeting, weather, workout, to-dos, job counts, sign-off. If the script is over the cap, to-do titles are dropped first; the count stays. Module lines are kept per module so the show can place them.

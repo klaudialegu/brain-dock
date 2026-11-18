@@ -10,18 +10,22 @@ from datetime import date
 
 from sqlmodel import Session
 
+from brain_dock.core.masking import scrub
 from brain_dock.modules.todo.models import todays_open
 
 MAX_TITLES = 2
 TITLE_LIMIT = 40
-UNSAFE = re.compile(r"[^\w .,:'&/+()-]+")  # \w keeps letters in any language
+UNSAFE = re.compile(r"[^\w .,:'&/+()\[\]-]+")  # \w keeps letters in any language
 
 
 def spoken_title(title: str) -> str:
-    text = " ".join(UNSAFE.sub(" ", title).replace("_", " ").split())
+    """Masked first (an email or a "pwd=…" needs its "@" or "=" to be found), then
+    cleaned, then trimmed to TITLE_LIMIT at a word boundary."""
+    text = " ".join(UNSAFE.sub(" ", scrub(title)).replace("_", " ").split())
     if len(text) <= TITLE_LIMIT:
         return text
-    cut = text[: TITLE_LIMIT + 1].rsplit(" ", 1)[0]
+    head = text[: TITLE_LIMIT + 1]
+    cut = head.rsplit(" ", 1)[0] if " " in head else ""
     return cut.rstrip(" .,:-/&+(") or text[:TITLE_LIMIT]
 
 

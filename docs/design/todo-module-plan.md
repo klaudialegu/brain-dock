@@ -120,6 +120,12 @@
 
 The module's three templates (`index.html`, `edit.html`, `task_fields.html`) add 6 test IDs. The `--collect-only` count is 671 = 638 + 17 new + 10 per-module + 6 per-template.
 
+**Added after the PR review: 671 → 672.** The review found that titles were cleaned before they were masked. Cleaning removed the "@", "=" and "_" the masking looks for, so "Reply to sam@example.org" or "wifi pwd=…" in a marked title would have reached ElevenLabs. Workout names had the same order.
+- The masking moved from `voice.py` to `core/masking.py` (`scrub()`), so a module can use it.
+- To-do titles and workout names are now masked first, then cleaned and trimmed.
+- New test: `test_show.py::test_free_text_is_masked_before_it_is_cleaned_or_trimmed`. Break-tested for both sources.
+- A single long word was trimmed to 41 characters; it's now 40, with a case added to `test_spoken_titles_are_cleaned_trimmed_and_at_most_two`.
+
 **Also changed during the build (not renamed):**
 - `test_db.py::test_create_db_makes_the_file_and_tables` lists the two new tables.
 - `test_modules_off.py` gets a `todo` seeder and the `/todo/1/edit` probe.

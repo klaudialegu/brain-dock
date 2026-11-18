@@ -16,8 +16,10 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta, tzinfo
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from brain_dock.core.masking import scrub
+
 NAME_LIMIT = 40
-UNSAFE = re.compile(r"[^A-Za-z0-9 .,:'&/+()-]+")
+UNSAFE = re.compile(r"[^A-Za-z0-9 .,:'&/+()\[\]-]+")
 # At the end of a title only. Minutes have 1-2 digits, so "800m" stays meters in the name.
 DURATION_END = re.compile(
     r"[\s,-]*\b(?:(\d{1,2})\s?h\s?)?(\d{1,2})\s?(?:m|min|mins|minutes)\.?$", re.I
@@ -114,7 +116,8 @@ def clean_name(summary: str) -> str:
     name = " ".join(UNSAFE.sub(" ", summary).split())
     if len(name) <= NAME_LIMIT:
         return name
-    cut = name[: NAME_LIMIT + 1].rsplit(" ", 1)[0]
+    head = name[: NAME_LIMIT + 1]
+    cut = head.rsplit(" ", 1)[0] if " " in head else ""
     return cut.rstrip(" .,:-/&+(") or name[:NAME_LIMIT]
 
 
@@ -144,7 +147,9 @@ def split_title(title: str) -> tuple[str, int | None, str | None]:
 
 
 def workout_of(event: Event) -> Workout:
-    name, title_minutes, distance = split_title(" ".join(UNSAFE.sub(" ", event.summary).split()))
+    # Masked before cleaning: cleaning removes the "@" or "=" the masking looks for.
+    title = " ".join(UNSAFE.sub(" ", scrub(event.summary)).split())
+    name, title_minutes, distance = split_title(title)
     minutes = None
     if isinstance(event.start, datetime) and isinstance(event.end, datetime):
         span = int((event.end - event.start).total_seconds() // 60)

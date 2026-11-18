@@ -54,6 +54,8 @@ def test_spoken_titles_are_cleaned_trimmed_and_at_most_two(session):
     long = "Finish the quarterly planning document and send it to the whole group"
     assert spoken_title(long) == "Finish the quarterly planning document"
     assert len(spoken_title(long)) <= 40
+    word = "'".join(["abcdefghij"] * 6)  # one 65-character word, not key-shaped
+    assert spoken_title(word) == word[:40]  # cut at 40, not 41
     for title in ["First marked", "Second marked", "Third marked"]:
         add_task(session, title, ok_to_read_aloud=True)
     session.commit()
