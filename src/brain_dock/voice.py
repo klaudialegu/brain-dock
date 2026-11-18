@@ -1,25 +1,25 @@
-"""The spoken brief (ADR 0013): reads the daily brief aloud with ElevenLabs text-to-speech.
+"""The morning show (ADR 0014, building on ADR 0013): a short spoken script, read aloud with
+ElevenLabs text-to-speech.
 
 Off by default. When `[voice] enabled = true` is in config.toml:
-- Only the brief text is sent. It's masked first (anything secret-shaped, then the
-  gateway's redact()), along with the model ID and fixed, neutral voice settings.
+- Only the final script is sent: it's masked first (anything secret-shaped, then the
+  gateway's redact()), along with the model ID and two fixed voice settings.
 - The API key comes from the macOS keychain, never a file. It's sent only in the request
   header, and never printed, logged or put in an error.
-- Mood is asked at a prompt (never a flag, so it stays out of shell history). It changes
-  only the local playback speed, is used for this run only, and is never stored or sent.
-- Credits: the brief is capped, the audio is cached by content (the same brief is never
-  generated twice), and at most MAX_ATTEMPTS_PER_DAY requests go out a day.
-- The request runs inside the network guard with only api.elevenlabs.io allowed, from
-  this command's own process, never the web server (the guard is process-wide).
+- Credits: the script is capped (show.MAX_SCRIPT_CHARS), audio is cached by content, at
+  most MAX_ATTEMPTS_PER_DAY requests go out a day, and a local monthly counter stops at
+  MONTHLY_CHAR_BUDGET characters (the free plan has 10,000 credits a month).
+- The model is Eleven v3; if the account can't use it, one fallback to Multilingual v2.
+- Each request runs inside the network guard with only its own host allowed, from this
+  command's process, never the web server (the guard is process-wide).
 
-Run: `uv run python -m brain_dock.voice` (add `--dry-run` to see the exact text that would
-be sent, with nothing sent).
+Run: `uv run python -m brain_dock.voice`. `--dry-run` prints the exact script and sends
+nothing to ElevenLabs; `--voices` lists the voices your key can use.
 """
 
 import argparse
 import hashlib
 import json
-import os
 import re
 import subprocess
 import sys
@@ -33,37 +33,48 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
 
-from brain_dock.brief import MAX_BRIEF_CHARS, current_brief
 from brain_dock.core.agents.gateway import redact
 from brain_dock.core.agents.guard import guarded_run
 from brain_dock.core.db import REPO_ROOT
+from brain_dock.outbound import (
+    FetchError,
+    RefusedError,
+    fetch,
+    keychain_secret,
+    private_dir,
+    write_private,
+)
+from brain_dock.show import MAX_SCRIPT_CHARS, build_script, gather
 
 CONFIG_PATH = REPO_ROOT / "config.toml"
 CACHE_DIR = REPO_ROOT / "data" / "voice_cache"  # gitignored (data/)
 API_HOST = "api.elevenlabs.io"
+VOICES_URL = f"https://{API_HOST}/v2/voices?page_size=100"
 OUTPUT_FORMAT = "mp3_44100_128"
-DEFAULT_MODEL = "eleven_flash_v2_5"  # half the price per character of the v2/v4 models
+DEFAULT_MODEL = "eleven_v3"
+FALLBACK_MODEL = "eleven_multilingual_v2"
+# ElevenLabs' answers when an account can't use a model (their errors page, 2026-11-17).
+MODEL_UNAVAILABLE = {
+    (403, "model_access_denied"),
+    (403, "feature_not_available"),
+    (403, "subscription_required"),
+    (400, "unsupported_model"),
+}
 KEYCHAIN_SERVICE = "brain-dock-elevenlabs"
 KEYCHAIN_ACCOUNT = "brain-dock"
 MAX_ATTEMPTS_PER_DAY = 3  # failed and timed-out attempts count too
+MONTHLY_CHAR_BUDGET = 9_800  # under the free plan's 10,000 credits, at 1 credit a character
 KEEP_DAYS = 7
 TIMEOUT_SECONDS = 30
 
-# Always the same: mood never changes what's sent (ADR 0013, D1).
-VOICE_SETTINGS = {
-    "stability": 0.5,
-    "similarity_boost": 0.75,
-    "style": 0.0,
-    "use_speaker_boost": True,
-    "speed": 1.0,
-}
-# Mood changes only how fast the cached audio plays here (afplay -r, high-quality mode).
-PLAYBACK_RATE = {"low": 0.9, "okay": 1.0, "good": 1.05}
-MOOD_CHOICES = {"1": "low", "2": "okay", "3": "good", "": "okay"}
-MOOD_PROMPT = "How are you feeling? 1 low, 2 okay, 3 good [2]: "
+# The two settings every model accepts; v3's docs don't confirm style, speed or speaker
+# boost, so they aren't sent.
+VOICE_SETTINGS = {"stability": 0.5, "similarity_boost": 0.75}
 
 ID = re.compile(r"[A-Za-z0-9_]{1,64}")
+NAME = re.compile(r"[^\W\d_](?:[^\W\d_]|[ '.-]){0,39}")
 ERROR_CODE = re.compile(r"[a-z_]{1,40}")
+UNITS = ("fahrenheit", "celsius")
 
 # Anything secret-shaped becomes [secret] before the text leaves this machine.
 SECRET_SHAPES = [
@@ -79,7 +90,15 @@ SECRET_SHAPES = [
 
 
 class VoiceError(RuntimeError):
-    """The brief can't be spoken. Messages name keys and codes, never values or text."""
+    """The show can't be spoken. Messages name keys and codes, never values or text."""
+
+
+class VoiceRefused(VoiceError):
+    """ElevenLabs answered with an HTTP error (nothing was generated)."""
+
+    def __init__(self, status: int, code: str):
+        super().__init__(f"ElevenLabs refused the request: HTTP {status} ({code})")
+        self.status, self.code = status, code
 
 
 @dataclass(frozen=True, repr=False)  # no repr: keep config out of any log line
@@ -87,9 +106,20 @@ class VoiceConfig:
     enabled: bool
     voice_id: str = ""
     model_id: str = DEFAULT_MODEL
+    model_fixed: bool = False  # model_id set in config: no fallback
+    greeting_name: str = ""
+    coordinates: tuple[float, float] | None = None
+    temperature_unit: str = "fahrenheit"
 
     def __repr__(self) -> str:
         return "VoiceConfig(<hidden>)"
+
+
+def _number(section: dict, key: str, low: float, high: float) -> float:
+    value = section[key]
+    if isinstance(value, bool) or not isinstance(value, int | float) or not low <= value <= high:
+        raise VoiceError(f"voice.{key} must be a number from {low:g} to {high:g}")
+    return float(value)
 
 
 def load_config(path: Path = CONFIG_PATH) -> VoiceConfig:
@@ -111,15 +141,39 @@ def load_config(path: Path = CONFIG_PATH) -> VoiceConfig:
     enabled = section.get("enabled", False)
     if not isinstance(enabled, bool):
         raise VoiceError("voice.enabled must be true or false")
+
+    name = section.get("greeting_name", "")
+    if not isinstance(name, str) or (name.strip() and not NAME.fullmatch(name.strip())):
+        raise VoiceError("voice.greeting_name must be a short name (letters, up to 40)")
+    has = [k in section for k in ("weather_latitude", "weather_longitude")]
+    if any(has) and not all(has):
+        raise VoiceError("voice.weather_latitude and voice.weather_longitude go together")
+    coordinates = None
+    if all(has):
+        coordinates = (
+            _number(section, "weather_latitude", -90, 90),
+            _number(section, "weather_longitude", -180, 180),
+        )
+    unit = section.get("temperature_unit", "fahrenheit")
+    if unit not in UNITS:
+        raise VoiceError("voice.temperature_unit must be fahrenheit or celsius")
+    shared = {"greeting_name": name.strip(), "coordinates": coordinates, "temperature_unit": unit}
     if not enabled:
-        return VoiceConfig(enabled=False)
+        return VoiceConfig(enabled=False, **shared)
+
     voice_id = section.get("voice_id")
     if not isinstance(voice_id, str) or not ID.fullmatch(voice_id):
         raise VoiceError("voice.voice_id must be an ElevenLabs voice ID (letters and digits)")
     model_id = section.get("model_id", DEFAULT_MODEL)
     if not isinstance(model_id, str) or not ID.fullmatch(model_id):
-        raise VoiceError("voice.model_id must be an ElevenLabs model ID, like eleven_flash_v2_5")
-    return VoiceConfig(enabled=True, voice_id=voice_id, model_id=model_id)
+        raise VoiceError("voice.model_id must be an ElevenLabs model ID, like eleven_v3")
+    return VoiceConfig(
+        enabled=True,
+        voice_id=voice_id,
+        model_id=model_id,
+        model_fixed="model_id" in section,
+        **shared,
+    )
 
 
 def mask_secrets(text: str) -> str:
@@ -128,33 +182,17 @@ def mask_secrets(text: str) -> str:
     return text
 
 
-def prepare_text(brief: str) -> str:
+def prepare_text(script: str) -> str:
     """What may leave this machine: secret shapes masked, then emails, phone numbers and
     URL query strings removed by the gateway's redact()."""
-    return redact(mask_secrets(brief)).text
+    return redact(mask_secrets(script)).text
 
 
 def keychain_key(run: Callable = subprocess.run) -> str:
-    """The key from the macOS keychain. Starts a process, so it runs before the guard."""
-    try:
-        result = run(
-            [
-                "security",
-                "find-generic-password",
-                "-s",
-                KEYCHAIN_SERVICE,
-                "-a",
-                KEYCHAIN_ACCOUNT,
-                "-w",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-    except (OSError, subprocess.SubprocessError):
-        result = None
-    key = result.stdout.strip() if result is not None and result.returncode == 0 else ""
-    if not key:  # never show stderr: it isn't ours to print
+    """The ElevenLabs key from the macOS keychain. Starts a process: call it before the
+    guard."""
+    key = keychain_secret(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT, run=run)
+    if not key:  # never show the tool's own output
         raise VoiceError(
             f"No ElevenLabs key in the keychain (service {KEYCHAIN_SERVICE}). Add it with: "
             f"security add-generic-password -s {KEYCHAIN_SERVICE} -a {KEYCHAIN_ACCOUNT} -w"
@@ -162,19 +200,21 @@ def keychain_key(run: Callable = subprocess.run) -> str:
     return key
 
 
-def request_body(text: str, config: VoiceConfig) -> dict:
+def request_body(text: str, model_id: str) -> dict:
     """Everything that's sent besides the key header: nothing else ever goes in."""
-    return {"text": text, "model_id": config.model_id, "voice_settings": VOICE_SETTINGS}
+    return {"text": text, "model_id": model_id, "voice_settings": VOICE_SETTINGS}
 
 
-def build_request(text: str, config: VoiceConfig, api_key: str) -> urllib.request.Request:
+def build_request(
+    text: str, config: VoiceConfig, api_key: str, model_id: str
+) -> urllib.request.Request:
     url = (
         f"https://{API_HOST}/v1/text-to-speech/{quote(config.voice_id, safe='')}"
         f"?output_format={OUTPUT_FORMAT}"
     )
     return urllib.request.Request(
         url,
-        data=json.dumps(request_body(text, config)).encode(),
+        data=json.dumps(request_body(text, model_id)).encode(),
         method="POST",
         headers={"xi-api-key": api_key, "Content-Type": "application/json", "Accept": "audio/mpeg"},
     )
@@ -185,73 +225,96 @@ def default_send(request: urllib.request.Request) -> bytes:
         return response.read()
 
 
-def error_code(error: urllib.error.HTTPError) -> str:
+def error_code(body: bytes) -> str:
     """ElevenLabs' short error code (like invalid_api_key), never its message or body."""
     try:
-        detail = json.loads(error.read() or b"{}").get("detail")
+        detail = json.loads(body or b"{}").get("detail")
         code = detail.get("code") if isinstance(detail, dict) else None
-    except (ValueError, AttributeError, OSError):
+    except (ValueError, AttributeError):
         code = None
     return code if isinstance(code, str) and ERROR_CODE.fullmatch(code) else "no code"
 
 
 def send_guarded(send: Callable, request, guard: Callable[..., AbstractContextManager]) -> bytes:
-    failure = None
+    failure: VoiceError
     try:
         with guard(allow=[(API_HOST, 443)]):
             return send(request)
     except urllib.error.HTTPError as e:
-        failure = f"ElevenLabs refused the request: HTTP {e.code} ({error_code(e)})"
+        try:
+            body = e.read()
+        except OSError:
+            body = b""
+        failure = VoiceRefused(e.code, error_code(body))
     except (urllib.error.URLError, TimeoutError, OSError):
-        failure = "Couldn't reach ElevenLabs"
-    raise VoiceError(failure)  # raised outside the except: no chained error with the request
+        failure = VoiceError("Couldn't reach ElevenLabs")
+    raise failure  # raised outside the except: no chained error with the request
 
 
-def cache_name(text: str, config: VoiceConfig) -> str:
+def cache_name(text: str, config: VoiceConfig, model_id: str) -> str:
     """Same text, voice, model, settings and format: same file, so it's generated once."""
     fields = {
         "text": text,
         "voice_id": config.voice_id,
-        "model_id": config.model_id,
+        "model_id": model_id,
         "settings": VOICE_SETTINGS,
         "format": OUTPUT_FORMAT,
     }
     return hashlib.sha256(json.dumps(fields, sort_keys=True).encode()).hexdigest() + ".mp3"
 
 
-def write_private(path: Path, data: bytes) -> None:
-    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "wb") as f:
-        f.write(data)
-    os.chmod(path, 0o600)
-
-
 def prepare_cache(cache_dir: Path, now: datetime) -> None:
     """Owner-only folder; audio older than KEEP_DAYS is deleted."""
-    cache_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
-    os.chmod(cache_dir, 0o700)
+    private_dir(cache_dir)
     cutoff = (now - timedelta(days=KEEP_DAYS)).timestamp()
     for audio in cache_dir.glob("*.mp3"):
         if audio.stat().st_mtime < cutoff:
             audio.unlink()
 
 
-def attempts_today(cache_dir: Path, now: datetime) -> int:
-    path = cache_dir / "attempts.txt"  # timestamps only, no content
-    if not path.exists():
-        return 0
-    return sum(1 for line in path.read_text().split() if line.startswith(now.date().isoformat()))
+# --- Usage: one line per request, "<timestamp> <characters>", no content -------------------
 
 
-def record_attempt(cache_dir: Path, now: datetime) -> None:
+def _usage(cache_dir: Path) -> list[tuple[str, int]]:
     path = cache_dir / "attempts.txt"
-    cutoff = (now - timedelta(days=KEEP_DAYS)).date().isoformat()
-    kept = [t for t in (path.read_text().split() if path.exists() else []) if t[:10] >= cutoff]
-    write_private(path, ("\n".join([*kept, now.isoformat(timespec="seconds")]) + "\n").encode())
+    rows = []
+    for line in path.read_text().splitlines() if path.exists() else []:
+        stamp, _, chars = line.partition(" ")
+        if stamp:  # a line from before characters were counted: assume the most
+            rows.append((stamp, int(chars) if chars.isdigit() else MAX_SCRIPT_CHARS))
+    return rows
+
+
+def _write_usage(cache_dir: Path, rows: list[tuple[str, int]]) -> None:
+    text = "".join(f"{stamp} {chars}\n" for stamp, chars in rows)
+    write_private(cache_dir / "attempts.txt", text.encode())
+
+
+def attempts_today(cache_dir: Path, now: datetime) -> int:
+    return sum(1 for stamp, _ in _usage(cache_dir) if stamp.startswith(now.date().isoformat()))
+
+
+def characters_this_month(cache_dir: Path, now: datetime) -> int:
+    return sum(chars for stamp, chars in _usage(cache_dir) if stamp.startswith(f"{now:%Y-%m}"))
+
+
+def record_attempt(cache_dir: Path, now: datetime, chars: int) -> None:
+    """Kept for this month and the last KEEP_DAYS days; counted before sending, so a
+    timeout still counts."""
+    cutoff = min(now.replace(day=1), now - timedelta(days=KEEP_DAYS)).date().isoformat()
+    rows = [r for r in _usage(cache_dir) if r[0][:10] >= cutoff]
+    _write_usage(cache_dir, [*rows, (now.isoformat(timespec="seconds"), chars)])
+
+
+def nothing_generated(cache_dir: Path) -> None:
+    """ElevenLabs refused the last request (HTTP 4xx): no audio, no credits used."""
+    rows = _usage(cache_dir)
+    if rows:
+        _write_usage(cache_dir, [*rows[:-1], (rows[-1][0], 0)])
 
 
 def speak(
-    brief: str,
+    script: str,
     config: VoiceConfig,
     *,
     now: datetime,
@@ -259,50 +322,93 @@ def speak(
     get_key: Callable[[], str] = keychain_key,
     send: Callable = default_send,
     guard: Callable[..., AbstractContextManager] = guarded_run,
+    note: Callable[[str], None] = lambda message: print(message, file=sys.stderr),
 ) -> Path:
-    """The audio file for this brief: from the cache, or generated once."""
+    """The audio file for this script: from the cache, or generated once."""
     if not config.enabled:
         raise VoiceError("Voice is off: set enabled = true under [voice] in config.toml")
-    text = prepare_text(brief)
-    if len(text) > MAX_BRIEF_CHARS:
-        raise VoiceError(f"The brief is over {MAX_BRIEF_CHARS} characters; nothing was sent")
+    text = prepare_text(script)
+    if len(text) > MAX_SCRIPT_CHARS:
+        raise VoiceError(f"The script is over {MAX_SCRIPT_CHARS} characters; nothing was sent")
     prepare_cache(cache_dir, now)
-    audio_path = cache_dir / cache_name(text, config)
-    if audio_path.exists():
-        return audio_path
-    if attempts_today(cache_dir, now) >= MAX_ATTEMPTS_PER_DAY:
-        raise VoiceError(f"Already {MAX_ATTEMPTS_PER_DAY} requests today; nothing was sent")
-    request = build_request(text, config, get_key())  # the keychain lookup, before the guard
-    record_attempt(cache_dir, now)  # before sending: a failure still counts
-    audio = send_guarded(send, request, guard)
-    if not audio:
-        raise VoiceError("ElevenLabs sent back no audio")
-    write_private(audio_path, audio)
-    return audio_path
+    models = [config.model_id]
+    if not config.model_fixed and config.model_id != FALLBACK_MODEL:
+        models.append(FALLBACK_MODEL)
+    for model in models:
+        if (cached := cache_dir / cache_name(text, config, model)).exists():
+            return cached
+
+    api_key = None
+    for i, model in enumerate(models):
+        if attempts_today(cache_dir, now) >= MAX_ATTEMPTS_PER_DAY:
+            raise VoiceError(f"Already {MAX_ATTEMPTS_PER_DAY} requests today; nothing was sent")
+        if characters_this_month(cache_dir, now) + len(text) > MONTHLY_CHAR_BUDGET:
+            raise VoiceError(
+                f"This month's budget of {MONTHLY_CHAR_BUDGET:,} characters is used up; "
+                "nothing was sent"
+            )
+        api_key = api_key or get_key()  # the keychain lookup, before the guard
+        request = build_request(text, config, api_key, model)
+        record_attempt(cache_dir, now, len(text))  # before sending: a failure still counts
+        try:
+            audio = send_guarded(send, request, guard)
+        except VoiceRefused as refused:
+            nothing_generated(cache_dir)
+            if (refused.status, refused.code) in MODEL_UNAVAILABLE and i + 1 < len(models):
+                note(
+                    f"{model} isn't available on this account ({refused.code}); trying "
+                    f'{models[i + 1]}. Set model_id = "{models[i + 1]}" under [voice] to skip '
+                    "the first try."
+                )
+                continue
+            raise
+        if not audio:
+            raise VoiceError("ElevenLabs sent back no audio")
+        path = cache_dir / cache_name(text, config, model)
+        write_private(path, audio)
+        return path
+    raise VoiceError("No model could be used")  # not reached: the loop returns or raises
 
 
-def ask_mood(ask: Callable[[str], str] = input) -> str:
-    """For this run only: never stored, logged or sent."""
+def list_voices(
+    get_key: Callable[[], str] = keychain_key, fetch_fn: Callable[..., bytes] = fetch
+) -> list[str]:
+    """Name, ID and category of each voice this key can use. Nothing of yours is sent."""
+    key = get_key()
     try:
-        answer = ask(MOOD_PROMPT).strip()
-    except EOFError:
-        answer = ""
-    return MOOD_CHOICES.get(answer, "okay")
+        answer = fetch_fn(VOICES_URL, "ElevenLabs voice list", headers={"xi-api-key": key})
+    except RefusedError as refused:
+        raise VoiceRefused(refused.status, error_code(refused.body)) from None
+    except FetchError as failed:
+        raise VoiceError(str(failed)) from None
+    try:
+        voices = json.loads(answer)["voices"]
+        rows = [
+            (str(v["name"])[:60], str(v["voice_id"]), str(v.get("category", ""))[:20])
+            for v in voices
+        ]
+    except (ValueError, KeyError, TypeError):
+        raise VoiceError("ElevenLabs sent a voice list this can't read") from None
+    return [f"{name}  {voice_id}  ({category})" for name, voice_id, category in rows]
 
 
-def play(path: Path, mood: str, run: Callable = subprocess.run) -> None:
-    """macOS afplay, after the guarded request (the guard blocks starting processes)."""
-    run(["afplay", "-q", "1", "-r", str(PLAYBACK_RATE[mood]), str(path)], check=False)
+def play(path: Path, run: Callable = subprocess.run) -> None:
+    """macOS afplay at normal speed, after the guarded request (the guard blocks
+    processes)."""
+    run(["afplay", str(path)], check=False)
 
 
 def parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="python -m brain_dock.voice", description="Read today's brief aloud (ElevenLabs)."
+        prog="python -m brain_dock.voice", description="Read this morning's show aloud."
     )
     p.add_argument(
         "--dry-run",
         action="store_true",
-        help="print the exact text that would be sent; send nothing",
+        help="print the exact script; send nothing to ElevenLabs",
+    )
+    p.add_argument(
+        "--voices", action="store_true", help="list the voices your ElevenLabs key can use"
     )
     return p
 
@@ -311,29 +417,49 @@ def main(
     argv: list[str] | None = None,
     *,
     config_path: Path = CONFIG_PATH,
-    brief: Callable[[], str] = current_brief,
-    ask: Callable[[str], str] = input,
-    player: Callable[[Path, str], None] = play,
+    now: datetime | None = None,
+    player: Callable[[Path], None] = play,
+    gather_options: dict | None = None,
+    voices_options: dict | None = None,
     **speak_options,
 ) -> int:
     args = parser().parse_args(argv)
+    now = now or datetime.now()
+    cache_dir = speak_options.get("cache_dir", CACHE_DIR)
     try:
-        if args.dry_run:
-            text = prepare_text(brief())
-            print(text)
-            print(f"({len(text)} characters; nothing was sent)")
-            return 0
         config = load_config(config_path)
-        if not config.enabled:
+        if args.voices:
+            for line in list_voices(**(voices_options or {})):
+                print(line)
+            return 0
+        if not config.enabled and not args.dry_run:
             raise VoiceError("Voice is off: set enabled = true under [voice] in config.toml")
-        text = brief()
-        mood = ask_mood(ask)
-        audio = speak(text, config, now=datetime.now(), **speak_options)
-    except (VoiceError, RuntimeError) as e:
+        sources = gather(
+            now,
+            greeting_name=config.greeting_name,
+            coordinates=config.coordinates,
+            unit=config.temperature_unit,
+            network=config.enabled,  # voice off: local data only, nothing fetched
+            cache_dir=cache_dir,
+            **(gather_options or {}),
+        )
+        script = build_script(now.date(), sources)
+        if args.dry_run:
+            text = prepare_text(script)
+            print(text)
+            reach = (
+                "weather and the Runna feed were read; nothing was sent to ElevenLabs"
+                if config.enabled
+                else "voice is off, so nothing was fetched or sent"
+            )
+            print(f"({len(text)} characters; {reach})")
+            return 0
+        audio = speak(script, config, now=now, **speak_options)
+    except VoiceError as e:
         print(f"Voice: {e}", file=sys.stderr)
         return 1
-    print("Playing today's brief.")
-    player(audio, mood)
+    print("Playing this morning's show.")
+    player(audio)
     return 0
 
 

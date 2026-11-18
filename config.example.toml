@@ -12,11 +12,20 @@ salary_floor = 100000
 currency = "USD"
 
 [voice]
-# Optional: read the daily brief aloud with ElevenLabs (ADR 0013). Off unless enabled = true.
-# When enabled, the brief text (counts and dates only) is sent to ElevenLabs, which keeps it
-# by default. The API key never goes in this file: it lives in the macOS keychain (README).
+# Optional: a short morning show read aloud with ElevenLabs (ADR 0013, 0014). Off unless
+# enabled = true. When enabled, the script (greeting name, weather numbers, today's workout,
+# job counts) is sent to ElevenLabs, which keeps it by default. The API key and the Runna
+# feed address never go in this file: they live in the macOS keychain (README).
 enabled = false
-# An ElevenLabs voice ID (from your voice library). This one is a made-up example.
+# An ElevenLabs voice ID; `python -m brain_dock.voice --voices` lists yours. Made-up example.
 voice_id = "ExampleVoiceId123"
-# Optional; eleven_flash_v2_5 is the default (half the price per character).
-model_id = "eleven_flash_v2_5"
+# Optional: the name in "Good morning, <name>". Sent to ElevenLabs as part of the script.
+greeting_name = ""
+# Optional: where the weather is for. Rounded to 1 decimal (about 10 km) before sending.
+# These are made-up example values.
+weather_latitude = 12.3
+weather_longitude = -45.6
+# Optional: fahrenheit (default) or celsius, for the spoken numbers.
+temperature_unit = "fahrenheit"
+# Optional. Leave it out to use eleven_v3 with a fallback to eleven_multilingual_v2.
+# model_id = "eleven_multilingual_v2"

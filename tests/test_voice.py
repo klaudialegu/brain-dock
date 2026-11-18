@@ -1,12 +1,11 @@
-"""The spoken brief (ADR 0013). Every test uses a fake sender, guard and keychain: nothing
-here reaches the network, the real keychain or the speaker."""
+"""The spoken morning show (ADR 0013, 0014). Every test uses a fake sender, guard, keychain
+and sources: nothing here reaches the network, the real keychain or the speaker."""
 
 import inspect
 import io
 import json
 import logging
 import os
-import re
 import stat
 import urllib.error
 from contextlib import contextmanager
@@ -14,7 +13,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from brain_dock import voice
+from brain_dock import outbound, voice
 from brain_dock.core.agents.guard import guarded_run
 from brain_dock.voice import VoiceConfig, VoiceError
 
@@ -22,12 +21,16 @@ from .conftest import SECRET
 
 KEY = "sk_" + "0f" * 24  # a fake key, shaped like an ElevenLabs one
 BRIEF = (
-    "Good morning. Here's your brief for Tuesday, November 17. 2 follow-ups are due today. "
-    "In progress: 3 applied, 1 screen, 1 interview."
+    "Good morning, it's Tuesday, November 17th. On the job front... 2 follow-ups are due "
+    "today. In progress: 3 applied, 1 screen, 1 interview. That's your morning."
 )
-ON = VoiceConfig(enabled=True, voice_id="TestVoice123", model_id="eleven_flash_v2_5")
+ON = VoiceConfig(enabled=True, voice_id="TestVoice123")  # the default model: Eleven v3
 NOW = datetime(2026, 11, 17, 7, 30)
 CONFIG_ON = '[voice]\nenabled = true\nvoice_id = "TestVoice123"\n'
+NO_NETWORK = {
+    "secret": lambda service: None,
+    "fetch_fn": lambda *a, **k: pytest.fail("fetched in a test that shouldn't"),
+}
 
 
 def http_error(status: int, body: bytes) -> urllib.error.HTTPError:
@@ -76,35 +79,36 @@ def body(request) -> dict:
     return json.loads(request.data)
 
 
-def run_main(tmp_path, fake, *, config=CONFIG_ON, answer="2", brief=BRIEF, played=None):
+def run_main(
+    tmp_path,
+    fake,
+    *,
+    config=CONFIG_ON,
+    lines=("2 follow-ups are due today.",),
+    played=None,
+    argv=(),
+):
     path = tmp_path / "config.toml"
     if config is not None:
         path.write_text(config)
-    asked = []
-
-    def ask(prompt):
-        asked.append(prompt)
-        return answer
-
-    code = voice.main(
-        [],
+    return voice.main(
+        list(argv),
         config_path=path,
-        brief=lambda: brief,
-        ask=ask,
-        player=lambda audio, mood: (played if played is not None else []).append((audio, mood)),
+        now=NOW,
+        gather_options={**NO_NETWORK, "lines": lambda day: list(lines)},
+        player=lambda audio: (played if played is not None else []).append(audio),
         **fake.options(tmp_path / "cache"),
     )
-    return code, asked
 
 
 def test_off_by_default_sends_nothing(tmp_path, capsys):
     for config in [None, "", "[inbox]\n", "[voice]\n", "[voice]\nenabled = false\n"]:
         fake = Fake()
-        code, asked = run_main(tmp_path, fake, config=config)
+        code = run_main(tmp_path, fake, config=config)
         (tmp_path / "config.toml").unlink(missing_ok=True)
 
         assert code == 1
-        assert fake.events == [] and asked == []  # no key, no send, not even the mood prompt
+        assert fake.events == []  # no key, no send
         assert "Voice is off" in capsys.readouterr().err
     with pytest.raises(VoiceError, match="Voice is off"):
         voice.speak(BRIEF, VoiceConfig(enabled=False), now=NOW, **Fake().options(tmp_path))
@@ -121,8 +125,8 @@ def test_request_body_is_only_the_masked_brief(tmp_path):
     sent = body(request)
     assert set(sent) == {"text", "model_id", "voice_settings"}
     assert sent["text"] == voice.prepare_text(planted) == f"{BRIEF} [secret]"
-    assert sent["model_id"] == "eleven_flash_v2_5"
-    assert sent["voice_settings"] == voice.VOICE_SETTINGS
+    assert sent["model_id"] == "eleven_v3"
+    assert sent["voice_settings"] == {"stability": 0.5, "similarity_boost": 0.75}
     assert SECRET not in request.data.decode()
     assert request.get_method() == "POST"
     assert request.full_url == (
@@ -161,8 +165,12 @@ def test_masking_keeps_ordinary_brief_text():
         BRIEF,
         "1 follow-up is overdue. 1 offer is open. 2 saved jobs are waiting to be applied to.",
         "3 inbox roles are waiting for your decision. More in the app.",
-        "Good morning. Here's your brief for Wednesday, December 31. "
-        "Nothing needs your attention today.",
+        "Good morning, Avery, it's Wednesday, December 31st. Right now it's 46 degrees, "
+        "heading for 52, with a low of 41. There's a 70 percent chance of rain, so grab a "
+        "hood before noon.",
+        "On the training plan today: Tempo Run - 6 x 800m 5K pace w/ 90s, 8 kilometers, "
+        "about 55 minutes. No run on the plan today... it's a rest day.",
+        "On the job front... 2 follow-ups are overdue. That's your morning. Have a lovely day!",
     ]
     for line in lines:
         assert voice.prepare_text(line) == line
@@ -173,11 +181,11 @@ def test_api_key_never_in_output_logs_errors_or_repr(tmp_path, capsys, caplog):
     echo = json.dumps({"detail": {"code": "invalid_api_key", "message": f"bad key {KEY}"}})
     failing = Fake(error=lambda: http_error(401, echo.encode()))
 
-    code, _ = run_main(tmp_path, failing)
+    code = run_main(tmp_path, failing)
     assert code == 1
     with pytest.raises(VoiceError) as raised:
         voice.speak(BRIEF + " again", ON, now=NOW, **Fake(error=failing.error).options(tmp_path))
-    run_main(tmp_path, Fake(), brief=BRIEF + " works")  # and a run that succeeds
+    run_main(tmp_path, Fake(), lines=["1 offer is open."])  # and a run that succeeds
 
     out = capsys.readouterr()
     seen = [
@@ -258,7 +266,7 @@ def test_same_brief_is_generated_once(tmp_path):
     assert first == again != other
     assert first.read_bytes() == b"ID3-fake-audio"
     assert len(fake.requests) == 2  # the repeat came from the cache
-    assert first.name == voice.cache_name(voice.prepare_text(BRIEF), ON)
+    assert first.name == voice.cache_name(voice.prepare_text(BRIEF), ON, "eleven_v3")
     assert BRIEF not in first.name  # the file name is a hash, not the text
 
 
@@ -282,15 +290,21 @@ def test_old_cache_files_are_pruned(tmp_path):
         path.write_bytes(b"audio")
         when = (NOW - timedelta(days=age)).timestamp()
         os.utime(path, (when, when))
+    last_month, this_month = datetime(2026, 10, 30, 7, 0), datetime(2026, 11, 2, 7, 0)
     (tmp_path / "attempts.txt").write_text(
-        f"{(NOW - timedelta(days=9)).isoformat()}\n{(NOW - timedelta(days=1)).isoformat()}\n"
+        f"{last_month.isoformat()} 300\n{this_month.isoformat()} 310\n"
+        f"{(NOW - timedelta(days=1)).isoformat()}\n"  # a line from before counts were kept
     )
 
     voice.speak(BRIEF, ON, now=NOW, **Fake().options(tmp_path))
 
     assert not old.exists() and recent.exists()
-    attempts = (tmp_path / "attempts.txt").read_text().split()
-    assert attempts == [(NOW - timedelta(days=1)).isoformat(), NOW.isoformat()]
+    attempts = (tmp_path / "attempts.txt").read_text().splitlines()
+    assert attempts == [  # this month stays (the monthly budget), an older month goes
+        f"{this_month.isoformat()} 310",
+        f"{(NOW - timedelta(days=1)).isoformat()} {voice.MAX_SCRIPT_CHARS}",  # no count: most
+        f"{NOW.isoformat()} {len(BRIEF)}",
+    ]
 
 
 def test_daily_generation_limit(tmp_path):
@@ -310,12 +324,12 @@ def test_daily_generation_limit(tmp_path):
 
 def test_text_over_the_cap_is_refused_before_sending(tmp_path):
     fake = Fake()
-    too_long = "x " * 301  # 602 characters
+    too_long = "x " * 211  # 422 characters
 
-    with pytest.raises(VoiceError, match="over 600 characters"):
+    with pytest.raises(VoiceError, match="over 420 characters"):
         voice.speak(too_long, ON, now=NOW, **fake.options(tmp_path))
     assert fake.events == []
-    voice.speak(too_long[:600], ON, now=NOW, **fake.options(tmp_path))  # at the cap: fine
+    voice.speak(too_long[:420], ON, now=NOW, **fake.options(tmp_path))  # at the cap: fine
     assert len(fake.requests) == 1
 
 
@@ -355,68 +369,6 @@ def test_api_errors_show_status_and_code_only(tmp_path):
         assert raised.value.__cause__ is None and raised.value.__context__ is None
 
 
-def test_mood_changes_only_local_playback(tmp_path):
-    fake, played = Fake(), []
-    for answer in ["1", "2", "3"]:
-        assert run_main(tmp_path, fake, answer=answer, played=played)[0] == 0
-
-    assert len(fake.requests) == 1  # one generation serves every mood
-    assert [mood for _, mood in played] == ["low", "okay", "good"]
-    assert len({audio for audio, _ in played}) == 1
-
-    commands = []
-    for mood in ["low", "okay", "good"]:
-        voice.play(played[0][0], mood, run=lambda cmd, **kwargs: commands.append(cmd))
-    assert [cmd[cmd.index("-r") + 1] for cmd in commands] == ["0.9", "1.0", "1.05"]
-    assert all(cmd[0] == "afplay" and cmd[-1] == str(played[0][0]) for cmd in commands)
-
-    other_dir = tmp_path / "other"
-    other_dir.mkdir()
-    other = Fake()  # a fresh cache: the low-mood request equals the plain one
-    run_main(other_dir, other, answer="1")
-    assert body(other.requests[0]) == body(fake.requests[0])
-    assert other.requests[0].full_url == fake.requests[0].full_url
-
-
-def test_mood_is_never_stored_or_logged(tmp_path, capsys, caplog):
-    caplog.set_level(logging.DEBUG)
-    fake, played = Fake(), []
-
-    assert run_main(tmp_path, fake, answer="1", played=played)[0] == 0
-
-    assert played[0][1] == "low"  # it reached the player, the only place it goes
-    out = capsys.readouterr()
-    stored = [p for p in tmp_path.rglob("*") if p.is_file() and p.name != "config.toml"]
-    assert len(stored) == 2  # the audio and the attempts file exist and are checked
-    texts = [out.out, out.err, caplog.text, fake.requests[0].data.decode()]
-    texts += [p.read_bytes().decode(errors="replace") + p.name for p in stored]
-    for text in texts:
-        assert not re.search(r"\b(low|mood)\b", text, re.I)  # ("follow-ups" is fine)
-
-
-def test_mood_is_asked_at_a_prompt_never_a_flag(tmp_path, capsys):
-    with pytest.raises(SystemExit):
-        voice.parser().parse_args(["--mood", "low"])
-    assert "--mood" not in voice.parser().format_help()
-
-    _, asked = run_main(tmp_path, Fake())
-    assert asked == [voice.MOOD_PROMPT]
-
-    assert [voice.ask_mood(lambda p, a=a: a) for a in ["1", "2", "3", "", " 3 ", "x"]] == [
-        "low",
-        "okay",
-        "good",
-        "okay",
-        "good",
-        "okay",
-    ]
-
-    def eof(prompt):
-        raise EOFError
-
-    assert voice.ask_mood(eof) == "okay"
-
-
 def test_request_runs_under_the_network_guard_with_only_elevenlabs_allowed(tmp_path):
     fake = Fake()  # its send() fails unless the guard is active
 
@@ -425,3 +377,218 @@ def test_request_runs_under_the_network_guard_with_only_elevenlabs_allowed(tmp_p
     assert fake.allow == [("api.elevenlabs.io", 443)]
     assert fake.events.index("guard") < fake.events.index("send")
     assert inspect.signature(voice.speak).parameters["guard"].default is guarded_run
+
+
+def test_default_model_is_v3_with_one_fallback_to_multilingual_v2(tmp_path):
+    denied = json.dumps({"detail": {"code": "model_access_denied", "message": "no"}}).encode()
+    answers = [lambda: http_error(403, denied)]
+
+    class FirstRefused(Fake):
+        def send(self, request):
+            self.error = answers.pop(0) if answers else None
+            return super().send(request)
+
+    fake, notes = FirstRefused(), []
+    audio = voice.speak(BRIEF, ON, now=NOW, note=notes.append, **fake.options(tmp_path))
+
+    assert [body(r)["model_id"] for r in fake.requests] == ["eleven_v3", "eleven_multilingual_v2"]
+    assert audio.name == voice.cache_name(voice.prepare_text(BRIEF), ON, "eleven_multilingual_v2")
+    assert notes == [
+        "eleven_v3 isn't available on this account (model_access_denied); trying "
+        'eleven_multilingual_v2. Set model_id = "eleven_multilingual_v2" under [voice] to skip '
+        "the first try."
+    ]
+    usage = (tmp_path / "attempts.txt").read_text().splitlines()
+    assert [line.split()[1] for line in usage] == ["0", str(len(BRIEF))]  # refused: no credits
+
+    assert voice.speak(BRIEF, ON, now=NOW, **fake.options(tmp_path)) == audio  # cached
+    assert len(fake.requests) == 2
+
+    fixed = VoiceConfig(
+        enabled=True, voice_id="TestVoice123", model_id="eleven_v3", model_fixed=True
+    )  # model_id set in config: no fallback
+    other_error = json.dumps({"detail": {"code": "invalid_api_key"}}).encode()
+    for config, error, code in [(fixed, denied, 403), (ON, other_error, 401)]:
+        one = Fake(error=lambda e=error, c=code: http_error(c, e))
+        with pytest.raises(VoiceError, match=f"HTTP {code}"):
+            voice.speak(BRIEF + f" {code}", config, now=NOW, **one.options(tmp_path / str(code)))
+        assert len(one.requests) == 1
+
+
+def test_v3_request_sends_only_stability_and_similarity(tmp_path):
+    fake = Fake()
+    voice.speak(BRIEF, ON, now=NOW, **fake.options(tmp_path))
+
+    assert body(fake.requests[0])["voice_settings"] == {"stability": 0.5, "similarity_boost": 0.75}
+    path = tmp_path / "config.toml"
+    path.write_text(CONFIG_ON)
+    default = voice.load_config(path)
+    assert (default.model_id, default.model_fixed) == ("eleven_v3", False)
+    path.write_text(CONFIG_ON + 'model_id = "eleven_multilingual_v2"\n')
+    chosen = voice.load_config(path)
+    assert (chosen.model_id, chosen.model_fixed) == ("eleven_multilingual_v2", True)
+
+
+def test_monthly_character_budget_stops_before_the_free_plan_limit(tmp_path):
+    tmp_path.chmod(0o700)
+    (tmp_path / "attempts.txt").write_text(
+        "2026-10-28T07:00:00 9000\n"  # last month: doesn't count
+        "2026-11-03T07:00:00 9690\n"
+        "2026-11-04T07:00:00 0\n"  # a refused request: no credits
+    )
+    fake = Fake()
+
+    voice.speak("Short one.", ON, now=NOW, **fake.options(tmp_path))  # 9,700: still under
+    assert len(fake.requests) == 1
+    with pytest.raises(VoiceError, match="budget of 9,800 characters is used up"):
+        voice.speak(BRIEF, ON, now=NOW, **fake.options(tmp_path))  # 9,700 + 158 would pass 9,800
+    assert len(fake.requests) == 1
+    assert voice.characters_this_month(tmp_path, NOW) == 9700
+    assert voice.MONTHLY_CHAR_BUDGET < 10_000  # the free plan's monthly credits
+    nextmonth = datetime(2026, 12, 1, 7, 0)
+    voice.speak(BRIEF, ON, now=nextmonth, **fake.options(tmp_path))
+    assert len(fake.requests) == 2
+
+
+def test_show_asks_nothing_and_plays_at_normal_speed(tmp_path, monkeypatch):
+    def no_prompt(*args):
+        raise AssertionError("the show must not ask anything")
+
+    monkeypatch.setattr("builtins.input", no_prompt)
+    played = []
+
+    assert run_main(tmp_path, Fake(), played=played) == 0
+
+    commands = []
+    voice.play(played[0], run=lambda cmd, **kwargs: commands.append(cmd))
+    assert commands == [["afplay", str(played[0])]]  # no rate, no quality flags
+    assert "mood" not in voice.parser().format_help().lower()
+    with pytest.raises(SystemExit):
+        voice.parser().parse_args(["--mood", "low"])
+
+
+def test_dry_run_prints_the_script_and_sends_nothing_to_elevenlabs(tmp_path, capsys):
+    from .show_fixtures import COORDS, FakeNet
+
+    path = tmp_path / "config.toml"
+    path.write_text(
+        CONFIG_ON + f'greeting_name = "Avery"\nweather_latitude = {COORDS[0]}\n'
+        f"weather_longitude = {COORDS[1]}\n"
+    )
+    net, fake = FakeNet(), Fake()
+
+    code = voice.main(
+        ["--dry-run"],
+        config_path=path,
+        now=NOW,
+        gather_options=net.options(),
+        **fake.options(tmp_path / "cache"),
+    )
+
+    assert code == 0
+    script, summary = capsys.readouterr().out.splitlines()
+    assert script.startswith("Good morning, Avery, it's Tuesday, November 17th. Right now")
+    assert "Easy Run" not in script  # the fixture's workout is on the 18th, so today's a rest
+    assert "rest day" in script
+    assert summary == (
+        f"({len(script)} characters; weather and the Runna feed were read; "
+        "nothing was sent to ElevenLabs)"
+    )
+    assert fake.events == []  # no key, no guard, no send
+    assert len(net.fetched) == 2
+
+
+def test_dry_run_with_voice_off_reaches_no_network(tmp_path, capsys, monkeypatch):
+    import socket
+
+    def no_network(*args, **kwargs):
+        raise AssertionError("voice is off: nothing may reach the network")
+
+    monkeypatch.setattr(socket, "create_connection", no_network)
+    monkeypatch.setattr(socket.socket, "connect", no_network)
+    path = tmp_path / "config.toml"
+    path.write_text(
+        '[voice]\nenabled = false\ngreeting_name = "Avery"\n'
+        "weather_latitude = 12.3\nweather_longitude = -45.6\n"
+    )
+    fake = Fake()
+    options = {
+        "secret": no_network,
+        "fetch_fn": no_network,
+        "lines": lambda d: ["1 offer is open."],
+    }
+
+    assert (
+        voice.main(
+            ["--dry-run"],
+            config_path=path,
+            now=NOW,
+            gather_options=options,
+            **fake.options(tmp_path / "cache"),
+        )
+        == 0
+    )
+
+    script, summary = capsys.readouterr().out.splitlines()
+    assert script == (
+        "Good morning, Avery, it's Tuesday, November 17th. On the job front... "
+        "1 offer is open. That's your morning. Have a lovely day!"
+    )
+    assert summary.endswith("voice is off, so nothing was fetched or sent)")
+    assert fake.events == []
+
+
+def test_voices_lists_names_and_ids_only(tmp_path, capsys):
+    answer = {
+        "voices": [
+            {
+                "voice_id": "EXAVITQu4vr4xnSDxMaL",
+                "name": "Sarah",
+                "category": "premade",
+                "description": "long text",
+                "labels": {"accent": "american"},
+                "preview_url": "https://cdn.example.test/p.mp3",
+                "samples": [{"file": "x"}],
+            },
+            {"voice_id": "abc123", "name": "My voice", "category": "cloned"},
+        ]
+    }
+    calls = []
+
+    def fetch_fn(url, source, headers):
+        calls.append((url, source, headers))
+        return json.dumps(answer).encode()
+
+    code = voice.main(
+        ["--voices"],
+        config_path=tmp_path / "none.toml",
+        voices_options={"get_key": lambda: KEY, "fetch_fn": fetch_fn},
+    )
+
+    assert code == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "Sarah  EXAVITQu4vr4xnSDxMaL  (premade)",
+        "My voice  abc123  (cloned)",
+    ]
+    assert calls == [
+        (
+            "https://api.elevenlabs.io/v2/voices?page_size=100",
+            "ElevenLabs voice list",
+            {"xi-api-key": KEY},
+        )
+    ]
+
+    def refused(url, source, headers):
+        raise outbound.RefusedError(
+            "x", 401, json.dumps({"detail": {"code": "invalid_api_key", "message": KEY}}).encode()
+        )
+
+    code = voice.main(
+        ["--voices"],
+        config_path=tmp_path / "none.toml",
+        voices_options={"get_key": lambda: KEY, "fetch_fn": refused},
+    )
+    err = capsys.readouterr().err
+    assert code == 1
+    assert err.strip() == "Voice: ElevenLabs refused the request: HTTP 401 (invalid_api_key)"
+    assert KEY not in err
