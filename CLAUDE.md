@@ -11,6 +11,9 @@ It is built with Claude Code as a pair programmer, in small reviewed slices.
 - Privacy comes first. This repo will be public.
 - Default to bigger slices and fewer stops. Keep moving unless a rule below says to stop.
 
+## Repo wording
+Describe features plainly and briefly, as product docs. Never record where an idea or look came from (no "inspired by", no other products' or companies' look), no personal preferences or backstory, no job-search context, and never quote or paraphrase the owner's chat messages. Third-party services may be named only where the code actually uses them. Apply to code, comments, README, ADRs, docs/design plans, PR titles/bodies and commit messages.
+
 ## How we work
 - One slice at a time. A slice is the smallest change that can be verified: seen working in the browser when it has UI, or proven by tests when it doesn't. If a task looks bigger than ~1 hour, propose splitting it.
 - Plan before code for anything touching more than 2 files: show a short numbered plan and wait for approval.

@@ -1,6 +1,6 @@
 # Plan: Playwright tests for the Safari checklist
 
-**Status:** built in PR #54 (2026-11-17): 28 e2e tests, one added during the build (see Test IDs). Plan approved by Klaudia on 2026-11-01 after two review rounds (both 🟡, all fixes applied); dependency approved the same day. `e2e` is not a required check yet: watch it for a week of PRs, then decide.
+**Status:** built in PR #54 (2026-11-17): 28 e2e tests, one added during the build (see Test IDs). Plan approved by the owner on 2026-11-01 after two review rounds (both 🟡, all fixes applied); dependency approved the same day. `e2e` is not a required check yet: watch it for a week of PRs, then decide.
 
 **Why:** every UI PR ends with the same 10-item check in Safari, done by hand. Playwright drives a real browser engine, so the checklist can run in CI on every PR and leave one screenshot per item to glance at. WebKit is Safari's engine, so it's the closest match short of Safari itself.
 

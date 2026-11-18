@@ -1,6 +1,6 @@
 # Plan: the to-do module
 
-**Status:** approved by Klaudia on 2026-11-17 with D1 and D2 both A (after one review round, 🟡, fixes applied). Built on branch `feat/todo-module`; ADR 0015 records it.
+**Status:** approved by the owner on 2026-11-17 with D1 and D2 both A (after one review round, 🟡, fixes applied). Built on branch `feat/todo-module`; ADR 0015 records it.
 
 **What:** module #3, code name `todo`, display name "To do" (ADR 0012).
 - **Tasks:** each task has a title, a due date, done, an estimate, a bucket (Today or Can wait), "ok to read aloud" (off by default), and optional ordered steps with their own minutes.
@@ -36,7 +36,7 @@
   - `done` (false)
 - **Two fields beyond the list you gave**, so the UI slice needs no other migration:
   - `done_at` lets the card show only tasks done today (struck through) and hide older ones.
-  - The step `done` field is for Focus mode's "Done, next step" in the design reference.
+  - The step `done` field is for Focus mode's "Done, next step".
 - Table names have the module prefix (ADR 0007).
 - Nothing here touches other modules' tables. `importer --force` deletes only Career Radar's tables, so to-dos survive it.
 
