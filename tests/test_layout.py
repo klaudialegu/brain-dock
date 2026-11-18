@@ -96,3 +96,31 @@ def test_highlighter_of_the_day_is_saved_and_must_be_a_palette_color(client, ses
     assert form_post(client, "/settings/highlighter", {"highlighter": "red"}).status_code == 400
     session.expire_all()
     assert layout.highlighter(session) == "sage"
+
+
+def test_hidden_module_leaves_the_spoken_brief(session, monkeypatch):
+    """The path the morning show really uses (brief.module_lines → show.gather), not just
+    the core function: a hidden module's counts must never reach ElevenLabs."""
+    from contextlib import contextmanager
+    from datetime import datetime
+
+    from brain_dock import brief, show
+    from brain_dock.modules.todo.models import add_task
+
+    @contextmanager
+    def this_session():
+        yield session
+
+    monkeypatch.setattr(brief, "database_session", this_session)
+    add_task(session, "Counted unless hidden")
+    session.commit()
+    now = datetime.now()
+    assert brief.module_lines(now.date())["todo"] == ["On today's list: 1 thing."]
+
+    layout.set_shown(session, MODULES, "todo", False, CORE_CARDS)
+    session.commit()
+
+    assert "todo" not in brief.module_lines(now.date())
+    sources = show.gather(now, network=False, cache_dir=None, note=lambda m: None)
+    assert sources.todo_lines == []  # the show's default lines come from module_lines
+    assert "On today's list" not in show.build_script(now.date(), sources)

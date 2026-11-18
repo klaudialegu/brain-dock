@@ -5,9 +5,10 @@ Served from `/static/vendor/` so pages never load anything from another site (lo
 | Library | Version | License | Source | SHA-256 of the served file |
 |---|---|---|---|---|
 | Apache ECharts | 6.1.0 | Apache-2.0 (`LICENSE`, `NOTICE` alongside) | npm `echarts@6.1.0` tarball, `package/dist/echarts.min.js`; tarball checked against the registry's integrity `sha512-q0yaFPggC9FUdsWH4blavRWFmxdrIodbkoKNAjJudAI6CA9gNPxHtV2RcZNEepZVlk4yvBYkOkbk6HIVpIyHZA==` | `b66b25aeb4df84e33199dc21694014d336d222cbd9deb0e5a7c14bd6aa0d0fd0` |
+| Fonts: Inter, Newsreader, Geist Mono, Kalam | 5.3.0 (`@fontsource/*`) | SIL Open Font License 1.1 (`LICENSE` in each `fonts/<family>-5.3.0/`) | npm `@fontsource/<family>@5.3.0` tarballs, `package/files/*-normal.woff2` (Latin and Latin Extended; Geist Mono Latin only); each tarball checked against the registry's sha512 integrity | per file in `VENDORED`, `tests/test_vendor.py` |
 
 Checked before vendoring: no `eval`, `fetch`, `XMLHttpRequest`, WebSocket or beacon calls; its only `new Function` is a fallback for browsers without `JSON.parse`.
 
-| Fonts: Inter, Newsreader, Geist Mono, Kalam | 5.3.0 (`@fontsource/*`) | SIL Open Font License 1.1 (`LICENSE` in each `fonts/<family>-5.3.0/`) | npm `@fontsource/<family>@5.3.0` tarballs, `package/files/*-normal.woff2` (Latin and Latin Extended; Geist Mono Latin only); each tarball checked against the registry's sha512 integrity | per file in `VENDORED`, `tests/test_vendor.py` |
+To update ECharts: download the new npm tarball, verify its integrity against the registry, copy the same three files into a new `echarts-<version>/` folder, update this table and `VENDORED` in `tests/test_vendor.py`, then point the template at the new folder.
 
-To update: download the new npm tarball, verify its integrity against the registry, copy the same three files into a new `echarts-<version>/` folder, update this table and `VENDORED` in `tests/test_vendor.py`, then point the template at the new folder.
+To update a font: download the new `@fontsource/<family>` tarball, verify its integrity against the registry, copy the same `*-normal.woff2` files and `LICENSE` into a new `fonts/<family>-<version>/` folder, update this table, `VENDORED` in `tests/test_vendor.py` and the `@font-face` paths in `app.css`.

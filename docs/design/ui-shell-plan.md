@@ -175,7 +175,7 @@ Today 673. Per-module and per-template tests grow on their own (each new templat
 
 ## PR 1 as built (2026-11-18)
 - **Tests:**
-  - `uv run pytest`: 673 → 749. 78 new: 42 font checks, 3 palette, 6 layout, 5 Home, 1 core brief, 3 manifest-field checks, and 16 per-template checks for the 8 new templates.
+  - `uv run pytest`: 673 → 750. 79 new (one added after review: `test_layout.py::test_hidden_module_leaves_the_spoken_brief`): 42 font checks, 3 palette, 6 layout, 5 Home, 1 core brief, 3 manifest-field checks, and 16 per-template checks for the 8 new templates.
   - 2 renamed:
     - `test_home.py::test_home_redirects_to_the_pipeline` → `::test_home_is_a_page_of_cards_not_a_redirect`.
     - `test_stages.py::test_css_has_light_and_dark_colors_for_every_stage` → `::test_css_has_a_color_for_every_stage_light_only` (D8 A).
