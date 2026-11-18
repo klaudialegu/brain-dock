@@ -44,7 +44,8 @@ class Server:
 
 @pytest.fixture(scope="session")
 def e2e_db(tmp_path_factory) -> tuple[Path, Path, str, int]:
-    """Migrate a temp database, load the job search and inbox demo sets, add a marker."""
+    """Migrate a temp database, load the job search, inbox and to-do demo sets, add a
+    marker."""
     temp_root = tmp_path_factory.getbasetemp()
     path = guard_temp_db(tmp_path_factory.mktemp("e2e") / "demo.db", temp_root)  # first line
 
@@ -55,6 +56,7 @@ def e2e_db(tmp_path_factory) -> tuple[Path, Path, str, int]:
     from brain_dock.modules.inbox.demo import load_demo
     from brain_dock.modules.job_search.importer import DEMO_JSON, load_applications, rebuild_db
     from brain_dock.modules.job_search.models import Company
+    from brain_dock.modules.todo.demo import load_demo as load_todo_demo
 
     engine = get_engine(f"sqlite:///{path}")
     try:
@@ -69,6 +71,8 @@ def e2e_db(tmp_path_factory) -> tuple[Path, Path, str, int]:
     finally:
         engine.dispose()
     message = load_demo(path)
+    assert message.startswith("Loaded"), message
+    message = load_todo_demo(path)
     assert message.startswith("Loaded"), message
     return path, temp_root, marker, marker_id
 

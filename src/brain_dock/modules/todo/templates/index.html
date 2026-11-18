@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% import "partials/fields.html" as f %}
+
+{% block title %}To do · Brain Dock{% endblock %}
+{% block body_class %}page-wide{% endblock %}
+
+{% block content %}
+<h1>To do</h1>
+
+<section class="todo-card" aria-label="To do">
+  <div class="todo-head">
+    <h2 id="today-heading">Today</h2>
+    <span class="todo-count">{{ open_count }} open</span>
+  </div>
+  {% if today_list %}
+  <ul class="todo-list" aria-labelledby="today-heading">
+    {% for task, info in today_list %}
+    <li class="todo-item{% if task.done %} is-done{% endif %}">
+      <form class="inline-form" method="post" action="/todo/{{ task.id }}/done">
+        {{ f.csrf(csrf_field, csrf_token) }}
+        <input type="hidden" name="done" value="{{ '0' if task.done else '1' }}">
+        <button class="todo-check" type="submit" aria-pressed="{{ 'true' if task.done else 'false' }}">
+          <span class="visually-hidden">{{ "Mark not done" if task.done else "Mark done" }}:</span>
+          <span aria-hidden="true">{{ "✓" if task.done else "○" }}</span>
+        </button>
+      </form>
+      <span class="todo-title">{{ task.title }}</span>
+      {% if info %}<span class="todo-meta">{{ info }}</span>{% endif %}
+      <span class="todo-actions">
+        <a href="/todo/{{ task.id }}/edit">Edit<span class="visually-hidden">: {{ task.title }}</span></a>
+        {% if not task.done and task.bucket == "today" %}
+        <form class="inline-form" method="post" action="/todo/{{ task.id }}/bucket">
+          {{ f.csrf(csrf_field, csrf_token) }}
+          <input type="hidden" name="bucket" value="can_wait">
+          <button class="button-quiet" type="submit">↓ Can wait<span class="visually-hidden">: {{ task.title }}</span></button>
+        </form>
+        {% endif %}
+      </span>
+      {% if task.steps %}
+      <ol class="todo-steps">
+        {% for step in task.steps %}
+        <li{% if step.done %} class="is-done"{% endif %}>{{ step.title }}{% if step.minutes %} <span class="todo-meta">{{ step.minutes }}m</span>{% endif %}</li>
+        {% endfor %}
+      </ol>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="todo-empty">Nothing for today.</p>
+  {% endif %}
+
+  <div class="todo-head">
+    <h2 id="later-heading">Can wait</h2>
+  </div>
+  {% if can_wait %}
+  <ul class="todo-list" aria-labelledby="later-heading">
+    {% for task, when in can_wait %}
+    <li class="todo-item">
+      <span class="todo-title">{{ task.title }}</span>
+      <span class="todo-meta">{{ when }}</span>
+      <span class="todo-actions">
+        <a href="/todo/{{ task.id }}/edit">Edit<span class="visually-hidden">: {{ task.title }}</span></a>
+        <form class="inline-form" method="post" action="/todo/{{ task.id }}/bucket">
+          {{ f.csrf(csrf_field, csrf_token) }}
+          <input type="hidden" name="bucket" value="today">
+          <button class="button-quiet" type="submit">↑ Today<span class="visually-hidden">: {{ task.title }}</span></button>
+        </form>
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="todo-empty">Nothing parked.</p>
+  {% endif %}
+</section>
+
+<h2 id="add-heading">Add a task</h2>
+{{ f.form_errors(errors) }}
+<form class="stack" method="post" action="/todo" aria-labelledby="add-heading">
+  {{ f.csrf(csrf_field, csrf_token) }}
+  {% include "todo/task_fields.html" %}
+  <p><button class="button" type="submit">Add task</button></p>
+</form>
+{% endblock %}

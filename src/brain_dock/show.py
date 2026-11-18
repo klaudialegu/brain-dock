@@ -1,9 +1,10 @@
 """The morning show's script (ADR 0014): short spoken sentences in a fixed order.
 
-Greeting, weather, today's workout, job counts, sign-off. Each section is optional: a
-source that's off or failed just isn't mentioned. The script is what ElevenLabs gets, so
-it holds no event descriptions, feed URLs, coordinates or names other than the greeting
-name, and it's capped so weekday use fits the free plan.
+Greeting, weather, today's workout, to-dos, job counts, sign-off. Each section is
+optional: a source that's off or failed just isn't mentioned. The script is what
+ElevenLabs gets, so it holds no event descriptions, feed URLs or coordinates. The only
+free text is the greeting name and the titles of tasks you marked "ok to read aloud"
+(ADR 0015). It's capped so weekday use fits the free plan.
 """
 
 import sys
@@ -33,6 +34,7 @@ class Sources:
     weather: Weather | None = None
     temperature_unit: str = "fahrenheit"
     workout: Workout | str | None = None  # a Workout, REST, or None (no feed)
+    todo_lines: list[str] = field(default_factory=list)  # a count, then marked titles
     job_lines: list[str] = field(default_factory=list)
 
 
@@ -64,9 +66,11 @@ def jobs_sentence(lines: list[str]) -> str:
 
 
 def build_script(today: date, sources: Sources, limit: int = MAX_SCRIPT_CHARS) -> str:
-    """The script, shortened until it fits: job lines go first (from the end), then the
-    weather tip, then the workout detail. The greeting and sign-off always stay."""
+    """The script, shortened until it fits: to-do titles go first (the count stays), then
+    job lines (from the end), then the weather tip, then the workout detail. The greeting
+    and sign-off always stay."""
     jobs = sources.job_lines[:MAX_JOB_LINES]
+    todos = sources.todo_lines
     with_tip, detail = True, True
 
     def render() -> str:
@@ -75,12 +79,17 @@ def build_script(today: date, sources: Sources, limit: int = MAX_SCRIPT_CHARS) -
             parts.append(sentence(sources.weather, sources.temperature_unit, with_tip))
         if sources.workout is not None:
             parts.append(workout_sentence(sources.workout, detail))
+        if todos:
+            parts.append(" ".join(todos))
         if jobs:
             parts.append(jobs_sentence(jobs))
         parts.append(SIGN_OFF)
         return " ".join(parts)
 
     script = render()
+    if len(script) > limit and len(todos) > 1:
+        todos = todos[:1]
+        script = render()
     while len(script) > limit and jobs:
         jobs = jobs[:-1]
         script = render()
@@ -107,7 +116,7 @@ def gather(
     cache_dir: Path,
     secret: Callable[[str], str | None] = keychain_secret,
     fetch_fn: Callable[..., bytes] = fetch,
-    lines: Callable[[date], list[str]] = module_lines,
+    lines: Callable[[date], dict[str, list[str]]] = module_lines,
     local: tzinfo | None = None,
     note: Callable[[str], None] = say_note,
 ) -> Sources:
@@ -116,7 +125,11 @@ def gather(
     only."""
     sources = Sources(greeting_name=greeting_name, temperature_unit=unit)
     try:
-        sources.job_lines = lines(now.date())
+        by_module = lines(now.date())
+        sources.todo_lines = by_module.get("todo", [])
+        sources.job_lines = [
+            line for name, ls in by_module.items() if name != "todo" for line in ls
+        ]
     except RuntimeError as e:
         note(f"Job counts left out: {e}")
     if not network:

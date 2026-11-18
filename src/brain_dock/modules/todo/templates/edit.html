@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% import "partials/fields.html" as f %}
+
+{% block title %}Edit task · To do · Brain Dock{% endblock %}
+{% block body_class %}page-wide{% endblock %}
+
+{% block content %}
+<h1>Edit task</h1>
+<p><a href="/todo">Back to To do</a></p>
+
+{{ f.form_errors(errors) }}
+<form class="stack" method="post" action="/todo/{{ task.id }}">
+  {{ f.csrf(csrf_field, csrf_token) }}
+  {% include "todo/task_fields.html" %}
+  <p><button class="button" type="submit">Save task</button> <a href="/todo">Cancel</a></p>
+</form>
+
+<h2 id="steps-heading">Steps{% if total %} <span class="todo-meta">~{{ total }} min</span>{% endif %}</h2>
+{% if steps %}
+<ol class="todo-steps todo-steps-edit" aria-labelledby="steps-heading">
+  {% for step in steps %}
+  <li{% if step.done %} class="is-done"{% endif %}>
+    <span class="todo-title">{{ step.title }}</span>
+    {% if step.minutes %}<span class="todo-meta">{{ step.minutes }}m</span>{% endif %}
+    <span class="todo-actions">
+      <form class="inline-form" method="post" action="/todo/{{ task.id }}/steps/{{ step.id }}/done">
+        {{ f.csrf(csrf_field, csrf_token) }}
+        <input type="hidden" name="done" value="{{ '0' if step.done else '1' }}">
+        <button class="button-quiet" type="submit">{{ "Not done" if step.done else "Done" }}<span class="visually-hidden">: step {{ step.position }}</span></button>
+      </form>
+      {% if not loop.first %}
+      <form class="inline-form" method="post" action="/todo/{{ task.id }}/steps/{{ step.id }}/move">
+        {{ f.csrf(csrf_field, csrf_token) }}
+        <input type="hidden" name="direction" value="up">
+        <button class="button-quiet" type="submit">↑<span class="visually-hidden"> Move step {{ step.position }} up</span></button>
+      </form>
+      {% endif %}
+      {% if not loop.last %}
+      <form class="inline-form" method="post" action="/todo/{{ task.id }}/steps/{{ step.id }}/move">
+        {{ f.csrf(csrf_field, csrf_token) }}
+        <input type="hidden" name="direction" value="down">
+        <button class="button-quiet" type="submit">↓<span class="visually-hidden"> Move step {{ step.position }} down</span></button>
+      </form>
+      {% endif %}
+      <form class="inline-form" method="post" action="/todo/{{ task.id }}/steps/{{ step.id }}/remove">
+        {{ f.csrf(csrf_field, csrf_token) }}
+        <button class="button-quiet" type="submit">Remove<span class="visually-hidden"> step {{ step.position }}</span></button>
+      </form>
+    </span>
+  </li>
+  {% endfor %}
+</ol>
+{% else %}
+<p class="todo-empty">No steps yet. Breaking a task into steps is optional.</p>
+{% endif %}
+
+<h3 id="add-step-heading">Add a step</h3>
+{{ f.form_errors(step_errors) }}
+<form class="stack" method="post" action="/todo/{{ task.id }}/steps" aria-labelledby="add-step-heading">
+  {{ f.csrf(csrf_field, csrf_token) }}
+  {{ f.input("title", "Step", step_values, step_errors, required=True) }}
+  {{ f.input("minutes", "Minutes", step_values, step_errors, type="number", hint="optional") }}
+  <p><button class="button" type="submit">Add step</button></p>
+</form>
+{% endblock %}

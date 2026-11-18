@@ -38,7 +38,8 @@ class Manifest:
     # Tools its agents may use (ADR 0008); every one must pass core.agents.tools' policy.
     agent_tools: tuple[AgentTool, ...] = ()
     # Its lines for the daily brief (ADR 0013): counts and dates only, never names or free
-    # text, because the brief can be read aloud by an outside service.
+    # text, because the brief can be read aloud by an outside service. One exception
+    # (ADR 0015): to-do titles the owner marked "ok to read aloud".
     brief: Callable[[Session, date], list[str]] | None = None
     # Documented exception (ADR 0007): table names allowed without the module-name prefix.
     legacy_table_names: tuple[str, ...] = ()

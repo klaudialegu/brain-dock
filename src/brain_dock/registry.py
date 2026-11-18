@@ -7,8 +7,9 @@ from collections.abc import Mapping
 from brain_dock.core.modules import Manifest
 from brain_dock.modules.inbox.manifest import manifest as inbox
 from brain_dock.modules.job_search.manifest import manifest as job_search
+from brain_dock.modules.todo.manifest import manifest as todo
 
-INSTALLED: dict[str, Manifest] = {m.name: m for m in [job_search, inbox]}
+INSTALLED: dict[str, Manifest] = {m.name: m for m in [job_search, inbox, todo]}
 
 
 class UnknownModuleError(ValueError):

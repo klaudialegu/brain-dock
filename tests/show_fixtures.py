@@ -80,7 +80,7 @@ class FakeNet:
         return {
             "secret": self.secret,
             "fetch_fn": self.fetch,
-            "lines": lambda day: list(lines),
+            "lines": lambda day: {"job_search": list(lines)},
             "local": LOCAL,
             "note": self.notes.append,
         }

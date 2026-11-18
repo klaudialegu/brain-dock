@@ -1,7 +1,7 @@
 # 0014. The spoken brief becomes a morning show
 **Status:** Accepted
 **Date:** 2026-11-17
-**Changes:** ADR 0013 points 1, 3, 5, 6 and 7 (listed below); the rest of 0013 stands.
+**Changes:** ADR 0013 points 1, 3, 5, 6 and 7 (listed below); the rest of 0013 stands. Point 2 is extended by [ADR 0015](0015-todo-module.md) (marked to-do titles).
 
 ## Context
 The spoken brief (ADR 0013) read out a few counts. The goal now is a short, warm script, like a morning radio host, with these sections in order:

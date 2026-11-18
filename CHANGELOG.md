@@ -12,6 +12,7 @@ Each line links to the pull request that made the change.
 - A daily brief as text: each module adds counts and dates through its manifest (`uv run python -m brain_dock.brief`). The first answer to how modules feed the brief (ADR 0013).
 - Optional spoken brief: `uv run python -m brain_dock.voice` reads the brief aloud with ElevenLabs text-to-speech. Off by default; only the masked brief text is sent, the key lives in the macOS keychain, mood stays local, and audio is cached so the same brief is never generated twice (ADR 0013).
 - The spoken brief becomes a morning show: a short spoken script with a greeting, today's weather (Open-Meteo, rounded coordinates), today's Runna workout (calendar feed, address in the keychain), job counts and a sign-off. Eleven v3 with a fallback, a 420-character cap and a monthly budget that fits the free plan, `--voices` to list usable voices. The mood question is removed for now (ADR 0014).
+- To do, module #3: tasks in Today and Can wait with optional due dates, estimates and ordered steps with their own minutes, on its own page with a simple card. The morning show counts today's tasks and reads a title only when that task is marked "ok to read aloud" (off by default). A demo set, and the to-do pages in the browser checklist (ADR 0015).
 
 ### Security
 - opentelemetry-api 1.45.1 → 1.45.2 (a FastAPI dependency; GHSA-mf5v-w3w3-f6cg, a denial of service when parsing `traceparent`). ([#53](https://github.com/klaudialegu/brain-dock/pull/53))

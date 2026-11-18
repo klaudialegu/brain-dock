@@ -33,6 +33,9 @@ with Session(engine) as session:
     # The company page probe below must point at real data, so its 404 means "module off".
     assert session.get(Company, 1) is not None, "demo data has no company 1"
 engine.dispose()
+from brain_dock.modules.todo.demo import load_demo as load_todo_demo
+message = load_todo_demo(__import__("pathlib").Path(sys.argv[1]))
+assert message.startswith("Loaded"), message  # task 1 exists for the edit-page probe
 PY
 
 # Pages with an id in the path: the manifest only lists path prefixes, so these are added
@@ -40,6 +43,7 @@ PY
 probes() {  # module name
   case "$1" in
     job_search) echo "/companies/1" ;;
+    todo) echo "/todo/1/edit" ;;
   esac
 }
 

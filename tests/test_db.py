@@ -23,6 +23,8 @@ def test_create_db_makes_the_file_and_tables(tmp_path):
         "inbox_email",
         "inbox_role",
         "inbox_role_source",
+        "todo_task",
+        "todo_step",
     }
     with engine.connect() as conn:
         assert conn.exec_driver_sql("PRAGMA foreign_keys").scalar() == 1
