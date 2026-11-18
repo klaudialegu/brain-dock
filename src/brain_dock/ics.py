@@ -7,7 +7,7 @@ calendar library. Only today's events are read, in memory; the feed is never sto
 
 Only the workout's name (cleaned and trimmed), its minutes and its distance reach the
 script. Minutes and distance come from the event's own times or the end of its title
-(Runna writes "Walk Run 28m", "Easy Run 5km"), never from the description: its numbers
+(titles like "Easy Run 30m", "Easy Run 5km"), never from the description: its numbers
 are steps ("5 min warm up"), not the workout.
 """
 
@@ -127,7 +127,7 @@ def spoken_distance(number: str, unit: str) -> str:
 
 
 def split_title(title: str) -> tuple[str, int | None, str | None]:
-    """'Walk Run 28m' -> ('Walk Run', 28, None); 'Easy Run 5km' -> ('Easy Run', None,
+    """'Easy Run 30m' -> ('Easy Run', 30, None); 'Easy Run 5km' -> ('Easy Run', None,
     '5 kilometers'). Both may be there, in either order."""
     minutes = distance = None
     for _ in range(2):

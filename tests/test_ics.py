@@ -1,6 +1,7 @@
 """Today's workout from the Runna iCalendar feed (ADR 0014): today only, and the feed URL is
 a secret."""
 
+import inspect
 import io
 import logging
 import urllib.error
@@ -9,6 +10,7 @@ from datetime import datetime
 import pytest
 
 from brain_dock import ics, outbound, voice
+from brain_dock.core.agents.guard import guarded_run
 from brain_dock.ics import Workout
 from brain_dock.show import REST, RUNNA_SERVICE, build_script, gather
 
@@ -56,7 +58,7 @@ def test_workout_name_duration_and_distance():
         text = feed(event(title, "DTSTART;VALUE=DATE:20261118", extra=description))
         return ics.todays_workout(text, TODAY, LOCAL)
 
-    assert one("Walk Run 28m") == Workout("Walk Run", 28, None)  # Runna's shape
+    assert one("Easy Run 30m") == Workout("Easy Run", 30, None)  # a duration at the end
     assert one("Easy Run 5km") == Workout("Easy Run", None, "5 kilometers")
     assert one("Long Run 1h 30m") == Workout("Long Run", 90, None)
     assert one("Long Run 2h") == Workout("Long Run", 120, None)
@@ -121,12 +123,13 @@ def test_feed_url_comes_from_the_keychain_and_never_shows(tmp_path, capsys, capl
     assert missing.notes[-1] == (
         "Workout left out: no Runna feed address in the keychain (brain-dock-runna-ics)"
     )
+    voice_on = tmp_path / "config.toml"
+    voice_on.write_text('[voice]\nenabled = true\nvoice_id = "TestVoice123"\n')
+    dry = FakeNet()
     voice.main(
-        ["--dry-run"],
-        config_path=tmp_path / "none.toml",
-        gather_options=FakeNet().options(),
-        cache_dir=tmp_path,
+        ["--dry-run"], config_path=voice_on, gather_options=dry.options(), cache_dir=tmp_path
     )
+    assert dry.fetched and dry.secrets  # voice on: the feed really was read
     out = capsys.readouterr()
     seen = [out.out, out.err, caplog.text, str(raised.value), *broken.notes, *missing.notes]
     for text in seen:
@@ -144,6 +147,8 @@ def test_feed_fetch_runs_under_the_guard_with_only_its_host():
     outbound.fetch(FEED_URL, "Runna feed", get=get, guard=guard)
 
     assert guard.allow == [("feeds.example.test", 443)]
+    assert inspect.signature(outbound.fetch).parameters["guard"].default is guarded_run
+    assert inspect.signature(gather).parameters["fetch_fn"].default is outbound.fetch
     assert seen == ["https://feeds.example.test/calendar/abc123.ics?token=feed-secret-qwfp"]
 
 

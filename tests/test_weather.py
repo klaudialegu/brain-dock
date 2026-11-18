@@ -1,5 +1,7 @@
 """Today's weather for the morning show (ADR 0014): rounded coordinates out, numbers back."""
 
+import http.client
+import inspect
 import json
 import os
 import stat
@@ -7,6 +9,7 @@ from datetime import timedelta
 from urllib.parse import parse_qs, urlsplit
 
 from brain_dock import outbound, weather
+from brain_dock.core.agents.guard import guarded_run
 from brain_dock.show import build_script, gather
 from brain_dock.weather import Weather
 
@@ -114,10 +117,19 @@ def test_weather_is_cached_for_the_morning(tmp_path):
 def test_weather_failure_skips_the_section_without_details(tmp_path):
     down = FakeNet(fail=("weather", outbound.FetchError("Couldn't reach the weather service")))
     odd = FakeNet(forecast={"current": {}})
+    cut_off = FakeNet()  # a truncated answer: an http.client error, not an OSError
+
+    def truncated(url, headers):
+        raise http.client.IncompleteRead(b"{", 500)
+
+    cut_off.fetch = lambda url, source, **k: outbound.fetch(
+        url, source, get=truncated, guard=FakeGuard()
+    )
 
     for net, why in [
         (down, "Couldn't reach the weather service"),
         (odd, "an answer this can't read"),
+        (cut_off, "Couldn't reach the weather service"),
     ]:
         sources = gather(NOW, coordinates=COORDS, cache_dir=tmp_path / why[:5], **net.options())
         assert sources.weather is None
@@ -138,3 +150,7 @@ def test_weather_fetch_runs_under_the_guard_with_only_open_meteo():
 
     assert guard.allow == [("api.open-meteo.com", 443)]
     assert seen == [weather.request_url(*COORDS)]
+    # and the real code uses the real guard: no default may quietly skip it
+    assert inspect.signature(outbound.fetch).parameters["guard"].default is guarded_run
+    assert inspect.signature(weather.today).parameters["fetch_fn"].default is outbound.fetch
+    assert inspect.signature(gather).parameters["fetch_fn"].default is outbound.fetch

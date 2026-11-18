@@ -163,7 +163,7 @@ Added, `tests/test_show.py` (6):
 All network calls (weather, both feeds, ElevenLabs) use fakes, and the keychain is faked too.
 
 **Found during the build (2026-11-17):**
-- **The Runna feed:** a read-only check of the real feed (counts and dates printed only) found 26 events: 22 all-day and 4 floating timed ones, with no repeating rules. Titles look like "Walk Run 28m". The first reader took minutes from the description, where the numbers are workout steps ("5 min" warm-up), so it said "about 5 minutes".
+- **The Runna feed:** a read-only check of the owner's real feed found all-day and floating timed events, with no repeating rules. Titles end with a duration (shaped like "Easy Run 30m"). The first reader took minutes from the description, where the numbers are workout steps (a "5 min" warm-up), so it said "about 5 minutes".
   - Minutes and distance now come only from the event's own times or the end of its title, and the description is never read.
   - `test_ics.py::test_workout_name_duration_and_distance` covers Runna's title shapes.
 - **Weather grammar:** "a 88 percent" became "an 88 percent", checked in the sentence test.

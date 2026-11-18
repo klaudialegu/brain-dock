@@ -9,6 +9,7 @@ files they leave behind.
 - write_private() / private_dir(): owner-only files and folders under data/.
 """
 
+import http.client
 import os
 import subprocess
 import urllib.error
@@ -74,7 +75,7 @@ def fetch(
         except OSError:
             body = b""
         failure = RefusedError(f"{source}: the service answered HTTP {e.code}", e.code, body)
-    except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+    except (urllib.error.URLError, http.client.HTTPException, TimeoutError, OSError, ValueError):
         failure = FetchError(f"Couldn't reach the {source}")
     raise failure  # raised outside the except: no chained error carrying the URL
 
