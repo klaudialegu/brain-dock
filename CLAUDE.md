@@ -1,7 +1,7 @@
 # Brain Dock: project rules for Claude
 
 ## What this is
-Brain Dock is a modular personal daily-efficiency assistant: a small local-first core plus modules. Career Radar (code name `job_search`: the job market, skills in demand, interesting roles) is the first module, the inbox the second and To do (`todo`) the third; a daily brief and projects and learning are planned. Code names stay; display names are wording (ADR 0012).
+Brain Dock is a modular personal daily-efficiency assistant: a small local-first core plus modules. Career Radar (code name `job_search`: the job market, skills in demand, interesting roles) is the first module, the inbox the second, To do (`todo`) the third and the Scratchpad (`scratchpad`) the fourth; a daily brief and projects and learning are planned. Code names stay; display names are wording (ADR 0012).
 It is built with Claude Code as a pair programmer, in small reviewed slices.
 
 ## Working with me
@@ -75,7 +75,7 @@ Describe features plainly and briefly, as product docs. Never record where an id
 - Back up everything to data/backups/ (gitignored, owner-only, same format the importer reads): `uv run python -m brain_dock.export`. Do this before risky changes.
 - Check the agent audit log's hash chain (ADR 0008): `uv run python -m brain_dock.verify_audit`. It prints counts and positions only.
 - First-time setup from data/my_applications.json: `uv run python -m brain_dock.importer`. It refuses to replace a database that already has applications; `--force` replaces it after writing a full, validated backup (if the backup fails, nothing is deleted).
-- Load fake demo data into data/demo.db (never the real database): `uv run python -m brain_dock.importer --demo`, then optionally `uv run python -m brain_dock.modules.inbox.demo` and `uv run python -m brain_dock.modules.todo.demo`
+- Load fake demo data into data/demo.db (never the real database): `uv run python -m brain_dock.importer --demo`, then optionally `uv run python -m brain_dock.modules.inbox.demo`, `uv run python -m brain_dock.modules.todo.demo` and `uv run python -m brain_dock.modules.scratchpad.demo`
 - Run the app (auto-reloads on save): `uv run uvicorn brain_dock.main:app --host 127.0.0.1 --reload`, then open http://127.0.0.1:8000 (bound to this machine only; never use --host 0.0.0.0)
 - Test: `uv run pytest`
 - Browser tests (WebKit, throwaway demo database; run `uv run playwright install webkit` once): `uv run pytest e2e`. Screenshots and index.html go to e2e-artifacts/ (gitignored).

@@ -100,11 +100,33 @@ def seed_todo(engine):
     return "Water the example plants"
 
 
-SEEDERS = {"job_search": seed_job_search, "inbox": seed_inbox, "todo": seed_todo}
+def seed_scratchpad(engine):
+    from datetime import date
+
+    from sqlmodel import Session
+
+    from brain_dock.modules.scratchpad.models import new_page, set_text
+
+    with Session(engine) as session:
+        set_text(new_page(session, date.today()), "an example line")
+        session.commit()
+    return "an example line"
+
+
+SEEDERS = {
+    "job_search": seed_job_search,
+    "inbox": seed_inbox,
+    "todo": seed_todo,
+    "scratchpad": seed_scratchpad,
+}
 
 # Pages with an id in the path: the manifest only lists path prefixes, so these are checked
 # by hand. Each must answer 200 on the seeded data with the module on (see below).
-PROBES = {"job_search": ("/companies/1",), "todo": ("/todo/1/edit",)}
+PROBES = {
+    "job_search": ("/companies/1",),
+    "todo": ("/todo/1/edit",),
+    "scratchpad": ("/scratchpad/1",),
+}
 
 
 def others(m):

@@ -56,6 +56,7 @@ def e2e_db(tmp_path_factory) -> tuple[Path, Path, str, int]:
     from brain_dock.modules.inbox.demo import load_demo
     from brain_dock.modules.job_search.importer import DEMO_JSON, load_applications, rebuild_db
     from brain_dock.modules.job_search.models import Company
+    from brain_dock.modules.scratchpad.demo import load_demo as load_scratchpad_demo
     from brain_dock.modules.todo.demo import load_demo as load_todo_demo
 
     engine = get_engine(f"sqlite:///{path}")
@@ -73,6 +74,8 @@ def e2e_db(tmp_path_factory) -> tuple[Path, Path, str, int]:
     message = load_demo(path)
     assert message.startswith("Loaded"), message
     message = load_todo_demo(path)
+    assert message.startswith("Loaded"), message
+    message = load_scratchpad_demo(path)
     assert message.startswith("Loaded"), message
     return path, temp_root, marker, marker_id
 

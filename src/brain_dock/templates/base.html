@@ -11,7 +11,7 @@
 </head>
 {% set shell = request.state.shell if request.state.shell is defined else none %}
 {% set highlighter = shell.highlighter if shell else "lavender" %}
-<body class="{% block body_class %}{% endblock %} hl-{{ highlighter }}">
+<body class="{% block body_class %}{% endblock %} hl-{{ highlighter }}"{% if shell and shell.capture %} data-capture="{{ shell.capture }}"{% endif %}>
   <div class="shell">
     <nav class="rail" aria-label="Main">
       <a href="/" aria-label="Home"{% if request.url.path == "/" %} aria-current="page"{% endif %}>
@@ -44,5 +44,6 @@
       </div>
     </main>
   </div>
+  <script src="/static/shortcuts.js" defer></script>
 </body>
 </html>

@@ -10,7 +10,7 @@ WIDTHS = [1440, 1920, 2560]
 MAX_COLUMN = 1600
 
 
-@pytest.mark.parametrize("name", ["home", "applications", "brief"])
+@pytest.mark.parametrize("name", ["home", "applications", "brief", "scratchpad"])
 @pytest.mark.parametrize("width", WIDTHS)
 def test_window_fits(page, width, name):
     page.set_viewport_size({"width": width, "height": 1000})

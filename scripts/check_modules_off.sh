@@ -36,6 +36,9 @@ engine.dispose()
 from brain_dock.modules.todo.demo import load_demo as load_todo_demo
 message = load_todo_demo(__import__("pathlib").Path(sys.argv[1]))
 assert message.startswith("Loaded"), message  # task 1 exists for the edit-page probe
+from brain_dock.modules.scratchpad.demo import load_demo as load_scratchpad_demo
+message = load_scratchpad_demo(__import__("pathlib").Path(sys.argv[1]))
+assert message.startswith("Loaded"), message  # page 1 exists for the page probe
 PY
 
 # Pages with an id in the path: the manifest only lists path prefixes, so these are added
@@ -44,6 +47,7 @@ probes() {  # module name
   case "$1" in
     job_search) echo "/companies/1" ;;
     todo) echo "/todo/1/edit" ;;
+    scratchpad) echo "/scratchpad/1" ;;
   esac
 }
 

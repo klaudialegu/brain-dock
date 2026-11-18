@@ -23,6 +23,7 @@ def test_defaults_come_from_the_manifests(session):
         ("brief", True, "M"),
         ("job_search", True, "L"),
         ("inbox", True, "S"),
+        ("scratchpad", True, "M"),
     ]
     assert layout.highlighter(session) == "lavender"
     assert session.exec(layout.select(layout.CoreLayout)).all() == []  # nothing saved yet
@@ -42,6 +43,7 @@ def test_order_on_off_and_size_are_saved(client, session):
         ("brief", False, "M"),
         ("inbox", True, "S"),
         ("job_search", True, "M"),
+        ("scratchpad", True, "M"),
     ]
     assert (
         form_post(client, "/settings/cards/inbox/move", {"direction": "sideways"}).status_code

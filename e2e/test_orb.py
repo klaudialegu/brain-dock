@@ -6,24 +6,34 @@ from playwright.sync_api import expect
 ORB = "[data-orb]"
 
 
-def frames(page, gap_ms: int = 600) -> tuple[str, str]:
-    """The canvas now, and again a little later."""
-    first = page.eval_on_selector(f"{ORB} canvas", "c => c.toDataURL()")
-    page.wait_for_timeout(gap_ms)
-    return first, page.eval_on_selector(f"{ORB} canvas", "c => c.toDataURL()")
+def frames(page, count: int = 3, gap_ms: int = 400) -> list[str]:
+    """The canvas now, and a few more times a little later."""
+    shots = []
+    for i in range(count):
+        if i:
+            page.wait_for_timeout(gap_ms)
+        shots.append(page.eval_on_selector(f"{ORB} canvas", "c => c.toDataURL()"))
+    return shots
 
 
 def test_reduced_motion_keeps_the_orb_still(page):
     page.goto("/")
     expect(page.locator(ORB)).to_have_attribute("data-animating", "true")
-    moving = frames(page)
-    assert moving[0] != moving[1]  # it really breathes, so "still" below means something
+    before = int(page.get_attribute(ORB, "data-frames"))
+    # The loop really runs: frames keep coming. A generous wait, since a busy CI browser
+    # ticks animation frames slowly; a loop that never runs still times out.
+    page.wait_for_function(
+        "n => Number(document.querySelector('[data-orb]').dataset.frames) >= n",
+        arg=before + 5,
+        timeout=5000,
+    )
 
     page.emulate_media(reduced_motion="reduce")
     page.reload()
     expect(page.locator(ORB)).to_have_attribute("data-animating", "false")
     still = frames(page)
-    assert still[0] == still[1]
+    assert len(set(still)) == 1
+    assert int(page.get_attribute(ORB, "data-frames")) <= 2  # drawn once (plus a resize)
     assert still[0] != page.evaluate("() => document.createElement('canvas').toDataURL()")
     button = page.get_by_role("button", name="Play brief")
     expect(button).to_be_disabled()
@@ -54,7 +64,10 @@ def test_drawing_stops_when_the_tab_is_hidden(page):
     )
     expect(page.locator(ORB)).to_have_attribute("data-animating", "false")
     hidden = frames(page)
-    assert hidden[0] == hidden[1]
+    assert len(set(hidden)) == 1
+    stopped = int(page.get_attribute(ORB, "data-frames"))
+    page.wait_for_timeout(400)
+    assert int(page.get_attribute(ORB, "data-frames")) == stopped  # no drawing while hidden
 
     page.evaluate(
         """() => {

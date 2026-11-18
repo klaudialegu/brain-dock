@@ -1,6 +1,9 @@
 """Home and the static stylesheet. Every page reads the saved layout, so these use the
 `client` fixture (an in-memory database), never a shared app state."""
 
+import re
+from pathlib import Path
+
 
 def test_home_is_a_page_of_cards_not_a_redirect(client):
     response = client.get("/", follow_redirects=False)
@@ -25,7 +28,6 @@ def test_pages_use_the_static_css(client):
 
 # --- Home's cards and the rail (ADR 0016) ------------------------------------------------
 
-import re  # noqa: E402
 
 from .conftest import BASE_URL  # noqa: E402
 
@@ -48,7 +50,7 @@ def card_ids(html):
 def test_home_renders_a_card_per_shown_module_in_order(client):
     html = client.get("/").text
 
-    assert card_ids(html) == ["todo", "brief", "job_search", "inbox"]
+    assert card_ids(html) == ["todo", "brief", "job_search", "inbox", "scratchpad"]
     assert 'class="card size-W c-graphite state-' in html  # size and color from the manifest
     assert re.search(r'class="tape tilt-\d"[^>]*>To do<', html)
     assert 'href="/settings">' in html and "Add module" in html
@@ -96,12 +98,14 @@ def test_rail_lists_modules_in_order_with_settings_last(client):
     rail = re.search(r'<nav class="rail" aria-label="Main">(.*?)</nav>', html, re.S).group(1)
 
     labels = re.findall(r'aria-label="([^"]+)"', rail)
-    assert labels == ["Home", "To do", "Brief", "Career Radar", "Inbox", "Settings"]
+    assert labels == ["Home", "To do", "Brief", "Career Radar", "Inbox", "Scratchpad", "Settings"]
     assert re.search(r'aria-label="To do"[^>]*aria-current="page"', rail)  # this page
-    assert rail.count('class="rail-dot"') == 4  # an ink dot per module, not Home or Settings
+    assert rail.count('class="rail-dot"') == 5  # an ink dot per module, not Home or Settings
 
 
 def test_no_capture_field_when_no_module_captures(client):
+    # The Scratchpad is the module that accepts notes: hidden, nothing on Home captures.
+    form_post(client, "/settings/cards/scratchpad/shown", {"shown": "0"})
     html = client.get("/").text
 
     assert "Quick capture" not in html and 'name="text"' not in html
@@ -117,3 +121,19 @@ def test_play_brief_pill_is_shown_disabled_until_audio_arrives(client):
     assert '<canvas class="orb"' in button.group(1) and 'aria-hidden="true"' in button.group(1)
     assert '<script src="/static/orb.js" defer></script>' in html
     assert client.get("/static/orb.js").status_code == 200
+
+
+def test_quick_capture_placeholder_is_readable(client):
+    from brain_dock.core.palette import contrast
+
+    html = client.get("/").text
+    assert 'placeholder="Jot it down. It lands in Scratchpad."' in html  # the module's label
+    assert 'data-capture="/scratchpad/capture"' in html  # the shortcut finds it from any page
+    css = (Path(__file__).parents[1] / "src/brain_dock/static/app.css").read_text()
+    assert ".quick-capture input::placeholder { color: var(--muted); opacity: 1; }" in css
+    assert ".quick-capture { " in css and "background: var(--card);" in css
+
+    def var(name):
+        return re.search(rf"--{name}:\s*(#[0-9A-Fa-f]{{6}})", css).group(1)
+
+    assert contrast(var("muted"), var("card")) >= 4.5  # the colors as they are in app.css

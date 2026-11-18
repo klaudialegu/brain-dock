@@ -1,0 +1,6 @@
+<div class="pad-card paper-{{ c.page.paper }}">
+  {% for line in c.lines %}
+  <p class="hand pen-{{ c.page.pen }}">{{ line }}</p>
+  {% endfor %}
+</div>
+<a class="card-open" href="/scratchpad/{{ c.page.id }}">Open <span aria-hidden="true">→</span></a>

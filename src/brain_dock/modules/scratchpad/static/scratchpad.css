@@ -1,0 +1,68 @@
+/* Scratchpad (ADR 0017): paper, pens, the tray. Kalam Light for the page's own writing. */
+.pad-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin-bottom: 18px; }
+.pad-head h1 { margin: 0 auto 0 0; }
+.pad-days { display: flex; flex-wrap: wrap; gap: 6px; }
+.pad-tab { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 999px; color: var(--muted); text-decoration: none; }
+.pad-tab[aria-current="page"], .pad-tab:hover { background: var(--card); color: var(--text); box-shadow: inset 0 0 0 1px var(--border); }
+.pad-layout { display: flex; flex-wrap: wrap; gap: 22px; align-items: flex-start; }
+.pad-tray { flex: 0 1 260px; display: grid; gap: 8px; }
+.pad-tray h2 { margin: 6px 0 0; }
+.pad-options, .pad-papers, .pad-sizes { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.pad-papers { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+.pad-sizes { grid-auto-flow: column; justify-content: start; }
+.pad-tray form { margin: 0; }
+.pad-option, .pad-paper {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 6px 14px;
+  border: 0; border-radius: 999px; background: transparent; color: var(--text); text-align: left; cursor: pointer;
+}
+.pad-option[aria-pressed="true"], .pad-paper[aria-pressed="true"], .pad-sizes [aria-pressed="true"] { background: var(--cream); box-shadow: inset 0 0 0 1.5px var(--text); }
+.pad-option:disabled { cursor: default; color: var(--muted); }
+.pad-option-name { font-weight: 500; }
+.nib { width: 22px; height: 4px; border-radius: 9px; flex-shrink: 0; }
+.nib-fineliner { background: #1D1B18; height: 3px; }
+.nib-gel { background: #335A96; }
+.nib-pencil { background: #5F5A52; height: 3px; }
+.nib-brush { background: #6B4A2B; height: 7px; }
+.nib-rose { background: #8E3F5C; }
+.nib-highlighter { background: #C9E3CF; height: 12px; }
+.nib-eraser { background: var(--card); height: 10px; box-shadow: inset 0 0 0 1px #D6CFC2; }
+.swatch-paper { width: 26px; height: 26px; border-radius: 8px; box-shadow: inset 0 0 0 1px #E3DCCF; flex-shrink: 0; }
+
+/* Papers */
+.paper-blank, .paper-lined, .paper-squared, .paper-dotted { background-color: #FFFEFB; }
+.paper-lined { background-image: linear-gradient(90deg, transparent 23px, rgba(214, 150, 140, 0.35) 23px, rgba(214, 150, 140, 0.35) 24px, transparent 24px), repeating-linear-gradient(to bottom, transparent 0 27px, #E6DECF 27px 28px); }
+.paper-squared { background-image: linear-gradient(#ECE5D8 1px, transparent 1px), linear-gradient(90deg, #ECE5D8 1px, transparent 1px); background-size: 14px 14px; }
+.paper-dotted { background-image: radial-gradient(#D9CFBC 1.1px, transparent 1.3px); background-size: 14px 14px; }
+.paper-kraft { background-color: #EADCC3; background-image: radial-gradient(rgba(120, 90, 50, 0.08) 1px, transparent 1px); background-size: 5px 5px; }
+
+/* The sheet */
+.pad-sheet { flex: 999 1 520px; border-radius: var(--radius); box-shadow: 0 0 0 1px var(--border); padding: 28px 28px 22px 40px; min-height: 420px; }
+.pad-sheet.size-card { max-width: 560px; }
+.pad-sheet.size-wide { max-width: 900px; }
+.pad-sheet.size-full { max-width: none; }
+.pad-text {
+  display: block; width: 100%; min-height: 360px; border: 0; padding: 0; resize: vertical; background: transparent;
+  font-family: var(--hand); font-weight: 300; font-size: 1.25rem; line-height: 28px; color: var(--text);
+}
+.pad-text:focus-visible { outline: 2px solid var(--text); outline-offset: 6px; }
+/* On lined paper the rules are drawn in the text box itself, so each line of writing sits
+   on a rule and the rules scroll with the text. The sheet keeps only the margin line. */
+.pad-sheet.paper-lined { background-image: linear-gradient(90deg, transparent 23px, rgba(214, 150, 140, 0.35) 23px, rgba(214, 150, 140, 0.35) 24px, transparent 24px); }
+.pad-sheet.paper-lined .pad-text { background-image: repeating-linear-gradient(to bottom, transparent 0 27px, #E6DECF 27px 28px); background-attachment: local; }
+.pad-sheet.paper-lined .pad-text.pen-highlighter { background-image: repeating-linear-gradient(to bottom, transparent 0 6px, #C9E3CF 6px 24px, transparent 24px 27px, #E6DECF 27px 28px); }
+.pad-saved { margin: 0 0 14px; }
+.pad-saved pre { white-space: pre-wrap; margin: 8px 0 0; font-family: var(--hand); font-weight: 300; }
+.pad-save { display: flex; gap: 10px; align-items: center; margin: 12px 0 0; }
+
+/* Pens: inks read at 4.5:1 or better on every paper */
+.pen-fineliner { color: #1D1B18; }
+.pen-gel { color: #335A96; }
+.pen-pencil { color: #5F5A52; }
+.pen-brush { color: #6B4A2B; font-weight: 300; letter-spacing: 0.01em; }
+.pen-rose { color: #8E3F5C; }
+.pen-highlighter { color: #1D1B18; background-image: linear-gradient(transparent 0 6px, #C9E3CF 6px 24px, transparent 24px 28px); background-size: 100% 28px; }
+
+/* The card on Home */
+.pad-card { border-radius: 14px; padding: 12px 14px 12px 32px; min-height: 120px; box-shadow: inset 0 0 0 1px #E6DFD2; }
+.pad-card p { margin: 0; font-size: 1.0625rem; line-height: 28px; }
+.pad-empty { min-height: 220px; }

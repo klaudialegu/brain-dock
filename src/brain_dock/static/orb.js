@@ -12,6 +12,7 @@
   const started = performance.now();
   let pointer = null;
   let frame = null;
+  let drawn = 0; // frames drawn: lets a test see the loop run without comparing pixels
 
   function draw(now) {
     const size = canvas.clientWidth;
@@ -22,6 +23,7 @@
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, size, size);
+    wrap.dataset.frames = String(++drawn);
     const t = still.matches ? 0 : (now - started) / 1000;
     const center = size / 2;
     const radius = center * 0.94;
