@@ -53,7 +53,7 @@
             <div class="decide">
             <form method="post" action="/inbox/approvals/{{ approval.id }}/approve">
               {{ f.csrf(csrf_field, csrf_token) }}
-              <button class="button" type="submit">Approve<span class="visually-hidden"> {{ role.title }} at {{ role.company }}</span></button>
+              <button class="button button-quiet" type="submit">Approve<span class="visually-hidden"> {{ role.title }} at {{ role.company }}</span></button>
             </form>
             <form method="post" action="/inbox/approvals/{{ approval.id }}/reject">
               {{ f.csrf(csrf_field, csrf_token) }}
@@ -63,7 +63,7 @@
                 <option value="{{ code }}">{{ label }}</option>
                 {% endfor %}
               </select>
-              <button class="button-quiet" type="submit">Reject<span class="visually-hidden"> {{ role.title }} at {{ role.company }}</span></button>
+              <button class="button button-quiet" type="submit">Reject<span class="visually-hidden"> {{ role.title }} at {{ role.company }}</span></button>
             </form>
             </div>
           </td>

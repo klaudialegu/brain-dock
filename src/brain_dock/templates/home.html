@@ -4,14 +4,22 @@
 
 {% block content %}
 <header class="home-head">
-  <p class="eyebrow">{{ today.strftime("%a · %b") }} {{ today.day }}</p>
-  <h1>{{ greeting }}.</h1>
+  <div>
+    <p class="eyebrow">{{ today.strftime("%a · %b") }} {{ today.day }}</p>
+    <h1>{{ greeting }}.</h1>
+  </div>
+  <span class="orb-wrap" data-orb>
+    <button class="play-brief" type="button" disabled>
+      <canvas class="orb" width="34" height="34" aria-hidden="true"></canvas>
+      <span>Brief audio comes soon</span>
+    </button>
+  </span>
 </header>
 {% if no_modules %}
 <p>A modular personal daily-efficiency assistant.</p>
 <p>No modules are enabled. Set <code>BRAIN_DOCK_MODULES</code> to the modules you want, or leave it unset to enable all of them.</p>
 {% endif %}
-<div class="grid">
+<div class="grid" data-pack>
   {% for item in cards %}
   {% set tilt = loop.index0 %}
   {% include "partials/card.html" %}
@@ -26,4 +34,6 @@
   {% endif %}
   <a class="add-module" href="/settings"><span aria-hidden="true">+</span> Add module</a>
 </div>
+<script src="/static/orb.js" defer></script>
+<script src="/static/home.js" defer></script>
 {% endblock %}

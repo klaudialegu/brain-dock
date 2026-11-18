@@ -26,7 +26,7 @@ manifest = Manifest(
     agent_tools=AGENT_TOOLS,
     brief=brief_lines,
     label="Inbox",
-    color="sky",
+    color="teal",
     icon="M4 13l2.5-7h11l2.5 7v6H4zM4 13h5l1 2h4l1-2h5",
     cards=(CARD,),
 )

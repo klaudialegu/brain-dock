@@ -13,8 +13,7 @@ def pipeline_chart_data(links: list[PipelineLink]) -> dict:
         "nodes": [
             {
                 "name": stage_label(stage),
-                "color": STAGES[stage].color,
-                "darkColor": STAGES[stage].dark_color,
+                "color": STAGES[stage].chart,
             }
             for stage in stages
         ],

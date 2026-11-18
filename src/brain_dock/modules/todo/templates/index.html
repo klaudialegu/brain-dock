@@ -32,7 +32,7 @@
         <form class="inline-form" method="post" action="/todo/{{ task.id }}/bucket">
           {{ f.csrf(csrf_field, csrf_token) }}
           <input type="hidden" name="bucket" value="can_wait">
-          <button class="button-quiet" type="submit">↓ Can wait<span class="visually-hidden">: {{ task.title }}</span></button>
+          <button class="button button-quiet" type="submit">↓ Can wait<span class="visually-hidden">: {{ task.title }}</span></button>
         </form>
         {% endif %}
       </span>
@@ -64,7 +64,7 @@
         <form class="inline-form" method="post" action="/todo/{{ task.id }}/bucket">
           {{ f.csrf(csrf_field, csrf_token) }}
           <input type="hidden" name="bucket" value="today">
-          <button class="button-quiet" type="submit">↑ Today<span class="visually-hidden">: {{ task.title }}</span></button>
+          <button class="button button-quiet" type="submit">↑ Today<span class="visually-hidden">: {{ task.title }}</span></button>
         </form>
       </span>
     </li>

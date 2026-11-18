@@ -29,7 +29,7 @@
             <input type="hidden" name="{{ csrf_field }}" value="{{ csrf_token }}">
             <label for="applied-{{ job.id }}" class="visually-hidden">Applied on, for {{ job.role_title }} at {{ job.company }}</label>
             <input id="applied-{{ job.id }}" type="date" name="applied_on" value="{{ values.get('applied_on', '') }}" required{% if job.id in mark_errors %} aria-invalid="true" aria-describedby="applied-{{ job.id }}-error"{% endif %}>
-            <button class="button" type="submit">Mark applied<span class="visually-hidden"> {{ job.role_title }} at {{ job.company }}</span></button>
+            <button class="button button-quiet" type="submit">Mark applied<span class="visually-hidden"> {{ job.role_title }} at {{ job.company }}</span></button>
           </form>
           {% if job.id in mark_errors %}<span class="field-error" id="applied-{{ job.id }}-error">{{ mark_errors[job.id] }}</span>{% endif %}
         </td>

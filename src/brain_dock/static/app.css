@@ -62,6 +62,7 @@ body {
 }
 .rail-mark { display: block; width: 34px; height: 34px; margin-bottom: 14px; color: var(--text); }
 .rail a {
+  text-decoration: none;
   position: relative;
   display: flex;
   align-items: center;
@@ -84,7 +85,14 @@ body {
 h1 { margin: 0 0 0.5rem; font-family: var(--serif); font-weight: 300; font-size: 2.5rem; letter-spacing: -0.015em; line-height: 1.1; }
 h2 { margin: 0 0 0.5rem; font-size: 1.0625rem; font-weight: 600; }
 p { margin: 0 0 1rem; color: var(--muted); }
-a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a {
+  color: var(--accent);
+  text-decoration: underline dotted var(--dot);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+a:hover { text-decoration-style: solid; text-decoration-color: currentColor; }
+:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: 8px; }
 .mono, code, td.date { font-family: var(--mono); font-size: 0.875em; font-variant-numeric: tabular-nums; }
 .eyebrow { font-family: var(--mono); font-size: 0.8125rem; letter-spacing: 0.04em; color: var(--muted); text-transform: uppercase; }
 .swipe { background: linear-gradient(transparent 55%, var(--highlighter, #D9CCF2) 55%); color: var(--text); padding: 0 2px; }
@@ -95,8 +103,9 @@ a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset:
 .subnav a { padding: 6px 14px; border-radius: 999px; color: var(--muted); text-decoration: none; font-size: 0.875rem; }
 .subnav a[aria-current="page"], .subnav a:hover { background: var(--cream); color: var(--text); }
 
-/* --- Buttons: pills ------------------------------------------------------------------- */
-.button {
+/* --- Buttons: pills. No black buttons. Primary (one per view) is the highlighter of the
+   day with ink text (11:1 or better on every tint); secondary is a cream pill with a ring. */
+.button, .button-quiet {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -105,18 +114,20 @@ a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset:
   padding: 0 20px;
   border-radius: 999px;
   border: 0;
-  background: var(--text);
-  color: var(--bg);
+  background: var(--highlighter, #D9CCF2);
+  color: var(--text);
   font: inherit;
   font-weight: 500;
   text-decoration: none;
   cursor: pointer;
 }
+.button:hover { box-shadow: inset 0 0 0 1px rgba(29, 27, 24, 0.18); }
 .button-quiet, .button.button-quiet {
-  background: var(--cream);
+  background: var(--card);
   color: var(--text);
   box-shadow: inset 0 0 0 1px var(--border);
 }
+.button-quiet:hover, .button.button-quiet:hover { background: var(--cream); }
 button { font: inherit; color: inherit; }
 .inline-form { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0; }
 .inline-form input, .inline-form select {
@@ -129,7 +140,7 @@ button { font: inherit; color: inherit; }
   background: var(--card);
   color: var(--text);
 }
-.inline-form .button { min-height: 36px; padding: 0 14px; font-size: 0.875rem; }
+.inline-form .button, .inline-form .button-quiet { min-height: 36px; padding: 0 14px; font-size: 0.875rem; }
 
 /* --- Forms ----------------------------------------------------------------------------- */
 form.stack { display: grid; gap: 14px; max-width: 560px; }
@@ -209,13 +220,36 @@ form.stack [aria-invalid="true"] { border-color: var(--bad); }
 .card-list li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; padding: 8px 0; }
 .card-list li + li { border-top: 1px dotted var(--dot); }
 .card-meta { color: var(--muted); font-size: 0.8125rem; font-weight: 400; }
-.card-open { position: absolute; top: 14px; right: 20px; font-size: 0.8125rem; }
+.card-open { position: absolute; top: 14px; right: 20px; font-size: 0.8125rem; color: var(--muted); text-decoration: none; }
+.card-open:hover, .card-open:focus-visible { color: var(--text); text-decoration: underline; text-decoration-style: solid; }
 .done { color: var(--muted); text-decoration: line-through; }
 
 /* --- Home ------------------------------------------------------------------------------ */
-.home-head { margin-bottom: 26px; }
-.home-head h1 { font-size: 2.75rem; }
+.home-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 26px; }
+.home-head h1 { font-size: 2.75rem; margin: 0; }
+.home-head .eyebrow { margin-bottom: 6px; }
+/* The play-brief pill: the highlighter tint, ink dots on a canvas (static/orb.js). */
+.orb-wrap { display: inline-flex; }
+.play-brief {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 20px 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--highlighter, #D9CCF2);
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+.play-brief:disabled { cursor: default; pointer-events: none; } /* hover reaches the wrapper */
+.orb { display: block; width: 34px; height: 34px; }
+/* Cards align to the top of their row. With scripts on, static/home.js packs them so a short
+   card leaves no gap: tiny grid rows, each card spanning its own height. */
 .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 22px; align-items: start; }
+.grid.packed { grid-auto-rows: 2px; row-gap: 0; }
 .size-S { grid-column: span 3; }
 .size-M { grid-column: span 4; }
 .size-L { grid-column: span 5; }

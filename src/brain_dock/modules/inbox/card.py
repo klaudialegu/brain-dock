@@ -20,7 +20,7 @@ def render(ctx: CardContext) -> CardView:
 CARD = Card(
     id="inbox",
     label="Inbox",
-    color="sky",
+    color="teal",
     render=render,
     sizes=("S", "M"),
     default_size="S",

@@ -26,7 +26,7 @@
             itemStyle: { color: n.color },
           })),
           links: data.links,
-          lineStyle: { color: "gradient", opacity: 0.35 },
+          lineStyle: { color: "gradient", opacity: 0.3 },
           label: { color: "#1D1B18", fontFamily: "Inter, system-ui, sans-serif" },
         },
       ],

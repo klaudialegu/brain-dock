@@ -175,7 +175,7 @@ Today 673. Per-module and per-template tests grow on their own (each new templat
 
 ## PR 1 as built (2026-11-18)
 - **Tests:**
-  - `uv run pytest`: 673 → 750. 79 new (one added after review: `test_layout.py::test_hidden_module_leaves_the_spoken_brief`): 42 font checks, 3 palette, 6 layout, 5 Home, 1 core brief, 3 manifest-field checks, and 16 per-template checks for the 8 new templates.
+  - `uv run pytest`: 673 → 750. 79 new test IDs, 2 of them renames, so 77 net new (one added after review: `test_layout.py::test_hidden_module_leaves_the_spoken_brief`): 42 font checks, 3 palette, 7 layout, 5 Home, 1 core brief, 3 manifest-field checks, and 16 per-template checks for the 8 new templates.
   - 2 renamed:
     - `test_home.py::test_home_redirects_to_the_pipeline` → `::test_home_is_a_page_of_cards_not_a_redirect`.
     - `test_stages.py::test_css_has_light_and_dark_colors_for_every_stage` → `::test_css_has_a_color_for_every_stage_light_only` (D8 A).
@@ -191,8 +191,19 @@ Today 673. Per-module and per-template tests grow on their own (each new templat
   - Cards got a default `rank`, so a fresh Home shows To do, then Brief, then Career Radar, then Inbox.
   - The table classes went into their own file (`core/layout_tables.py`) to avoid a circular import with the database module.
   - The inbox card uses sky for now.
+- **After the owner's first look (2026-11-18), before merge:**
+  - **Buttons:** no black buttons. Primary is the highlighter tint with ink text, at most one per view. Secondary and row actions are cream pills.
+  - **Links:** "Open →" in soft grey; dotted underlines in text and tables; focus rings kept.
+  - **Inbox:** gets its own color, teal (`#C6E6E1` / `#3E8A80`), pending the owner's choice between teal and moss (`#E2E3B9` / `#7B8237`). Sky stays for Schedule. The palette now has eight colors.
+  - **Pipeline chart and chips:** warm. `StageInfo.chart` holds the module ink per stage, and the closed stages use warm greys at 3:1 or better.
+  - **Home:** packs its cards.
+  - **Play brief:** the pill and dot orb come forward from PR 4, display-only.
+  - **Tests:**
+    - `uv run pytest`: 750 → 752, adding `test_stages.py::test_stage_colors_are_warm_and_readable` and `test_home.py::test_play_brief_pill_is_shown_disabled_until_audio_arrives`. `test_dashboard.py`'s chart test now reads `.chart`.
+    - `uv run pytest e2e`: 40 → 42, adding `e2e/test_orb.py::test_reduced_motion_keeps_the_orb_still` and `::test_drawing_stops_when_the_tab_is_hidden` (moved from PR 4; break-tested).
+    - PR 4 keeps the label switch, playback and the audio-driven ripples.
 - **Not yet in PR 1:**
-  - The greeting name and the dot halo (PR 4).
+  - The greeting name, the dot halo, playback and the audio-driven ripples (PR 4).
   - Quick capture (PR 2: the Scratchpad declares `capture`).
   - The README screenshot (PR 5).
 

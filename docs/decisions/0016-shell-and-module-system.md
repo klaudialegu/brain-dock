@@ -28,9 +28,16 @@ Each module had its own pages and a shared text nav, and `/` jumped to the first
 7. **The look:**
    - **Colors:** paper `#F8F5EF`, cards `#FFFEFB` with a 1px `#E9E3D8` ring and a 24px radius, ink `#1D1B18`, secondary text `#6B6862`, and pill buttons.
    - **Fonts:** Newsreader Light for big headings, Inter for reading, Geist Mono for times, dates and counts, and Kalam Light only for margin notes and the scratchpad. All four are self-hosted (OFL), with checksums like ECharts. The CSP is unchanged.
-   - **Seven module colors** (`core/palette.py`), each with a tint, an ink and a tape-text ink:
+   - **Eight module colors** (`core/palette.py`), each with a tint, an ink and a tape-text ink:
      - tape text reads at 4.5:1 or better on its tint;
      - inks read at 3:1 or better on cards and paper (WCAG's level for non-text UI). The butter ink is darker than its tint for that reason.
+   - **Buttons:** pills only, never black.
+     - Primary (at most one per view) is the highlighter of the day with ink text, 11:1 or better on every tint.
+     - Secondary is a cream pill with a 1px ring; repeated row actions are always secondary.
+   - **Links:** in text and tables, a dotted underline that turns solid on hover. A card's "Open →" is soft grey with no underline until hover or focus. Focus rings stay visible.
+   - **Stage chips and the pipeline chart are warm:** chips use the palette's dark tape inks, and the chart uses the module inks and warm greys.
+   - **Home packs its cards** (`static/home.js`), so a short card leaves no gap under it. Without scripts, cards align to the top of their row.
+   - **The header's Play brief pill:** the highlighter tint, with a dot orb drawn on a canvas (`static/orb.js`). It breathes slowly, leans toward the pointer, stays still under reduced motion, and stops in a hidden tab. The canvas is `aria-hidden`. It's display-only until playback arrives: a disabled button labelled "Brief audio comes soon".
    - **One light look for now.** A dark palette is parked.
    - **Motion:** `prefers-reduced-motion` turns animation off everywhere.
 

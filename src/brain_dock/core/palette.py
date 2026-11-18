@@ -85,6 +85,15 @@ PALETTE: dict[str, Color] = {
             "#5A4512",
         ),
         Color(
+            "teal",
+            "Teal",
+            "#C6E6E1",
+            "#3E8A80",
+            "rgba(178,218,211,.85)",
+            "rgba(192,226,220,.85)",
+            "#173F3A",
+        ),
+        Color(
             "rose",
             "Rose",
             "#F2CCD9",

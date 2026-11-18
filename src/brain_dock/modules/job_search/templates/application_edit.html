@@ -25,7 +25,7 @@
     {{ f.select("stage", "Stage", stage_values, stage_errors, stage_options, required=True) }}
     {{ f.input("happened_on", "Date", stage_values, stage_errors, type="date", required=True) }}
     {{ f.textarea("note", "Note", stage_values, stage_errors, rows=2, hint="optional") }}
-    <p><button class="button" type="submit">Record stage</button></p>
+    <p><button class="button button-quiet" type="submit">Record stage</button></p>
   </form>
 </section>
 

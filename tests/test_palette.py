@@ -24,4 +24,4 @@ def test_palette_css_has_every_module_color():
     for color in PALETTE.values():
         assert f".c-{color.name} {{ --tint: {color.tint}; --ink: {color.ink};" in css
         assert f".hl-{color.name} {{ --highlighter: {color.tint};" in css
-    assert len(PALETTE) == 7
+    assert len(PALETTE) == 8

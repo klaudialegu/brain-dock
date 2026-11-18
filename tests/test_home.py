@@ -6,7 +6,7 @@ def test_home_is_a_page_of_cards_not_a_redirect(client):
     response = client.get("/", follow_redirects=False)
 
     assert response.status_code == 200
-    assert '<div class="grid">' in response.text
+    assert '<div class="grid" data-pack>' in response.text
 
 
 def test_static_css_is_served(client):
@@ -105,3 +105,14 @@ def test_no_capture_field_when_no_module_captures(client):
     html = client.get("/").text
 
     assert "Quick capture" not in html and 'name="text"' not in html
+
+
+def test_play_brief_pill_is_shown_disabled_until_audio_arrives(client):
+    html = client.get("/").text
+
+    button = re.search(r'<button class="play-brief"[^>]*>(.*?)</button>', html, re.S)
+    assert button and " disabled" in button.group(0)  # display-only until playback exists
+    assert "Brief audio comes soon" in button.group(1)  # its visible text is its label
+    assert '<canvas class="orb"' in button.group(1) and 'aria-hidden="true"' in button.group(1)
+    assert '<script src="/static/orb.js" defer></script>' in html
+    assert client.get("/static/orb.js").status_code == 200

@@ -26,25 +26,25 @@
       <form class="inline-form" method="post" action="/todo/{{ task.id }}/steps/{{ step.id }}/done">
         {{ f.csrf(csrf_field, csrf_token) }}
         <input type="hidden" name="done" value="{{ '0' if step.done else '1' }}">
-        <button class="button-quiet" type="submit">{{ "Not done" if step.done else "Done" }}<span class="visually-hidden">: step {{ step.position }}</span></button>
+        <button class="button button-quiet" type="submit">{{ "Not done" if step.done else "Done" }}<span class="visually-hidden">: step {{ step.position }}</span></button>
       </form>
       {% if not loop.first %}
       <form class="inline-form" method="post" action="/todo/{{ task.id }}/steps/{{ step.id }}/move">
         {{ f.csrf(csrf_field, csrf_token) }}
         <input type="hidden" name="direction" value="up">
-        <button class="button-quiet" type="submit">↑<span class="visually-hidden"> Move step {{ step.position }} up</span></button>
+        <button class="button button-quiet" type="submit">↑<span class="visually-hidden"> Move step {{ step.position }} up</span></button>
       </form>
       {% endif %}
       {% if not loop.last %}
       <form class="inline-form" method="post" action="/todo/{{ task.id }}/steps/{{ step.id }}/move">
         {{ f.csrf(csrf_field, csrf_token) }}
         <input type="hidden" name="direction" value="down">
-        <button class="button-quiet" type="submit">↓<span class="visually-hidden"> Move step {{ step.position }} down</span></button>
+        <button class="button button-quiet" type="submit">↓<span class="visually-hidden"> Move step {{ step.position }} down</span></button>
       </form>
       {% endif %}
       <form class="inline-form" method="post" action="/todo/{{ task.id }}/steps/{{ step.id }}/remove">
         {{ f.csrf(csrf_field, csrf_token) }}
-        <button class="button-quiet" type="submit">Remove<span class="visually-hidden"> step {{ step.position }}</span></button>
+        <button class="button button-quiet" type="submit">Remove<span class="visually-hidden"> step {{ step.position }}</span></button>
       </form>
     </span>
   </li>
@@ -60,6 +60,6 @@
   {{ f.csrf(csrf_field, csrf_token) }}
   {{ f.input("title", "Step", step_values, step_errors, required=True) }}
   {{ f.input("minutes", "Minutes", step_values, step_errors, type="number", hint="optional") }}
-  <p><button class="button" type="submit">Add step</button></p>
+  <p><button class="button button-quiet" type="submit">Add step</button></p>
 </form>
 {% endblock %}

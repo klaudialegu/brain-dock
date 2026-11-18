@@ -51,3 +51,17 @@ def test_stage_css_is_served_and_linked(client):  # the fixture: pages read the 
     assert response.headers["content-type"].startswith("text/css")
     assert response.text == stage_css()
     assert '<link rel="stylesheet" href="/stages.css">' in client.get("/applications/new").text
+
+
+def test_stage_colors_are_warm_and_readable():
+    from brain_dock.core.palette import CARD, PALETTE, contrast
+
+    inks = {c.ink for c in PALETTE.values()}
+    for stage, info in STAGES.items():
+        assert contrast(info.color, "#F3EEE5") >= 4.5, stage  # chip text on its cream badge
+        assert contrast(info.chart, CARD) >= 3, stage  # a chart node on the card
+        if info.kind in ("saved", "active", "won") and stage != Stage.applied:
+            assert info.chart in inks, stage  # the module inks, not a cool blue-grey
+    greys = [STAGES[s].chart for s in STAGES if STAGES[s].kind == "closed"]
+    for grey in greys:  # warm: red channel at or above blue
+        assert int(grey[1:3], 16) >= int(grey[5:7], 16), grey
