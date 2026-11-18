@@ -122,7 +122,7 @@
    - **Reduced motion:** no movement; it only changes color when playing.
    - Hidden tab: the drawing loop stops.
    - **Audio** (D4 A):
-     - After each successful show, the voice command writes `data/voice_cache/today.json` (owner-only), holding only the date and the audio file's name.
+     - After each successful morning brief, the voice command writes `data/voice_cache/today.json` (owner-only), holding only the date and the audio file's name.
      - `/brief/audio` reads that pointer and serves the file only when the date is today and the name is a bare cache file name (64 hex characters + `.mp3`) inside `data/voice_cache/`, with `Cache-Control: no-store`.
      - The server never rebuilds the script, reads the keychain or touches the network.
      - With no file, the button says "No brief audio yet" and the brief page shows the command.

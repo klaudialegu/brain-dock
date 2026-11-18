@@ -24,7 +24,7 @@ Task titles are a new kind of personal data. Until now the brief held counts and
    - At most 2 titles, each masked first (`core/masking.py`: secret shapes, then `redact()`), then cleaned (letters in any language, digits, basic punctuation) and trimmed to 40 characters. Masking comes first, because cleaning removes the "@" or "=" the masking looks for, and trimming can cut an address in half. Workout names get the same order.
    - With nothing for today, the module adds no line at all.
    - This is the one exception to "counts and dates only" (ADR 0013), and only for tasks the owner marks.
-4. **The morning brief's order:** greeting, weather, workout, to-dos, job counts, sign-off. If the script is over the cap, to-do titles are dropped first; the count stays. Module lines are kept per module so the show can place them.
+4. **The morning brief's order:** greeting, weather, workout, to-dos, job counts, sign-off. If the script is over the cap, to-do titles are dropped first; the count stays. Module lines are kept per module so the morning brief can place them.
 5. **No delete in this slice.** To-dos aren't in any backup yet: `brain_dock.export` covers Career Radar only. A deleted task couldn't come back, so deleting tasks waits for the delete/remove slice, which plans an export first. Removing a step is allowed.
 6. **Plain form posts, no scripts:** CSRF on every post (ADR 0005), errors next to their fields, never echoing what was typed.
 

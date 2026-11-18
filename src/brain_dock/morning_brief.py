@@ -28,7 +28,7 @@ RUNNA_SERVICE = "brain-dock-runna-ics"  # keychain service holding the feed's se
 
 @dataclass
 class Sources:
-    """What the show knows this morning. None means the section is left out."""
+    """What the morning brief knows this morning. None means the section is left out."""
 
     greeting_name: str = ""
     weather: Weather | None = None

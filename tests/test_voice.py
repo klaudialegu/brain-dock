@@ -452,7 +452,7 @@ def test_monthly_character_budget_stops_before_the_free_plan_limit(tmp_path):
 
 def test_brief_asks_nothing_and_plays_at_normal_speed(tmp_path, monkeypatch):
     def no_prompt(*args):
-        raise AssertionError("the show must not ask anything")
+        raise AssertionError("the morning brief must not ask anything")
 
     monkeypatch.setattr("builtins.input", no_prompt)
     played = []

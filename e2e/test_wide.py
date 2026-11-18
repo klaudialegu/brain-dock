@@ -10,7 +10,7 @@ WIDTHS = [1440, 1920, 2560]
 MAX_COLUMN = 1600
 
 
-@pytest.mark.parametrize("name", ["home", "applications"])
+@pytest.mark.parametrize("name", ["home", "applications", "brief"])
 @pytest.mark.parametrize("width", WIDTHS)
 def test_window_fits(page, width, name):
     page.set_viewport_size({"width": width, "height": 1000})
@@ -23,7 +23,9 @@ def test_window_fits(page, width, name):
     left = column["x"] - main["x"]
     right = main["x"] + main["width"] - (column["x"] + column["width"])
     assert abs(left - right) <= 2, (left, right)  # centered in the space beside the rail
-    if main["width"] >= MAX_COLUMN + 2 * 72:
+    if name == "brief":  # a narrow page: 640px, centered like the rest
+        assert abs(column["width"] - 640) <= 1
+    elif main["width"] >= MAX_COLUMN + 2 * 72:
         assert abs(column["width"] - MAX_COLUMN) <= 1  # grows to its full width
     else:
         assert column["width"] >= main["width"] - 2 * 72 - 1  # only the side margins left

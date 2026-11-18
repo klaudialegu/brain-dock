@@ -55,6 +55,6 @@ Brain Dock has no calendar and no task list yet. Most meetings are repeating eve
 
 ## Consequences
 - Good: one dry run shows the exact script, and a voice-off dry run touches nothing outside the Mac.
-- Good: the cost is bounded twice: by length per show, and by a monthly counter.
+- Good: the cost is bounded twice: by length per brief, and by a monthly counter.
 - Trade-off: the greeting name and the workout's name now go to ElevenLabs, which keeps them by default. The README says so.
 - Trade-off: the default voices end on December 31, 2026, so a voice decision is due before then.

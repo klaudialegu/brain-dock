@@ -61,7 +61,7 @@
    - **The lines:**
      - a count, like "On today's list: 3 things." With nothing for today, no to-do line at all, so the brief keeps saying "Nothing needs your attention today." when that's true.
      - then, only for tasks marked "ok to read aloud": "First up: <title>, and <title>." At most 2 titles, each cleaned (letters, digits, basic punctuation) and trimmed to 40 characters at a word boundary.
-   - **In the show:** the to-do sentence comes after the workout and before job counts. That needs module lines kept per module (`brief.module_lines` returns them by module name).
+   - **In the morning brief:** the to-do sentence comes after the workout and before job counts. That needs module lines kept per module (`brief.module_lines` returns them by module name).
    - **Cap order:** to-do titles are dropped first (the count stays), as ADR 0014 planned.
    - Titles go through the same masking (secret shapes, then `redact()`) as the rest of the script.
 5. **Demo and checks:**
@@ -112,7 +112,7 @@
 
 **Changed, not renamed:**
 - `test_brief.py::test_brief_never_names_companies_roles_notes_or_links` also plants unmarked to-do titles. This was the review's pre-mortem: every module's data, run through the whole brief.
-- The show tests and fixtures move to per-module lines.
+- The morning brief's tests and fixtures move to per-module lines.
 
 **Found during the build: 665 → 671.** Two existing tests run once per template:
 - `test_security_headers.py::test_templates_have_no_inline_scripts_or_styles`

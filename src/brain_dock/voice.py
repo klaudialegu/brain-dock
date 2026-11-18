@@ -6,7 +6,7 @@ Off by default. When `[voice] enabled = true` is in config.toml:
   gateway's redact()), along with the model ID and two fixed voice settings.
 - The API key comes from the macOS keychain, never a file. It's sent only in the request
   header, and never printed, logged or put in an error.
-- Credits: the script is capped (show.MAX_SCRIPT_CHARS), audio is cached by content, at
+- Credits: the script is capped (morning_brief.MAX_SCRIPT_CHARS), audio is cached by content, at
   most MAX_ATTEMPTS_PER_DAY requests go out a day, and a local monthly counter stops at
   MONTHLY_CHAR_BUDGET characters (the free plan has 10,000 credits a month).
 - The model is Eleven v3; if the account can't use it, one fallback to Multilingual v2.
@@ -78,7 +78,7 @@ UNITS = ("fahrenheit", "celsius")
 
 
 class VoiceError(RuntimeError):
-    """The show can't be spoken. Messages name keys and codes, never values or text."""
+    """The morning brief can't be spoken. Messages name keys and codes, never values or text."""
 
 
 class VoiceRefused(VoiceError):

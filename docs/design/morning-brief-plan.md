@@ -46,7 +46,7 @@ The mood question goes away for now.
   - A (recommended): build with Sarah as the default, plus `--voices`, which lists the names and IDs your key can actually use (one GET, nothing of yours sent). Decide the 2027 voice by December 15: a paid plan, your own voice, or macOS `say`. NEXT.md gets that date.
   - B: pause the build until you've checked your account's voices.
 - **D2: where to-dos come from.** Brain Dock has no task list, so the per-task "ok to read aloud" flag needs one.
-  - A (recommended): a second PR right after this one, a small to-do module. Each task has a title, a due date, done, and "ok to read aloud" (off by default), on its own page. That PR gets its own short plan. Until it lands, the show has no to-do section.
+  - A (recommended): a second PR right after this one, a small to-do module. Each task has a title, a due date, done, and "ok to read aloud" (off by default), on its own page. That PR gets its own short plan. Until it lands, the morning brief has no to-do section.
   - B: one PR for everything, which is much bigger and includes a UI and a migration.
 
 ## Decided by this plan (no need to choose)

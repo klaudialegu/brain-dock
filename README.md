@@ -85,7 +85,7 @@ Nothing else is sent. No event notes, locations, feed addresses, exact coordinat
 
 **Credits:**
 - The model is Eleven v3, falling back to Multilingual v2 if your plan can't use v3.
-- A show is at most 420 characters (at most 420 credits). That's about 9,700 credits for 23 weekdays, under the free plan's 10,000.
+- A morning brief is at most 420 characters (at most 420 credits). That's about 9,700 credits for 23 weekdays, under the free plan's 10,000.
 - A local monthly counter stops at 9,800 characters, and at most 3 requests go out a day.
 - The same script is never generated twice: audio is cached in `data/voice_cache/`, owner-only, for 7 days, and the forecast is cached for the morning.
 - macOS only (playback uses `afplay`).
