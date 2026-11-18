@@ -19,10 +19,9 @@
 {% if capture %}
 <form class="quick-capture" method="post" action="{{ capture }}" aria-label="Quick capture">
   <input type="hidden" name="{{ csrf_field }}" value="{{ csrf_token }}">
-  <input type="hidden" name="next" value="/">
   <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 19l1-4L16 5l3 3L9 18zM14 7l3 3M5 19h4"/></svg>
   <label class="visually-hidden" for="quick-capture">Quick capture</label>
-  <input id="quick-capture" name="text" autocomplete="off" placeholder="Jot it down. It lands on the Scratchpad.">
+  <input id="quick-capture" name="text" autocomplete="off" maxlength="2000" placeholder="Jot it down. It lands in {{ request.state.shell.capture_label }}.">
   <kbd class="mono" aria-hidden="true">⌘K</kbd>
 </form>
 {% endif %}

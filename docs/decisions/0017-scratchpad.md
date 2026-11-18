@@ -16,10 +16,12 @@ Quick notes need a home that's faster than a form: one line from anywhere, and a
    - **Sizes:** card, wide or full.
    - Pen, paper and size are saved on the page. The writing is in Kalam Light.
 5. **Saving:** the Save button is a plain form post with CSRF (ADR 0005). A small script also saves while typing, posting the same form; it gets a 204 back and no page.
+   - The form carries a fingerprint of the text it loaded. A save from a page that changed since (say, a quick note landed) is refused, and what was typed stays on screen; Save again keeps it.
+   - Saves go one at a time, and a pending save is sent before the pen, paper or size changes, so the last words typed are kept.
 6. **Quick capture:** the manifest's `capture` path (ADR 0016).
    - Home shows a capture field when an enabled module accepts notes. ⌘K or Ctrl+K focuses it, or opens Home with it focused from any other page.
-   - A note becomes one line at the end of today's latest page.
-   - Where the form returns to (`next`) must be a path on this app, never another site.
+   - A note becomes one line at the end of today's latest page, or starts a new page when it wouldn't fit. A note is at most 2,000 characters.
+   - The form on Home returns to Home. A page's own script (Focus mode's "Park a thought") gets 204 and stays put. Where to go is never taken from the request, so capture can't redirect to another site.
 7. **Privacy:** scratchpad text is personal data. It stays in the local database and is never logged. It has no `brief` contributor, so it never reaches the brief, the morning brief or any outside service.
 
 ## Options considered

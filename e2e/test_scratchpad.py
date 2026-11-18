@@ -45,3 +45,24 @@ def test_quick_capture_shortcut_lands_on_the_scratchpad(page):
     expect(page.locator("#pad-text")).to_have_value(
         re.compile(re.escape(note) + r"$")
     )  # …and the page
+
+
+def test_words_typed_just_before_switching_paper_are_kept(page):
+    page.goto("/scratchpad")
+    box = page.locator("#pad-text")
+    original = box.input_value()
+    sent = []
+    page.on("request", lambda r: sent.append(r.url) if r.method == "POST" else None)
+    box.focus()
+    box.evaluate("el => el.setSelectionRange(el.value.length, el.value.length)")
+    box.press_sequentially(" quick words")  # no pause: the autosave timer hasn't fired yet
+    page.get_by_role("button", name="Dotted").click()
+    expect(page.locator("section.pad-sheet")).to_have_class(re.compile(r"\bpaper-dotted\b"))
+    expect(page.locator("#pad-text")).to_have_value(original + " quick words")  # no reload needed
+    assert [url.rsplit("/", 1)[-1] for url in sent] == ["text", "style"]  # the words went first
+
+    page.locator("#pad-text").fill(original)  # put it back
+    page.get_by_role("button", name="Lined").click()
+    expect(page.locator("section.pad-sheet")).to_have_class(re.compile(r"\bpaper-lined\b"))
+    page.reload()
+    expect(page.locator("#pad-text")).to_have_value(original)

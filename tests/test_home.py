@@ -1,3 +1,5 @@
+from pathlib import Path
+
 """Home and the static stylesheet. Every page reads the saved layout, so these use the
 `client` fixture (an in-memory database), never a shared app state."""
 
@@ -119,3 +121,14 @@ def test_play_brief_pill_is_shown_disabled_until_audio_arrives(client):
     assert '<canvas class="orb"' in button.group(1) and 'aria-hidden="true"' in button.group(1)
     assert '<script src="/static/orb.js" defer></script>' in html
     assert client.get("/static/orb.js").status_code == 200
+
+
+def test_quick_capture_placeholder_is_readable(client):
+    from brain_dock.core.palette import contrast
+
+    html = client.get("/").text
+    assert 'placeholder="Jot it down. It lands in Scratchpad."' in html  # the module's label
+    assert 'data-capture="/scratchpad/capture"' in html  # the shortcut finds it from any page
+    css = (Path(__file__).parents[1] / "src/brain_dock/static/app.css").read_text()
+    assert ".quick-capture input::placeholder { color: var(--muted); opacity: 1; }" in css
+    assert contrast("#6B6862", "#FFFEFB") >= 4.5  # --muted on the card

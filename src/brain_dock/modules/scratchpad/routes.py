@@ -22,6 +22,7 @@ from brain_dock.modules.scratchpad.models import (
     latest,
     new_page,
     pages_by_day,
+    revision,
     set_style,
     set_text,
     text_layer,
@@ -29,6 +30,7 @@ from brain_dock.modules.scratchpad.models import (
 
 router = APIRouter()
 SAVED_BY_SCRIPT = "x-scratchpad-save"  # the autosave script's header: answer 204, no page
+CAPTURED_BY_SCRIPT = "x-scratchpad-capture"  # a page's own capture script: 204, no redirect
 
 
 def load_page(session: Session, page_id: int) -> ScratchpadPage:
@@ -44,11 +46,13 @@ def page_view(
     page: ScratchpadPage | None,
     errors: dict | None = None,
     status_code: int = 200,
+    text: str | None = None,
 ) -> HTMLResponse:
+    """`text` keeps what was typed when a save is refused, so nothing typed is lost."""
     return render_form(
         request,
         "scratchpad/page.html",
-        {"text": text_layer(page).content if page else ""},
+        {"text": text if text is not None else (text_layer(page).content if page else "")},
         errors,
         status_code,
         page=page,
@@ -57,14 +61,8 @@ def page_view(
         papers=PAPERS,
         sizes=SIZES,
         today=date.today(),
+        base=revision(page) if page else "",
     )
-
-
-def safe_next(value: str | None) -> str:
-    """Only a path on this app (never another site): where quick capture returns to."""
-    if value and value.startswith("/") and not value.startswith("//") and "\\" not in value:
-        return value
-    return "/"
 
 
 @router.get("/scratchpad", response_class=HTMLResponse)
@@ -89,28 +87,47 @@ def create_page(session: SessionDep):
 
 @router.post("/scratchpad/capture", dependencies=[Depends(verify_csrf)])
 def capture(request: Request, session: SessionDep, values: FormValues):
+    """One line on today's page. The form on Home comes back to Home; a page's own script
+    (Focus mode's "Park a thought") gets 204 and stays where it is. The destination never
+    comes from the request, so this can't be turned into a redirect to another site."""
+    text = values.get("text", "")
     try:
-        append_line(session, date.today(), values.get("text", ""))
+        append_line(session, date.today(), text)
     except ScratchpadError:
-        session.rollback()  # an empty note: nothing to keep, go back quietly
-        return RedirectResponse(safe_next(values.get("next")), status_code=303)
-    session.commit()
-    return RedirectResponse(safe_next(values.get("next")), status_code=303)
+        session.rollback()
+        if text.strip():  # too long: say so rather than drop it (the field caps it first)
+            raise HTTPException(status_code=400, detail="Note too long") from None
+        # an empty note: nothing to keep
+    else:
+        session.commit()
+    if request.headers.get(CAPTURED_BY_SCRIPT):
+        return Response(status_code=204)
+    return RedirectResponse("/", status_code=303)
 
 
 @router.post("/scratchpad/{page_id}/text", dependencies=[Depends(verify_csrf)])
 def save_text(request: Request, page_id: int, session: SessionDep, values: FormValues):
     page = load_page(session, page_id)
+    text = values.get("text", "")
+    by_script = bool(request.headers.get(SAVED_BY_SCRIPT))
+    if values.get("base", "") != revision(page):  # changed since this form loaded
+        if by_script:
+            return Response(status_code=409)
+        message = (
+            "Text: this page changed since you opened it (a quick note may have landed). "
+            "What you typed is below; Save again to keep it as the page."
+        )
+        return page_view(request, session, page, {"text": message}, 409, text)
     try:
-        set_text(page, values.get("text", ""))
+        set_text(page, text)
     except ScratchpadError as e:
         session.rollback()
-        if request.headers.get(SAVED_BY_SCRIPT):
+        if by_script:
             return Response(status_code=400)
-        return page_view(request, session, page, {"text": str(e)}, 400)
+        return page_view(request, session, page, {"text": str(e)}, 400, text)
     session.commit()
-    if request.headers.get(SAVED_BY_SCRIPT):
-        return Response(status_code=204)
+    if by_script:  # the script keeps its base current from this header
+        return Response(status_code=204, headers={"x-scratchpad-base": revision(page)})
     return RedirectResponse(f"/scratchpad/{page.id}", status_code=303)
 
 

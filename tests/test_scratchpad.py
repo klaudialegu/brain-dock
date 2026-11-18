@@ -22,6 +22,7 @@ from brain_dock.modules.scratchpad.models import (
     append_line,
     new_page,
     pages_by_day,
+    revision,
     set_style,
     set_text,
     text_layer,
@@ -39,6 +40,20 @@ def post(client, path, data, follow=False):
         path,
         data={**data, "csrf_token": token.group(1)},
         headers={"Origin": BASE_URL},
+        follow_redirects=False,
+    )
+
+
+def save(client, page_id, text, script=False, base=None):
+    """Save a page's text the way its form does: with the CSRF token and the text's
+    fingerprint (base) from the page as loaded."""
+    html = client.get(f"/scratchpad/{page_id}").text
+    token = re.search(r'name="csrf_token" value="([^"]+)"', html).group(1)
+    loaded = re.search(r'name="base" value="([0-9a-f]*)"', html).group(1)
+    return client.post(
+        f"/scratchpad/{page_id}/text",
+        data={"text": text, "csrf_token": token, "base": loaded if base is None else base},
+        headers={"Origin": BASE_URL, **({"x-scratchpad-save": "1"} if script else {})},
         follow_redirects=False,
     )
 
@@ -100,23 +115,10 @@ def test_text_is_a_layer_and_layers_keep_their_order(client, session):
     session.commit()
     assert [(layer.kind, layer.position) for layer in page.layers] == [("text", 0)]
 
-    assert (
-        post(client, f"/scratchpad/{page.id}/text", {"text": "first line\r\nsecond"}).status_code
-        == 303
-    )
-    saved = post(client, f"/scratchpad/{page.id}/text", {"text": "by script"})
-    assert saved.status_code == 303
-    by_script = client.post(
-        f"/scratchpad/{page.id}/text",
-        data={
-            "text": "autosaved",
-            "csrf_token": re.search(
-                r'name="csrf_token" value="([^"]+)"', client.get("/scratchpad").text
-            ).group(1),
-        },
-        headers={"Origin": BASE_URL, "x-scratchpad-save": "1"},
-    )
+    assert save(client, page.id, "first line\r\nsecond").status_code == 303
+    by_script = save(client, page.id, "autosaved", script=True)
     assert by_script.status_code == 204  # the autosave script gets no page back
+    assert by_script.headers["x-scratchpad-base"] == revision(pages(session)[0])  # its next base
     page = pages(session)[0]
     assert text_layer(page).content == "autosaved"
     session.add(ScratchpadLayer(page_id=page.id, kind="ink", position=1))  # a future layer
@@ -131,16 +133,22 @@ def test_capture_appends_to_todays_page(client, session):
     home = client.get("/").text
     assert 'action="/scratchpad/capture"' in home and 'id="quick-capture"' in home
 
-    response = post(client, "/scratchpad/capture", {"text": "  buy   stamps ", "next": "/"})
+    response = post(client, "/scratchpad/capture", {"text": "  buy   stamps "})
     assert response.status_code == 303 and response.headers["location"] == "/"
-    post(client, "/scratchpad/capture", {"text": "call back", "next": "/todo/3/focus"})
+    token = re.search(r'name="csrf_token" value="([^"]+)"', client.get("/").text).group(1)
+    by_script = client.post(
+        "/scratchpad/capture",
+        data={"text": "call back", "csrf_token": token},
+        headers={"Origin": BASE_URL, "x-scratchpad-capture": "1"},
+    )
+    assert by_script.status_code == 204  # a page's own script stays where it is
     [page] = pages(session)
     assert (page.day, text_layer(page).content) == (TODAY, "buy stamps\ncall back")
-    for unsafe in ["https://example.com/", "//example.com/x", "/\\example.com"]:
+    for unsafe in ["https://example.com/", "//example.com/x", "/\texample.com", "/\t/example.com"]:
         r = post(client, "/scratchpad/capture", {"text": "x", "next": unsafe})
-        assert r.headers["location"] == "/"  # never sends you to another site
+        assert r.status_code == 303 and r.headers["location"] == "/"  # a request never picks it
     assert post(client, "/scratchpad/capture", {"text": "   "}).status_code == 303
-    assert text_layer(pages(session)[0]).content.count("\n") == 4  # the empty one added nothing
+    assert text_layer(pages(session)[0]).content.count("\n") == 5  # the empty one added nothing
     with pytest.raises(ScratchpadError):
         append_line(session, TODAY, "")
 
@@ -150,19 +158,18 @@ def test_typed_text_never_appears_in_logs(client, session, caplog):
     page = new_page(session, TODAY)
     session.commit()
 
-    post(client, f"/scratchpad/{page.id}/text", {"text": f"{SECRET} note"})
+    assert save(client, page.id, f"{SECRET} note").status_code == 303
     post(client, "/scratchpad/capture", {"text": f"{SECRET} capture"})
-    post(client, f"/scratchpad/{page.id}/text", {"text": SECRET * 2_000})  # too long: an error
+    assert save(client, page.id, SECRET * 2_000).status_code == 400  # too long: an error
+    assert "at most 20,000 characters" in save(client, page.id, SECRET * 2_000).text  # shown
+    assert save(client, page.id, SECRET, base="0" * 16).status_code == 409  # stale: an error
     post(client, f"/scratchpad/{page.id}/style", {"pen": SECRET})
 
     assert caplog.records  # the capture works: something was logged
     assert SECRET not in caplog.text
-    errors = re.findall(
-        r'<div class="form-errors"[^>]*>(.*?)</div>',
-        post(client, f"/scratchpad/{page.id}/text", {"text": SECRET * 2_000}).text,
-        re.S,
-    )
-    assert errors and all(SECRET not in e for e in errors)
+    for refused in [save(client, page.id, SECRET * 2_000), save(client, page.id, SECRET, base="0")]:
+        errors = re.findall(r'<div class="form-errors"[^>]*>(.*?)</div>', refused.text, re.S)
+        assert errors and all(SECRET not in e for e in errors)
 
 
 def test_pen_inks_read_at_4_5_to_1_on_every_paper():
@@ -210,3 +217,39 @@ def test_scratchpad_demo_writes_only_the_demo_database(tmp_path, monkeypatch):
     assert demo.main() == 0
     assert "already has" in demo.load_demo(demo_db)
     assert hashlib.sha256(real.read_bytes()).hexdigest() == before
+
+
+def test_a_stale_page_never_replaces_newer_text(client, session):
+    page = new_page(session, TODAY)
+    set_text(page, "first")
+    session.commit()
+    html = client.get(f"/scratchpad/{page.id}").text  # a tab opens the page…
+    stale = re.search(r'name="base" value="([0-9a-f]+)"', html).group(1)
+    post(client, "/scratchpad/capture", {"text": "captured since"})  # …a note lands…
+
+    by_script = save(client, page.id, "first, edited", script=True, base=stale)
+    assert by_script.status_code == 409  # …and the old tab's autosave is refused
+    refused = save(client, page.id, "first, edited", base=stale)
+    assert refused.status_code == 409
+    assert "changed since you opened it" in refused.text
+    assert ">first, edited</textarea>" in refused.text  # what was typed is kept on screen
+    assert text_layer(pages(session)[0]).content == "first\ncaptured since"
+    fresh = re.search(r'name="base" value="([0-9a-f]+)"', refused.text).group(1)
+    assert save(client, page.id, "first, edited", base=fresh).status_code == 303  # Save again
+    assert text_layer(pages(session)[0]).content == "first, edited"
+
+
+def test_capture_starts_a_new_page_when_the_page_is_full(client, session):
+    page = new_page(session, TODAY)
+    set_text(page, "x" * 19_990)
+    session.commit()
+
+    assert (
+        post(client, "/scratchpad/capture", {"text": "a note that would not fit"}).status_code
+        == 303
+    )
+    full, fresh = pages(session)
+    assert text_layer(full).content == "x" * 19_990  # untouched
+    assert (fresh.position, text_layer(fresh).content) == (2, "a note that would not fit")
+    assert post(client, "/scratchpad/capture", {"text": "y" * 2_001}).status_code == 400  # said
+    assert 'maxlength="2000"' in client.get("/").text  # the field stops it first

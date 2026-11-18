@@ -92,17 +92,20 @@ def rail(request: Request, session) -> list[RailEntry]:
 
 def shell_state(request: Request, session: SessionDep) -> None:
     """Runs for every route (an app-wide dependency), so each page gets its rail."""
+    # The first shown module that accepts quick notes, if any (ADR 0016).
+    capture = next(
+        (
+            m
+            for m in layout.visible_modules(session, request.app.state.modules, CORE_CARDS)
+            if m.capture
+        ),
+        None,
+    )
     request.state.shell = {
         "rail": rail(request, session),
         "highlighter": layout.highlighter(session),
-        "capture": next(
-            (
-                m.capture
-                for m in layout.visible_modules(session, request.app.state.modules, CORE_CARDS)
-                if m.capture
-            ),
-            None,
-        ),
+        "capture": capture.capture if capture else None,
+        "capture_label": capture.label if capture else None,
     }
 
 

@@ -5,13 +5,15 @@ Text is personal data: it stays in the local database, is never logged, never re
 brief, and is never sent anywhere. Pen, paper and size are saved per page.
 """
 
+import hashlib
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
 
 from sqlalchemy import UniqueConstraint
 from sqlmodel import Field, Relationship, Session, SQLModel, select
 
-TEXT_MAX = 20_000  # characters on one page
+TEXT_MAX = 20_000
+CAPTURE_MAX = 2_000  # one quick note  # characters on one page
 
 
 @dataclass(frozen=True)
@@ -148,15 +150,26 @@ def set_text(page: ScratchpadPage, text: str) -> None:
     text_layer(page).content = text
 
 
+def revision(page: ScratchpadPage) -> str:
+    """A fingerprint of the page's text. The page form carries the one it loaded, so a save
+    from a tab opened before a quick note landed can't silently replace that note."""
+    return hashlib.sha256(text_layer(page).content.encode()).hexdigest()[:16]
+
+
 def append_line(session: Session, day: date, line: str) -> ScratchpadPage:
-    """Quick capture: one line at the end of that day's latest page (made if needed)."""
+    """Quick capture: one line at the end of that day's latest page. A new page is made if
+    there's none yet, or if the line wouldn't fit on it, so a note is never dropped."""
     line = " ".join(line.split())
     if not line:
         raise ScratchpadError("Note: write something first")
+    if len(line) > CAPTURE_MAX:
+        raise ScratchpadError(f"Note: at most {CAPTURE_MAX:,} characters")
     page = latest_on(session, day) or new_page(session, day)
-    layer = text_layer(page)
-    content = layer.content.rstrip("\n")
-    set_text(page, f"{content}\n{line}" if content else line)
+    content = text_layer(page).content.rstrip("\n")
+    joined = f"{content}\n{line}" if content else line
+    if len(joined) > TEXT_MAX:
+        page, joined = new_page(session, day), line
+    set_text(page, joined)
     return page
 
 

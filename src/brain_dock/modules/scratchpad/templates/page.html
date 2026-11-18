@@ -74,8 +74,10 @@
     {{ f.form_errors(errors) }}
     <form method="post" action="/scratchpad/{{ page.id }}/text" data-autosave>
       {{ f.csrf(csrf_field, csrf_token) }}
+      <input type="hidden" name="base" value="{{ base }}">
       <label class="visually-hidden" for="pad-text">Page text</label>
-      <textarea id="pad-text" class="pad-text pen-{{ page.pen }}" name="text" rows="16" spellcheck="true">{{ values.text }}</textarea>
+      {% if errors.get("text") %}<p class="field-error" id="text-error">{{ errors["text"] }}</p>{% endif %}
+      <textarea id="pad-text" class="pad-text pen-{{ page.pen }}" name="text" rows="16" spellcheck="true"{% if errors.get("text") %} aria-invalid="true" aria-describedby="text-error"{% endif %}>{{ values.text }}</textarea>
       <p class="pad-save"><button class="button button-quiet" type="submit">Save</button> <span class="card-meta" data-save-state aria-live="polite"></span></p>
     </form>
   </section>

@@ -49,6 +49,7 @@
    on a rule and the rules scroll with the text. The sheet keeps only the margin line. */
 .pad-sheet.paper-lined { background-image: linear-gradient(90deg, transparent 23px, rgba(214, 150, 140, 0.35) 23px, rgba(214, 150, 140, 0.35) 24px, transparent 24px); }
 .pad-sheet.paper-lined .pad-text { background-image: repeating-linear-gradient(to bottom, transparent 0 27px, #E6DECF 27px 28px); background-attachment: local; }
+.pad-sheet.paper-lined .pad-text.pen-highlighter { background-image: repeating-linear-gradient(to bottom, transparent 0 6px, #C9E3CF 6px 24px, transparent 24px 27px, #E6DECF 27px 28px); }
 .pad-save { display: flex; gap: 10px; align-items: center; margin: 12px 0 0; }
 
 /* Pens: inks read at 4.5:1 or better on every paper */
