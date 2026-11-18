@@ -16,20 +16,22 @@ class StageInfo:
     # "saved" (interested, not an application yet), "active" (still moving), "won" (offer)
     # or "closed" (ended without one)
     kind: str
-    color: str  # light mode
-    dark_color: str  # dark mode
+    color: str  # chip text: a dark ink, 4.5:1 or better on the chip's cream background
+    dark_color: str  # dark mode (parked, ADR 0016)
+    chart: str = "#3F3C37"  # pipeline chart node: the module ink, 3:1 or better on cards
 
 
 STAGES: dict[Stage, StageInfo] = {
-    Stage.interested: StageInfo("Interested", 0, "saved", "#6a4fa3", "#ad98dc"),
-    Stage.applied: StageInfo("Applied", 1, "active", "#1f2328", "#e8e6e3"),
-    Stage.screen: StageInfo("Screen", 2, "active", "#3b6ea8", "#7aa7d9"),
-    Stage.interview: StageInfo("Interview", 3, "active", "#3b6ea8", "#7aa7d9"),
-    Stage.onsite: StageInfo("Onsite", 4, "active", "#3b6ea8", "#7aa7d9"),
-    Stage.offer: StageInfo("Offer", 5, "won", "#2f7d4f", "#6cc191"),
-    Stage.rejected: StageInfo("Rejected", 6, "closed", "#6b6f76", "#9a9ea6"),
-    Stage.ghosted: StageInfo("Ghosted", 7, "closed", "#6b6f76", "#9a9ea6"),
-    Stage.withdrawn: StageInfo("Withdrawn", 8, "closed", "#6b6f76", "#9a9ea6"),
+    # Warm: chips use the palette's dark tape inks, the chart its module inks (core/palette).
+    Stage.interested: StageInfo("Interested", 0, "saved", "#3A2F66", "#ad98dc", "#8C7BD0"),
+    Stage.applied: StageInfo("Applied", 1, "active", "#3F3C37", "#e8e6e3", "#3F3C37"),
+    Stage.screen: StageInfo("Screen", 2, "active", "#1E3F63", "#7aa7d9", "#4A86C2"),
+    Stage.interview: StageInfo("Interview", 3, "active", "#6A2A42", "#7aa7d9", "#B25C7A"),
+    Stage.onsite: StageInfo("Onsite", 4, "active", "#6A3414", "#7aa7d9", "#C2703D"),
+    Stage.offer: StageInfo("Offer", 5, "won", "#1F4A33", "#6cc191", "#4E9A6E"),
+    Stage.rejected: StageInfo("Rejected", 6, "closed", "#6B6862", "#9a9ea6", "#7D776E"),
+    Stage.ghosted: StageInfo("Ghosted", 7, "closed", "#6B6862", "#9a9ea6", "#857F75"),
+    Stage.withdrawn: StageInfo("Withdrawn", 8, "closed", "#6B6862", "#9a9ea6", "#8A8378"),
 }
 
 KINDS = {"saved", "active", "won", "closed"}
@@ -57,10 +59,10 @@ def recordable_stages() -> list[Stage]:
 
 
 def stage_css() -> str:
-    """Badge colors for every stage, light and dark, served as /stages.css."""
+    """Badge colors for every stage, served as /stages.css. Light only for now (ADR 0016);
+    `dark_color` is kept for a dark palette later."""
     light = [f".stage-{s.value} {{ color: {i.color}; }}" for s, i in STAGES.items()]
-    dark = [f"  .stage-{s.value} {{ color: {i.dark_color}; }}" for s, i in STAGES.items()]
     won = [
         f".stage-{s.value} {{ font-weight: 600; }}" for s, i in STAGES.items() if i.kind == "won"
     ]
-    return "\n".join(light + won + ["@media (prefers-color-scheme: dark) {", *dark, "}"]) + "\n"
+    return "\n".join(light + won) + "\n"

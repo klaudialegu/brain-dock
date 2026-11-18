@@ -18,6 +18,46 @@ class NavEntry:
     path: str
 
 
+# Card widths on Home's 12-column grid (ADR 0016).
+SIZES = {"S": 3, "M": 4, "L": 5, "W": 8}
+STATES = ("calm", "empty", "attention")
+
+
+@dataclass(frozen=True)
+class CardContext:
+    """What a card's render function gets: the session, today, and the modules shown on
+    Home (the brief card needs them; most cards don't)."""
+
+    session: Session
+    today: date
+    modules: tuple["Manifest", ...] = ()
+
+
+@dataclass(frozen=True)
+class CardView:
+    template: str  # "<module>/card.html", or a core template for core cards
+    context: dict = field(default_factory=dict)
+    empty: bool = False  # nothing to show: the shell draws the dot-grid page with empty_line
+    empty_line: str = ""
+
+
+@dataclass(frozen=True)
+class Card:
+    """One card on Home. The shell gives it the card, the tape label, the size and the
+    state; the module brings what's inside."""
+
+    id: str  # unique across the app; the layout is saved by this id
+    label: str  # the tape label
+    color: str  # a palette name (core/palette.py)
+    render: Callable[[CardContext], CardView]
+    sizes: tuple[str, ...] = ("M",)  # keys of SIZES this card supports
+    default_size: str = "M"
+    side: bool = False  # playful cards live in Home's side area
+    attention: Callable[[CardContext], bool] | None = None  # true: the needs-attention ring
+    default_shown: bool = True
+    rank: int = 100  # default place on Home and in the rail, lowest first
+
+
 @dataclass(frozen=True)
 class Manifest:
     name: str  # also the package name under brain_dock/modules/ and the template prefix
@@ -43,3 +83,17 @@ class Manifest:
     brief: Callable[[Session, date], list[str]] | None = None
     # Documented exception (ADR 0007): table names allowed without the module-name prefix.
     legacy_table_names: tuple[str, ...] = ()
+    # The shell (ADR 0016).
+    label: str = ""  # display name in the rail and on pages (ADR 0012); defaults to name
+    color: str = "graphite"  # palette name: its ink dot in the rail
+    icon: str = ""  # one SVG path (24x24 viewBox) for the rail
+    cards: tuple[Card, ...] = ()
+    settings: str | None = None  # an optional settings page path
+    off_by_default: bool = False  # its cards start hidden on Home
+    # An optional path that accepts a quick note (form field "text"). Home's quick capture
+    # and Focus mode's "Park a thought" appear only when an enabled module provides one.
+    capture: str | None = None
+
+    @property
+    def display_name(self) -> str:
+        return self.label or self.name

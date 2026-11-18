@@ -4,7 +4,7 @@
 **Changes:** ADR 0013 points 1, 3, 5, 6 and 7 (listed below); the rest of 0013 stands. Point 2 is extended by [ADR 0015](0015-todo-module.md) (marked to-do titles).
 
 ## Context
-The spoken brief (ADR 0013) read out a few counts. The goal now is a short, warm script, like a morning radio host, with these sections in order:
+The spoken brief (ADR 0013) read out a few counts. The goal now is a short, warm, conversational script, with these sections in order:
 1. a greeting
 2. the weather
 3. today's workout
@@ -49,7 +49,7 @@ Brain Dock has no calendar and no task list yet. Most meetings are repeating eve
 ## Options considered
 - **A hand-written reader for meetings too:** why not: repeating events, skipped dates, moved instances and Outlook's Windows time-zone names need a real library. Meetings get their own slice with `icalendar` and `recurring-ical-events`.
 - **Building the to-do list in this PR:** why not: it brings a page and a migration. It is its own module next, with all its fields in the first migration (title, due date, done, `ok_to_read_aloud` off by default, `estimate_minutes`, `bucket`, ordered steps with their own minutes).
-- **Keeping `eleven_flash_v2_5`:** half the price, but less expressive. v3 fits the "radio host" goal, and the cap keeps it within the free plan.
+- **Keeping `eleven_flash_v2_5`:** half the price, but less expressive. v3 fits the warm, conversational goal, and the cap keeps it within the free plan.
 - **Audio tags like `[warm]`:** they count as billed characters; punctuation and ellipses carry the rhythm instead.
 - **api.weather.gov:** US-only, and it asks automated clients for contact details in the User-Agent. Open-Meteo needs nothing.
 

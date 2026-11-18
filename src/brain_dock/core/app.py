@@ -4,22 +4,21 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import jinja2
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 from fastapi.routing import APIRoute
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from brain_dock.core import db
+from brain_dock.core import db, shell
 from brain_dock.core.agents.approvals import park_interrupted
 from brain_dock.core.agents.audit import AuditLog, key_path_for, load_or_create_key
 from brain_dock.core.db import get_engine, is_at_head, is_demo_database
 from brain_dock.core.modules import Manifest
 from brain_dock.core.security import ALLOWED_HOSTS, CONTENT_SECURITY_POLICY, add_security_headers
-from brain_dock.core.web import render
 
 TEMPLATES_DIR = Path(__file__).parents[1] / "templates"
 STATIC_DIR = Path(__file__).parents[1] / "static"
@@ -111,8 +110,22 @@ def build_templates(modules: list[Manifest]) -> Jinja2Templates:
     )
     templates = Jinja2Templates(env=jinja2.Environment(loader=loader, autoescape=True))
     templates.env.globals["nav"] = [entry for m in modules for entry in m.nav]
-    templates.env.globals["home_path"] = modules[0].home if modules else "/"
-    templates.env.globals["stylesheets"] = [href for m in modules for href in m.stylesheets]
+    templates.env.globals["home_path"] = "/"
+    templates.env.globals["stylesheets"] = [
+        "/palette.css",
+        *(href for m in modules for href in m.stylesheets),
+    ]
+    templates.env.globals["page_module"] = shell.page_module
+    # Error pages are drawn outside the routes, so they get a rail without saved layout.
+    templates.env.globals["fallback_rail"] = [
+        shell.RailEntry(m.display_name, m.home, m.icon or shell.BRIEF_ICON, m.color, False)
+        for m in modules
+    ]
+    templates.env.globals["icons"] = {
+        "home": shell.HOME_ICON,
+        "settings": shell.SETTINGS_ICON,
+        "brief": shell.BRIEF_ICON,
+    }
     for m in modules:
         templates.env.globals.update(m.template_globals)
     return templates
@@ -129,7 +142,8 @@ def api_routes(app: FastAPI) -> list[APIRoute]:
 def create_app(modules: list[Manifest]) -> FastAPI:
     """The app with these modules enabled. Disabling a module only leaves it out here:
     its data and migrations are untouched (ADR 0007, rule 3)."""
-    app = FastAPI(title="Brain Dock", lifespan=lifespan)
+    # Every route gets the rail from the saved layout (core/shell.py).
+    app = FastAPI(title="Brain Dock", lifespan=lifespan, dependencies=[Depends(shell.shell_state)])
     # Only answer to our own host names, so a site that points its domain at 127.0.0.1
     # (DNS rebinding) can't talk to the app.
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=ALLOWED_HOSTS)
@@ -147,14 +161,8 @@ def create_app(modules: list[Manifest]) -> FastAPI:
             app.mount(f"/static/modules/{m.name}", StaticFiles(directory=m.static))
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+    app.include_router(shell.router)  # Home, Settings, the Brief page
     for m in modules:
         app.include_router(m.router)
-
-    @app.get("/", response_model=None)
-    def home(request: Request) -> RedirectResponse | HTMLResponse:
-        # The first enabled module's page is the home page; one address keeps links simple.
-        if modules:
-            return RedirectResponse(modules[0].home, status_code=303)
-        return render(request, "home.html")
 
     return app

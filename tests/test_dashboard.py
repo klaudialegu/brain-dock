@@ -47,18 +47,15 @@ def test_chart_data_uses_stage_labels_and_colors_only():
     assert data["nodes"] == [
         {
             "name": "Applied",
-            "color": STAGES[Stage.applied].color,
-            "darkColor": STAGES[Stage.applied].dark_color,
+            "color": STAGES[Stage.applied].chart,
         },
         {
             "name": "Screen",
-            "color": STAGES[Stage.screen].color,
-            "darkColor": STAGES[Stage.screen].dark_color,
+            "color": STAGES[Stage.screen].chart,
         },
         {
             "name": "Rejected",
-            "color": STAGES[Stage.rejected].color,
-            "darkColor": STAGES[Stage.rejected].dark_color,
+            "color": STAGES[Stage.rejected].chart,
         },
     ]
     assert data["links"] == [

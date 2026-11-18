@@ -67,7 +67,9 @@ def test_01_saved_jobs_kept_out_of_table_and_stats(page):
 
 def test_02_save_a_job_nav_entry_and_button(page):
     page.goto("/applications")
-    nav_link = page.get_by_role("navigation", name="Main").get_by_role("link", name="Save a job")
+    # The module's own menu on its pages (the rail lists modules, ADR 0016).
+    module_nav = page.get_by_role("navigation", name="Career Radar")
+    nav_link = module_nav.get_by_role("link", name="Save a job")
     expect(nav_link).to_be_visible()
     button = page.locator("a.button", has_text="Save a job")
     expect(button).to_be_visible()

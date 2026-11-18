@@ -1,0 +1,10 @@
+{# One card on Home, drawn the same way for every module: tape label, size, state. #}
+<section class="card size-{{ item.size }} c-{{ item.card.color }} state-{{ item.state }}" aria-labelledby="card-{{ item.card.id }}">
+  <span class="tape tilt-{{ tilt % 5 }}" id="card-{{ item.card.id }}">{{ item.card.label }}</span>
+  {% if item.state == "attention" %}<p class="attention-note">Needs you</p>{% endif %}
+  {% if item.view.empty %}
+  <div class="dot-grid"><p>{{ item.view.empty_line }}</p></div>
+  {% else %}
+  {% with c = item.view.context %}{% include item.view.template %}{% endwith %}
+  {% endif %}
+</section>

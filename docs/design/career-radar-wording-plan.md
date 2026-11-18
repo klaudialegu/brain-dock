@@ -1,6 +1,6 @@
 # Plan: Brain Dock as a modular daily-efficiency assistant; job search shown as Career Radar
 
-**Status:** approved by Klaudia (2026-11-01), with her changes to the description, topics, planned modules and wording check. Branch `docs/modular-assistant`.
+**Status:** approved by the owner (2026-11-01), with changes to the description, topics, planned modules and wording check. Branch `docs/modular-assistant`.
 
 **Why:** Brain Dock is a core plus modules (ADR 0007), but it still introduces itself as a job-search tracker. It is **a modular personal daily-efficiency assistant**. The job search module is shown as **Career Radar**: keeping an eye on the job market, skills in demand, and interesting roles. Today it covers applications, saved jobs, the pipeline and stats. The market and skills views are planned.
 
@@ -27,13 +27,13 @@
    - docs/usage.md "Modules" intro.
    - The pyproject `description`.
    - CHANGELOG `[Unreleased]`.
-5. **GitHub repo description and topics** (a repo setting, so Klaudia's OK first):
-   - Description (Klaudia's wording): "A modular personal daily-efficiency assistant. Local-first. First module: Career Radar (saved roles, pipeline and stats today; market and skills views planned). Python, FastAPI, SQLite, and a safety-first agent harness, built with Claude Code."
+5. **GitHub repo description and topics** (a repo setting, so the owner's OK first):
+   - Description: "A modular personal daily-efficiency assistant. Local-first. First module: Career Radar (saved roles, pipeline and stats today; market and skills views planned). Python, FastAPI, SQLite, and a safety-first agent harness, built with Claude Code."
    - Topics: productivity, personal-assistant, local-first, python, fastapi, sqlite, ai-agents, claude-code. (No job-search or career.)
 6. **Checks:**
    - Tests, ruff, `uv lock --check`.
    - CI logs for the head SHA, including the **quickstart job** (`scripts/check_quickstart.sh`, which now checks `<h1>Career Radar</h1>`).
-   - Klaudia's Safari check of the nav, the /applications headings and a narrow window, plus the new screenshot.
+   - The owner's Safari check of the nav, the /applications headings and a narrow window, plus the new screenshot.
 
 ## Test IDs (578 → 586; 1 renamed, none removed)
 Renamed (the parameter is the visible label, so the ID follows it):

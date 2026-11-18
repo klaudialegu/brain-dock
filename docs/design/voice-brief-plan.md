@@ -1,6 +1,6 @@
 # Plan: spoken morning brief (ElevenLabs text-to-speech)
 
-**Status:** approved by Klaudia on 2026-11-17 with D1–D4 all A (after one review round, 🟡, fixes applied). Built on branch `feat/voice-brief`; ADR 0013 records it.
+**Status:** approved by the owner on 2026-11-17 with D1–D4 all A (after one review round, 🟡, fixes applied). Built on branch `feat/voice-brief`; ADR 0013 records it.
 
 **What:** an opt-in voice feature. One command builds a short brief from existing data and reads it aloud with ElevenLabs text-to-speech. It's off by default and sends nothing until `[voice] enabled = true` and a key are in `config.toml`.
 

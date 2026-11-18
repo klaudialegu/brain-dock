@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Brief · Brain Dock{% endblock %}
+{% block body_class %}page-narrow{% endblock %}
+
+{% block content %}
+<p class="eyebrow">{{ today.strftime("%a · %b") }} {{ today.day }}</p>
+<h1>Brief</h1>
+<p>Today in short, from the modules shown on Home. The same lines feed the spoken brief.</p>
+<section class="card c-lavender">
+  <span class="tape tilt-1">Today</span>
+  {% if lines %}
+  <ul class="card-list">
+    {% for line in lines %}<li>{{ line }}</li>{% endfor %}
+  </ul>
+  {% else %}
+  <div class="dot-grid"><p>{{ nothing }}</p></div>
+  {% endif %}
+</section>
+{% endblock %}

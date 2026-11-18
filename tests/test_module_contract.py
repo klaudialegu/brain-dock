@@ -4,6 +4,7 @@ so a new module is checked the moment it's added to the registry."""
 import ast
 import inspect
 import os
+import re
 from pathlib import Path
 
 import pytest
@@ -43,6 +44,25 @@ def test_manifest_is_complete(m):
     assert m.templates.is_dir()
     assert m.static is None or m.static.is_dir()
     assert all(isinstance(p, str) for p in m.permissions)
+
+
+@pytest.mark.parametrize("m", MODULES, ids=lambda m: m.name)
+def test_manifest_declares_shell_fields(m):
+    """The shell's fields (ADR 0016): a label, a palette color, a rail icon, its cards."""
+    from brain_dock.core.modules import SIZES
+    from brain_dock.core.palette import PALETTE
+
+    assert m.display_name.strip() and m.color in PALETTE
+    assert re.fullmatch(r"[MmLlHhVvCcSsQqTtAaZz0-9 .,-]+", m.icon), "one SVG path"
+    assert m.cards, "every module shows at least one card on Home"
+    for card in m.cards:
+        assert card.id.startswith(m.name), "card ids start with the module name"
+        assert card.color in PALETTE and card.label.strip()
+        assert card.sizes and set(card.sizes) <= set(SIZES) and card.default_size in card.sizes
+    assert m.capture is None or any(m.capture.startswith(p) for p in m.paths)
+    assert m.settings is None or any(m.settings.startswith(p) for p in m.paths)
+    all_ids = [c.id for x in MODULES for c in x.cards]
+    assert len(all_ids) == len(set(all_ids)), "card ids are unique across modules"
 
 
 @pytest.mark.parametrize("m", MODULES, ids=lambda m: m.name)

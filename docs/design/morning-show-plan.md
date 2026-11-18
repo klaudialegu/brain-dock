@@ -1,15 +1,15 @@
 # Plan: the spoken brief becomes a morning show
 
-**Status:** approved by Klaudia on 2026-11-17 with D1–D3 all A (after one review round, 🟡, fixes applied).
+**Status:** approved by the owner on 2026-11-17 with D1–D3 all A (after one review round, 🟡, fixes applied).
 
 **Order after this PR:**
 1. The to-do module.
 2. Its UI slice.
 3. Meetings, the schedule slice.
 
-**To-do fields, all in the first migration so the UI slice needs no other:** title, due date, done, `ok_to_read_aloud` (off by default), `estimate_minutes`, `bucket` (`today` / `can_wait`), and an optional ordered list of steps, each with its own minutes. The UI reference is the owner's local design file (the "To do" card); it is used as a reference only, never copied into the repo.
+**To-do fields, all in the first migration so the UI slice needs no other:** title, due date, done, `ok_to_read_aloud` (off by default), `estimate_minutes`, `bucket` (`today` / `can_wait`), and an optional ordered list of steps, each with its own minutes.
 
-**What:** the voice feature reads a short, warm script, like a morning radio host, instead of a list of counts. The sections come in this order:
+**What:** the voice feature reads a short, warm, conversational script instead of a list of counts. The sections come in this order:
 1. greeting
 2. weather
 3. today's workout
@@ -167,7 +167,7 @@ All network calls (weather, both feeds, ElevenLabs) use fakes, and the keychain 
   - Minutes and distance now come only from the event's own times or the end of its title, and the description is never read.
   - `test_ics.py::test_workout_name_duration_and_distance` covers Runna's title shapes.
 - **Weather grammar:** "a 88 percent" became "an 88 percent", checked in the sentence test.
-- **Tests changed (not renamed) beyond the two above, to fit the new design:**
+- **Tests changed (not renamed) beyond the two above, to fit the new script:**
   - `test_off_by_default_sends_nothing`: no mood prompt.
   - `test_api_key_never_in_output_logs_errors_or_repr`: the new `main()` arguments.
   - `test_same_brief_is_generated_once`: the cache name includes the model.

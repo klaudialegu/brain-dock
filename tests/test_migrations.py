@@ -269,6 +269,8 @@ def test_core_migrations_are_a_branch_of_their_own():
         "core_work_item",
         "core_run_step",
         "core_approval",
+        "core_layout",
+        "core_setting",
     }
     assert set(SQLModel.metadata.tables) == core_tables | module_tables
 

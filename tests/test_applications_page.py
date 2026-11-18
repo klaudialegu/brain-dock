@@ -174,8 +174,8 @@ def test_html_in_data_is_escaped(client, session):
 def test_nav_on_every_page_marks_the_current_one(client, path, current):
     html = client.get(path).text
 
-    assert '<nav aria-label="Main">' in html
-    assert f'aria-current="page">{current}</a>' in html
+    assert '<nav class="rail" aria-label="Main">' in html  # the rail (ADR 0016)
+    assert f'aria-current="page">{current}</a>' in html  # the module's own sub-nav
 
 
 # --- Career Radar: the job search module's display name (ADR 0012) -----------
