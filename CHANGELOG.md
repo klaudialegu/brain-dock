@@ -9,6 +9,9 @@ Each line links to the pull request that made the change.
 - Browser tests for the 10-item Safari checklist: Playwright drives WebKit (Safari's engine) against the real app on a throwaway demo database, fails on any CSP violation or console error, and saves one screenshot per item. Runs locally with `uv run pytest e2e` and in CI as the `e2e` job, with the screenshots as an artifact. ([#54](https://github.com/klaudialegu/brain-dock/pull/54))
 - THREAT_MODEL.md: one page on what's sensitive, what agents may never do, and the code and test ID that enforce each rule, with its known gaps. A test checks every cited test ID exists, and the reviewer checks every change against the page. ([#55](https://github.com/klaudialegu/brain-dock/pull/55))
 
+- A daily brief as text: each module adds counts and dates through its manifest (`uv run python -m brain_dock.brief`). The first answer to how modules feed the brief (ADR 0013).
+- Optional spoken brief: `uv run python -m brain_dock.voice` reads the brief aloud with ElevenLabs text-to-speech. Off by default; only the masked brief text is sent, the key lives in the macOS keychain, mood stays local, and audio is cached so the same brief is never generated twice (ADR 0013).
+
 ### Security
 - opentelemetry-api 1.45.1 → 1.45.2 (a FastAPI dependency; GHSA-mf5v-w3w3-f6cg, a denial of service when parsing `traceparent`). ([#53](https://github.com/klaudialegu/brain-dock/pull/53))
 

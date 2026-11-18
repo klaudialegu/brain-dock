@@ -37,7 +37,7 @@ A **registry** lists the modules and which ones are enabled. Nothing else.
 7. **Every module passes the same contract test**, and CI checks that the core still starts and serves with each module turned off.
 
 ## Open questions
-- **How do modules feed the daily brief?** Options: (a) request/reply on the event bus; (b) modules declare contributions in their manifest and the brief collects them from enabled modules; (c) the brief builds its own copy of the data from events. Decide when the daily brief is built. Whichever wins must keep working when a module is disabled.
+- **How do modules feed the daily brief?** Options: (a) request/reply on the event bus; (b) modules declare contributions in their manifest and the brief collects them from enabled modules; (c) the brief builds its own copy of the data from events. Decide when the daily brief is built. Whichever wins must keep working when a module is disabled. **Answered by [ADR 0013](0013-spoken-brief-with-elevenlabs.md): (b), a `brief` field on the manifest.**
 
 ## Options considered
 - **Keep one package and add folders**: the least work, but nothing stops one area from importing another, and the AI safety rules would end up repeated in each feature.

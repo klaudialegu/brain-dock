@@ -33,12 +33,12 @@ Open http://127.0.0.1:8000. Needs [uv](https://docs.astral.sh/uv/). CI runs thes
 - **Triage**: job-alert emails are checked by plain-Python rules first; each suggestion waits for my approve or reject, and every skip keeps its reason. An accepted role links to a prefilled "Save a job" form in Career Radar; the inbox itself writes nothing there ([ADR 0011](docs/decisions/0011-inbox-writes-stay-in-the-inbox.md)).
 
 **Planned** (not built yet)
-- **Daily brief** *(planned)*: one morning page that pulls from every module.
+- **Daily brief** *(planned)*: one morning page that pulls from every module. The first piece exists: a short text brief (counts and dates) that `uv run python -m brain_dock.brief` prints, and the optional spoken brief below can read aloud.
 - **Projects and learning** *(planned)*: side projects and what I'm learning, in one place.
 
 **Every module gets, from the core**
 - **Backups**: one command writes a complete, validated JSON backup.
-- **Local only**: no accounts, no cloud; pages load nothing from other sites.
+- **Local only**: no accounts, no cloud; pages load nothing from other sites. The one exception is the optional spoken brief, off unless you turn it on.
 - **On or off**: `BRAIN_DOCK_MODULES` turns a module off without touching its data ([usage](docs/usage.md#modules)).
 
 ## Engineering highlights
@@ -54,6 +54,18 @@ Open http://127.0.0.1:8000. Needs [uv](https://docs.astral.sh/uv/). CI runs thes
 ## Why I built it
 
 I'm a support engineer growing my agentic development skills by building something I use every day. Brain Dock is where I practice working with an AI pair programmer the way I'd want to ship for a customer: written rules, small slices, tests that are broken on purpose to prove they work, recorded decisions, and an independent review before anything risky. Career Radar is the first module.
+
+## Spoken brief (optional)
+
+A voice feature that reads the daily brief aloud with [ElevenLabs](https://elevenlabs.io) text-to-speech. It's off by default. **When enabled, the brief text is sent to ElevenLabs**, which keeps the text and audio by default under its privacy policy (zero retention is for enterprise accounts only). The brief is counts and dates only: no company, role, note, link or person, and anything shaped like a secret is masked first. Nothing else is sent; mood never leaves the Mac ([ADR 0013](docs/decisions/0013-spoken-brief-with-elevenlabs.md)).
+
+1. Store your ElevenLabs API key in the macOS keychain. It asks for the key at a hidden prompt, so it never lands in a file or your shell history:
+   `security add-generic-password -s brain-dock-elevenlabs -a brain-dock -w`
+2. In `config.toml`, add `[voice]` with `enabled = true` and a `voice_id` (see `config.example.toml`).
+3. Check exactly what would be sent, for free: `uv run python -m brain_dock.voice --dry-run`
+4. Hear it: `uv run python -m brain_dock.voice`. It asks how you're feeling (low days play a little slower); the answer isn't stored or sent.
+
+Credits: the brief is capped at 600 characters, the same brief is never generated twice (audio is cached in `data/voice_cache/`, owner-only, for 7 days), and at most 3 requests go out a day. macOS only (playback uses `afplay`).
 
 ## Where it's going (roadmap)
 
