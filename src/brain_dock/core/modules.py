@@ -3,9 +3,11 @@ never imports a module."""
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import date
 from pathlib import Path
 
 from fastapi import APIRouter
+from sqlmodel import Session
 
 from brain_dock.core.agents.tools import AgentTool
 
@@ -35,5 +37,8 @@ class Manifest:
     mcp_tools: tuple = ()  # later
     # Tools its agents may use (ADR 0008); every one must pass core.agents.tools' policy.
     agent_tools: tuple[AgentTool, ...] = ()
+    # Its lines for the daily brief (ADR 0013): counts and dates only, never names or free
+    # text, because the brief can be read aloud by an outside service.
+    brief: Callable[[Session, date], list[str]] | None = None
     # Documented exception (ADR 0007): table names allowed without the module-name prefix.
     legacy_table_names: tuple[str, ...] = ()
