@@ -159,6 +159,7 @@ def test_brief_command_prints_and_sends_nothing(monkeypatch, capsys):
 
 
 def test_current_brief_reads_the_database_and_only_enabled_modules(tmp_path, monkeypatch):
+    monkeypatch.delenv("BRAIN_DOCK_MODULES", raising=False)  # unset: all modules on
     monkeypatch.setattr(db, "DB_PATH", tmp_path / "missing.db")
     with pytest.raises(RuntimeError, match="No database yet"):
         brief.current_brief(TODAY)
