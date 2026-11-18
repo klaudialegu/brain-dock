@@ -4,7 +4,11 @@ import socket
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 
+import pytest
+from sqlmodel import Session
+
 from brain_dock import brief, registry
+from brain_dock.core import db
 from brain_dock.core.agents.run_tables import Approval
 from brain_dock.modules.inbox.brief import brief_lines as inbox_lines
 from brain_dock.modules.job_search.brief import brief_lines as job_lines
@@ -152,3 +156,23 @@ def test_brief_command_prints_and_sends_nothing(monkeypatch, capsys):
         "Good morning. Test brief.",
         "(25 characters; nothing was sent anywhere)",
     ]
+
+
+def test_current_brief_reads_the_database_and_only_enabled_modules(tmp_path, monkeypatch):
+    monkeypatch.setattr(db, "DB_PATH", tmp_path / "missing.db")
+    with pytest.raises(RuntimeError, match="No database yet"):
+        brief.current_brief(TODAY)
+
+    monkeypatch.setattr(db, "DB_PATH", tmp_path / "brief.db")
+    engine = db.get_engine()
+    db.migrate(engine)
+    with Session(engine) as session:
+        pending_approval(session)
+    engine.dispose()
+
+    assert "1 inbox role is waiting" in brief.current_brief(TODAY)  # all modules on
+    monkeypatch.setenv("BRAIN_DOCK_MODULES", "job_search")
+    assert brief.current_brief(TODAY) == (
+        "Good morning. Here's your brief for Tuesday, November 17. "
+        "Nothing needs your attention today."
+    )

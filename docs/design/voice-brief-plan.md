@@ -114,6 +114,8 @@ Every test uses a fake sender, so none touch the network. The real `urllib` send
 
 **Added during the build: 613 → 614.** One new parameter on an existing test: `test_importer.py::test_personal_data_files_are_gitignored[data/voice_cache/0123abcd.mp3]`. It proves the audio cache is gitignored, for THREAT_MODEL's new row.
 
+**Added after the PR review: 614 → 615.** `test_brief.py::test_current_brief_reads_the_database_and_only_enabled_modules`. It covers the real entry point: a missing database, a migrated one, and `BRAIN_DOCK_MODULES` turning the inbox's line off.
+
 `uv run pytest e2e`: 28 → 28 (no UI in this slice).
 
 Break tests before the PR, each reverted and recorded in the PR:

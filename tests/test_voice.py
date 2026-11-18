@@ -132,17 +132,18 @@ def test_request_body_is_only_the_masked_brief(tmp_path):
     assert KEY not in request.data.decode() and KEY not in request.full_url
 
 
+# Fake values, built from parts so secret scanners don't mistake the test file for a leak.
 SECRET_SHAPES = [
-    "sk-ant-api03-abcdefghijklmnopqrstuvwxyz012345",
+    "sk-" + "ant-api03-abcdefghijklmnopqrstuvwxyz012345",
     "sk_0123456789abcdef0123456789abcdef0123",
     "Bearer abc.DEF-ghi_jkl.mno",
     "password=hunter2-correct",
     "api_key: q1w2e3r4t5",
-    "AKIAABCDEFGHIJKLMNOP",
-    "ghp_abcdefghijklmnopqrstuvwxyz0123456789",
-    "github_pat_11ABCDEFG0123456789_abcdefghij",
-    "xoxb-1234567890-abcdefghij",
-    "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3In0.c2lnbmF0dXJlLXZhbHVl",
+    "AKIA" + "ABCDEFGHIJKLMNOP",
+    "ghp" + "_abcdefghijklmnopqrstuvwxyz0123456789",
+    "github" + "_pat_11ABCDEFG0123456789_abcdefghij",
+    "xox" + "b-1234567890-abcdefghij",
+    ".".join(["eyJhbGciOiJIUzI1NiJ9", "eyJzdWIiOiIxMjM0NTY3In0", "c2lnbmF0dXJlLXZhbHVl"]),
     "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
     "QmFzZTY0LWVuY29kZWQtc2VjcmV0LXZhbHVlLWhlcmU=",
 ]
