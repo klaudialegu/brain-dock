@@ -402,3 +402,112 @@ def test_migration_core_0005_keeps_every_row(engine):
 
     assert "core_0005" in revision(engine)
     assert everything() == before
+
+
+# --- Remove with Undo (ADR 0018) ---------------------------------------------------------
+
+
+def test_migration_todo_0002_keeps_every_task_and_step_visible(engine):
+    with engine.begin() as connection:
+        command.upgrade(_alembic_config(connection), "todo@todo_0001")
+        connection.exec_driver_sql(
+            "INSERT INTO todo_task (id, title, done, ok_to_read_aloud, bucket, created_at) "
+            "VALUES (1, 'Water the plants', 0, 1, 'today', '2026-11-17 08:00:00'), "
+            "(2, 'Someday', 0, 0, 'can_wait', '2026-11-17 08:00:00')"
+        )
+        connection.exec_driver_sql(
+            "INSERT INTO todo_step (id, task_id, position, title, done) "
+            "VALUES (1, 1, 1, 'Fill the can', 0), (2, 1, 2, 'Pour', 1)"
+        )
+    columns = {
+        "todo_task": "id, title, done, ok_to_read_aloud, bucket",
+        "todo_step": "id, task_id, position, title, done",
+    }
+
+    def rows():
+        with engine.connect() as connection:
+            return {
+                t: [
+                    tuple(r) for r in connection.exec_driver_sql(f"SELECT {c} FROM {t} ORDER BY id")
+                ]
+                for t, c in columns.items()
+            }
+
+    before = rows()
+    assert len(before["todo_step"]) == 2
+
+    with engine.begin() as connection:  # exactly this migration
+        command.upgrade(_alembic_config(connection), "todo@todo_0002")
+
+    assert rows() == before
+    with engine.connect() as connection:
+        removed = connection.exec_driver_sql(
+            "SELECT (SELECT count(*) FROM todo_task WHERE removed_at IS NOT NULL)"
+            " + (SELECT count(*) FROM todo_step WHERE removed_at IS NOT NULL"
+            " OR removed_position IS NOT NULL)"
+        ).scalar()
+    assert removed == 0  # nothing starts out removed
+
+
+def test_migration_scratchpad_0002_keeps_every_page_visible(engine):
+    with engine.begin() as connection:
+        command.upgrade(_alembic_config(connection), "scratchpad@scratchpad_0001")
+        connection.exec_driver_sql(
+            "INSERT INTO scratchpad_page (id, day, position, paper, pen, size, created_at) "
+            "VALUES (1, '2026-11-17', 1, 'lined', 'fineliner', 'wide', '2026-11-17 08:00:00'), "
+            "(2, '2026-11-17', 2, 'kraft', 'gel', 'card', '2026-11-17 09:00:00')"
+        )
+        connection.exec_driver_sql(
+            "INSERT INTO scratchpad_layer (id, page_id, kind, position, content) "
+            "VALUES (1, 1, 'text', 0, 'a line'), (2, 2, 'text', 0, '')"
+        )
+
+    def rows():
+        with engine.connect() as connection:
+            pages = connection.exec_driver_sql(
+                "SELECT id, day, position, paper, pen, size FROM scratchpad_page ORDER BY id"
+            )
+            layers = connection.exec_driver_sql("SELECT * FROM scratchpad_layer ORDER BY id")
+            return [tuple(r) for r in pages], [tuple(r) for r in layers]
+
+    before = rows()
+
+    with engine.begin() as connection:
+        command.upgrade(_alembic_config(connection), "scratchpad@scratchpad_0002")
+
+    assert rows() == before
+    with engine.connect() as connection:
+        removed = connection.exec_driver_sql(
+            "SELECT count(*) FROM scratchpad_page WHERE removed_at IS NOT NULL"
+        ).scalar()
+    assert removed == 0
+
+
+def test_downgrade_todo_0002_refuses_while_removed_items_exist(engine):
+    migrate(engine)
+    with Session(engine) as session:
+        from brain_dock.modules.todo.models import add_step, add_task, remove_step
+
+        task = add_task(session, "A task")
+        session.flush()
+        step = add_step(session, task, "A step", None)
+        session.flush()
+        remove_step(session, task, step)
+        session.commit()
+
+    with engine.begin() as connection, pytest.raises(RuntimeError, match="1 removed task"):
+        command.downgrade(_alembic_config(connection), "todo@todo_0001")
+    assert revision(engine) == head_revision()
+
+
+def test_downgrade_scratchpad_0002_refuses_while_removed_pages_exist(engine):
+    migrate(engine)
+    with Session(engine) as session:
+        from brain_dock.modules.scratchpad.models import new_page, remove_page
+
+        remove_page(new_page(session, date(2026, 11, 17)))
+        session.commit()
+
+    with engine.begin() as connection, pytest.raises(RuntimeError, match="1 removed page"):
+        command.downgrade(_alembic_config(connection), "scratchpad@scratchpad_0001")
+    assert revision(engine) == head_revision()

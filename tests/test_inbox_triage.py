@@ -81,17 +81,18 @@ def test_approve_button_runs_the_approval_once(client):
     first = pending_ids(client.get("/inbox").text)[0]
 
     once = post(client, f"/inbox/approvals/{first}/approve")
+    assert once.status_code == 303 and once.headers["location"] == "/inbox"
+    assert once.cookies.get("bd_message") == "approved"
+    page = client.get("/inbox").text
+    assert "Accepted." in page and first not in pending_ids(page)
     twice = post(client, f"/inbox/approvals/{first}/approve")
 
-    assert once.status_code == 303 and once.headers["location"] == "/inbox?done=approved"
-    assert twice.headers["location"] == "/inbox?done=refused"
+    assert twice.headers["location"] == "/inbox" and twice.cookies.get("bd_message") == "refused"
     assert approval(first) == ("executed", None, "approved")
     engine = get_engine()
     with Session(engine) as session:
         assert len(session.exec(select(InboxRole).where(InboxRole.status == "accepted")).all()) == 1
     engine.dispose()
-    page = client.get("/inbox?done=approved").text
-    assert "Accepted." in page and first not in pending_ids(page)
 
 
 def test_reject_accepts_only_listed_reason_codes(client):
@@ -104,7 +105,8 @@ def test_reject_accepts_only_listed_reason_codes(client):
 
     listed = post(client, f"/inbox/approvals/{first}/reject", reason="not_a_fit")
 
-    assert listed.headers["location"] == "/inbox?done=rejected"
+    assert listed.headers["location"] == "/inbox"
+    assert listed.cookies.get("bd_message") == "rejected"
     assert approval(first) == ("rejected", "not_a_fit", "rejected")
 
 
@@ -120,7 +122,8 @@ def test_approve_is_refused_while_a_run_is_active(client, monkeypatch):
         follow_redirects=False,
     )
 
-    assert response.headers["location"] == "/inbox?done=refused"
+    assert response.headers["location"] == "/inbox"
+    assert response.cookies.get("bd_message") == "refused"
     assert approval(first) == ("pending", None, "pending_approval")
 
 
@@ -233,3 +236,16 @@ def test_counts_show_rejected_roles_as_rejected(client):
 
     assert "<li>Suggested: 0</li>" in page  # nothing still waiting is counted as waiting
     assert "<li>Rejected: 1</li>" in page and "<li>Accepted: 1</li>" in page
+
+
+def test_decision_message_shows_once(client):
+    first = pending_ids(client.get("/inbox").text)[0]
+    post(client, f"/inbox/approvals/{first}/approve")
+
+    shown = client.get("/inbox").text
+    assert 'class="message-bar"' in shown and "Accepted." in shown
+    assert "data-message-close" in shown  # a visible × (Esc closes it too)
+    again = client.get("/inbox").text
+    assert "Accepted." not in again  # a reload doesn't repeat it
+    client.cookies.set("bd_message", "made_up")
+    assert 'class="message-bar"' not in client.get("/inbox").text  # unknown codes: nothing

@@ -5,13 +5,13 @@ Always data/demo.db, never the real database, whatever BRAIN_DOCK_DB says.
 """
 
 import sys
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 from sqlmodel import Session, select
 
 from brain_dock.core import db
-from brain_dock.modules.todo.models import TodoTask, add_step, add_task
+from brain_dock.modules.todo.models import TodoTask, add_step, add_task, set_done
 
 NOT_READY = "The demo database isn't ready. Run: uv run python -m brain_dock.importer --demo"
 
@@ -49,10 +49,13 @@ def load_demo(path: Path, today: date | None = None) -> str:
                 due_on=today + timedelta(days=2),
             )
             add_task(session, "Sort the photo folder", bucket="can_wait")
+            finished = datetime.now(UTC) - timedelta(days=2)  # shows under "Done recently"
+            for title in ["Return the library books", "Book the bike service"]:
+                set_done(add_task(session, title), True, finished)
             session.commit()
     finally:
         engine.dispose()
-    return f"Loaded 5 demo tasks into {path.name}"
+    return f"Loaded 7 demo tasks into {path.name}"
 
 
 def main() -> int:

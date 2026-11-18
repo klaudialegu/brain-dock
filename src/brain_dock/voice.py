@@ -396,7 +396,17 @@ def parser() -> argparse.ArgumentParser:
     return p
 
 
-def main(
+def main(argv: list[str] | None = None, **options) -> int:
+    """Ctrl+C at any point (fetching, playing) stops cleanly: the audio stops with it, and
+    one line replaces Python's error trace. 130 is the usual exit code for Ctrl+C."""
+    try:
+        return run(argv, **options)
+    except KeyboardInterrupt:
+        print("Stopped.", file=sys.stderr)
+        return 130
+
+
+def run(
     argv: list[str] | None = None,
     *,
     config_path: Path = CONFIG_PATH,

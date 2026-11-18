@@ -66,6 +66,7 @@ def pages(session):
 
 def test_pages_by_day_and_new_page(client, session):
     old = new_page(session, TODAY - timedelta(days=3))
+    set_text(old, "from earlier")  # an empty page from an earlier day isn't a tab
     first = new_page(session, TODAY)
     session.commit()
     set_style(first, pen="gel", paper="kraft")
@@ -266,3 +267,102 @@ def test_capture_starts_a_new_page_when_the_page_is_full(client, session):
     assert (fresh.position, text_layer(fresh).content) == (2, "a note that would not fit")
     assert post(client, "/scratchpad/capture", {"text": "y" * 2_001}).status_code == 400  # said
     assert 'maxlength="2000"' in client.get("/").text  # the field stops it first
+
+
+# --- Remove with Undo (ADR 0018) ---------------------------------------------------------
+
+
+def test_remove_page_hides_it_and_undo_restores(client, session):
+    keep = new_page(session, TODAY)
+    set_text(keep, "keep me")
+    gone = new_page(session, TODAY)
+    set_text(gone, f"{SECRET} page")
+    session.commit()
+
+    removed = post(client, f"/scratchpad/{gone.id}/remove", {})
+    assert removed.status_code == 303 and removed.headers["location"] == "/scratchpad"
+    assert removed.cookies.get("bd_message") == f"page_removed:{gone.id}"
+    shown = client.get("/scratchpad")  # → the latest page left, with the bar once
+    assert f"/scratchpad/{keep.id}" in str(shown.url)
+    assert "Removed page:" in shown.text and f'action="/scratchpad/{gone.id}/restore"' in shown.text
+    again = client.get(f"/scratchpad/{keep.id}").text
+    assert SECRET not in again and "Removed page:" not in again  # gone from tabs; bar used up
+    assert SECRET not in client.get("/").text  # nor on Home's card
+    assert pages(session)[1].removed_at is not None  # kept, not deleted
+
+    assert post(client, f"/scratchpad/{gone.id}/restore", {}).status_code == 303
+    assert pages(session)[1].removed_at is None
+    assert f"{SECRET} page" in client.get(f"/scratchpad/{gone.id}").text
+
+
+def test_capture_never_lands_on_a_removed_page(client, session):
+    only = new_page(session, TODAY)
+    set_text(only, "first")
+    session.commit()
+    post(client, f"/scratchpad/{only.id}/remove", {})
+
+    assert post(client, "/scratchpad/capture", {"text": "a new note"}).status_code == 303
+    first, fresh = pages(session)
+    assert text_layer(first).content == "first"  # the removed page got nothing
+    assert (fresh.position, text_layer(fresh).content) == (2, "a new note")  # no reused number
+    post(client, f"/scratchpad/{fresh.id}/remove", {})
+    assert post(client, "/scratchpad/pages", {}).status_code == 303  # New page: the same
+    assert [p.position for p in pages(session)] == [1, 2, 3]
+
+
+def test_removed_page_refuses_edits_and_keeps_typed_text(client, session):
+    page = new_page(session, TODAY)
+    set_text(page, "before")
+    session.commit()
+    html = client.get(f"/scratchpad/{page.id}").text  # a tab with the page open…
+    token = re.search(r'name="csrf_token" value="([^"]+)"', html).group(1)
+    base = re.search(r'name="base" value="([0-9a-f]+)"', html).group(1)
+    post(client, f"/scratchpad/{page.id}/remove", {})  # …while it's removed
+
+    def send(path, data, **headers):
+        return client.post(
+            path,
+            data={**data, "csrf_token": token},
+            headers={"Origin": BASE_URL, **headers},
+            follow_redirects=False,
+        )
+
+    typed = {"text": "before, and more typed", "base": base}
+    assert (
+        send(f"/scratchpad/{page.id}/text", typed, **{"x-scratchpad-save": "1"}).status_code == 410
+    )
+    saved = send(f"/scratchpad/{page.id}/text", typed)
+    assert saved.status_code == 410 and "This page was removed" in saved.text
+    assert "before, and more typed" in saved.text  # what was typed is on screen
+    assert f'action="/scratchpad/{page.id}/restore"' in saved.text
+    assert send(f"/scratchpad/{page.id}/style", {"paper": "kraft"}).status_code == 410
+    opened = client.get(f"/scratchpad/{page.id}")
+    assert opened.status_code == 410 and "This page was removed" in opened.text
+    assert 'id="pad-text"' not in opened.text  # no editor
+    stored = pages(session)[0]
+    assert (text_layer(stored).content, stored.paper) == ("before", "lined")  # nothing changed
+
+
+def test_empty_pages_from_earlier_days_are_not_tabs(client, session):
+    from brain_dock.modules.scratchpad.models import latest
+
+    empty_days = [TODAY - timedelta(days=n) for n in (1, 2, 3)]
+    written_days = [TODAY - timedelta(days=n) for n in range(4, 12)]  # 8 days with writing
+    for day in empty_days:
+        new_page(session, day)
+    for day in written_days:
+        set_text(new_page(session, day), f"notes from {day}")
+    session.commit()
+
+    grouped = pages_by_day(session, today=TODAY)
+    assert [day for day, _ in grouped] == written_days[:7]  # the empties took no slot
+    newest_written = grouped[0][1][0]
+    assert latest(session, TODAY) == newest_written  # never yesterday's empty page
+    redirect = client.get("/scratchpad", follow_redirects=False)
+    assert redirect.headers["location"] == f"/scratchpad/{newest_written.id}"
+    assert f"notes from {written_days[0]}" in client.get("/").text  # Home's card: the same
+
+    today_page = new_page(session, TODAY)  # today's page counts even when empty
+    session.commit()
+    assert latest(session, TODAY) == today_page
+    assert pages_by_day(session, today=TODAY)[0] == (TODAY, [today_page])

@@ -40,10 +40,12 @@
           {% endfor %}
         </nav>
         {% endif %}
+        {% if message_bar %}{% include "partials/message.html" %}{% endif %}
         {% block content %}{% endblock %}
       </div>
     </main>
   </div>
   <script src="/static/shortcuts.js" defer></script>
+  <script src="/static/messages.js" defer></script>
 </body>
 </html>

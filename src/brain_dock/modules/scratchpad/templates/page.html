@@ -21,6 +21,12 @@
     {{ f.csrf(csrf_field, csrf_token) }}
     <button class="button{% if page %} button-quiet{% endif %}" type="submit">{{ "New page" if page else "Start today's page" }}</button>
   </form>
+  {% if page %}
+  <form class="inline-form" method="post" action="/scratchpad/{{ page.id }}/remove">
+    {{ f.csrf(csrf_field, csrf_token) }}
+    <button class="button button-quiet" type="submit">Remove page</button>
+  </form>
+  {% endif %}
 </header>
 
 {% if page %}

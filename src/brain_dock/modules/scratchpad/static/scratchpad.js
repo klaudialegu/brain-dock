@@ -31,7 +31,7 @@
   async function send() {
     const text = box.value;
     if (text === last) return true;
-    if (stale) return false;
+    if (stale || form.dataset.posting) return false;
     try {
       const response = await fetch(form.action, {
         method: "POST",
@@ -50,6 +50,9 @@
       if (response.status === 409) {
         stale = true;
         say("This page changed elsewhere. Select Save to bring the new lines in.");
+      } else if (response.status === 410) {
+        stale = true; // removed in another tab: Save shows what was typed, with Undo
+        say("This page was removed. Select Save to keep what you typed.");
       } else {
         say("Not saved: select Save to see why.");
       }
@@ -64,6 +67,23 @@
     if (!stale) say("");
     if (timer) clearTimeout(timer);
     timer = setTimeout(save, 800);
+  });
+  form.addEventListener("submit", async (event) => {
+    // Save: finish through the same queue as autosave, so two saves never race. Saved:
+    // nothing more to send. Refused (changed or removed elsewhere): post the form, and the
+    // page that comes back says why and keeps what was typed.
+    if (form.dataset.posting) return;
+    event.preventDefault();
+    if (await save()) {
+      if (form.hasAttribute("data-unsaved")) {
+        location.assign(form.action.replace(/\/text$/, "")); // the page, without the notice
+      } else {
+        say("Saved");
+      }
+    } else {
+      form.dataset.posting = "1";
+      form.submit();
+    }
   });
   for (const other of document.querySelectorAll("form:not([data-autosave])")) {
     other.addEventListener("submit", async (event) => {

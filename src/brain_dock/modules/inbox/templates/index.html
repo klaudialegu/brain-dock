@@ -7,7 +7,6 @@
 {% block content %}
 <h1>Inbox</h1>
 
-{% if notice %}<p role="status">{{ notice }}</p>{% endif %}
 
 {% if config_problem %}
 <p class="notice" role="alert">Rules aren't set up, so no inbox run can start: {{ config_problem }}.</p>

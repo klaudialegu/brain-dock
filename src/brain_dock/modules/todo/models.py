@@ -28,6 +28,12 @@ class TodoTask(SQLModel, table=True):
     estimate_minutes: int | None = None
     bucket: str = "today"  # one of BUCKETS
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    removed_at: datetime | None = None  # removed: out of every list until Undo (ADR 0018)
+
+    @property
+    def active_steps(self) -> list["TodoStep"]:
+        """For templates: the steps that aren't removed, in order."""
+        return live_steps(self)
 
     steps: list["TodoStep"] = Relationship(
         back_populates="task",
@@ -41,16 +47,29 @@ class TodoStep(SQLModel, table=True):
 
     id: int | None = Field(default=None, primary_key=True)
     task_id: int = Field(foreign_key="todo_task.id", index=True, ondelete="CASCADE")
-    position: int  # 1, 2, 3… within its task
+    # 1, 2, 3… among the task's steps that aren't removed. A removed step has none (any
+    # number may be empty under the unique rule) and keeps its old place for Undo.
+    position: int | None
     title: str = Field(max_length=TITLE_MAX)
     minutes: int | None = None
     done: bool = False
+    removed_at: datetime | None = None
+    removed_position: int | None = None
 
     task: TodoTask | None = Relationship(back_populates="steps")
 
 
 class TodoFieldError(ValueError):
     """A field is out of range. The message names the field, never the value."""
+
+
+class TodoStateError(ValueError):
+    """Asked to restore something that isn't removed (or to change something that is)."""
+
+
+def live_steps(task: TodoTask) -> list[TodoStep]:
+    """The task's steps in order, without removed ones. Every read of steps goes here."""
+    return sorted((s for s in task.steps if s.removed_at is None), key=lambda s: s.position)
 
 
 def _check(title: str, minutes: int | None, minutes_label: str) -> str:
@@ -106,7 +125,7 @@ def move_to(task: TodoTask, bucket: str) -> None:
 
 def add_step(session: Session, task: TodoTask, title: str, minutes: int | None) -> TodoStep:
     step = TodoStep(
-        title=_check(title, minutes, "Minutes"), minutes=minutes, position=len(task.steps) + 1
+        title=_check(title, minutes, "Minutes"), minutes=minutes, position=len(live_steps(task)) + 1
     )
     task.steps.append(step)
     session.add(step)
@@ -117,7 +136,7 @@ def move_step(session: Session, task: TodoTask, step: TodoStep, direction: int) 
     """Swap with the step above (-1) or below (+1). Positions are unique per task, so the
     swap goes through a free position first."""
     other_position = step.position + direction
-    other = next((s for s in task.steps if s.position == other_position), None)
+    other = next((s for s in live_steps(task) if s.position == other_position), None)
     if other is None:
         return
     old = step.position
@@ -129,15 +148,47 @@ def move_step(session: Session, task: TodoTask, step: TodoStep, direction: int) 
     session.flush()
 
 
-def remove_step(session: Session, task: TodoTask, step: TodoStep) -> None:
-    """Remove a step; the ones after it move up, so positions stay 1, 2, 3…"""
+def remove_step(
+    session: Session, task: TodoTask, step: TodoStep, now: datetime | None = None
+) -> None:
+    """Remove a step (kept for Undo); the ones after it move up, so positions stay 1, 2, 3…"""
+    if step.removed_at is not None:
+        raise TodoStateError("already removed")
     removed = step.position
-    task.steps.remove(step)
+    step.position, step.removed_position = None, removed
+    step.removed_at = now or datetime.now(UTC)
     session.flush()
-    for later in sorted(task.steps, key=lambda s: s.position):
+    for later in live_steps(task):
         if later.position > removed:
             later.position -= 1
             session.flush()
+
+
+def restore_step(session: Session, task: TodoTask, step: TodoStep) -> None:
+    """Undo: the step goes back to its old place (the end, if the list got shorter). The
+    steps from there on move down one, highest first, so no two ever share a place."""
+    if step.removed_at is None:
+        raise TodoStateError("not removed")
+    live = live_steps(task)
+    place = min(step.removed_position or len(live) + 1, len(live) + 1)
+    for later in reversed(live):
+        if later.position >= place:
+            later.position += 1
+            session.flush()
+    step.position, step.removed_position, step.removed_at = place, None, None
+    session.flush()
+
+
+def remove_task(task: TodoTask, now: datetime | None = None) -> None:
+    if task.removed_at is not None:
+        raise TodoStateError("already removed")
+    task.removed_at = now or datetime.now(UTC)
+
+
+def restore_task(task: TodoTask) -> None:
+    if task.removed_at is None:
+        raise TodoStateError("not removed")
+    task.removed_at = None
 
 
 def local_zone() -> tzinfo:
@@ -159,7 +210,9 @@ def is_for_today(task: TodoTask, today: date) -> bool:
 
 
 def todays_open(session: Session, today: date) -> list[TodoTask]:
-    tasks = session.exec(select(TodoTask).where(TodoTask.done == False)).all()  # noqa: E712
+    tasks = session.exec(
+        select(TodoTask).where(TodoTask.done == False, TodoTask.removed_at == None)  # noqa: E711, E712
+    ).all()
     return sorted((t for t in tasks if is_for_today(t, today)), key=_order)
 
 
@@ -168,12 +221,32 @@ def card(
 ) -> tuple[list[TodoTask], list[TodoTask]]:
     """(Today, Can wait). Today: open tasks for today, plus ones done today (local date),
     in place. Older done tasks drop off. Can wait: the rest that's open."""
-    tasks = session.exec(select(TodoTask)).all()
+    tasks = session.exec(select(TodoTask).where(TodoTask.removed_at == None)).all()  # noqa: E711
     today_list = [
         t for t in tasks if is_for_today(t, today) and (not t.done or done_on(t, zone) == today)
     ]
     can_wait = [t for t in tasks if not t.done and not is_for_today(t, today)]
     return sorted(today_list, key=_order), sorted(can_wait, key=_order)
+
+
+def done_recently(
+    session: Session, today: date, zone: tzinfo | None = None, days: int = 7
+) -> list[TodoTask]:
+    """Done in the last `days` days and not shown in Today any more, newest first, so a
+    task finished yesterday can still be marked not done."""
+    tasks = session.exec(
+        select(TodoTask).where(TodoTask.done == True, TodoTask.removed_at == None)  # noqa: E711, E712
+    ).all()
+    earliest = today - timedelta(days=days)
+    found = []
+    for task in tasks:
+        day = done_on(task, zone)
+        if day is None or not earliest <= day <= today:
+            continue
+        if day == today and is_for_today(task, today):
+            continue  # still shown in Today, ticked
+        found.append(task)
+    return sorted(found, key=lambda t: t.done_at, reverse=True)
 
 
 def _order(task: TodoTask):
@@ -184,7 +257,7 @@ def total_minutes(task: TodoTask) -> int | None:
     """The estimate, or the steps' minutes added up when there's no estimate."""
     if task.estimate_minutes:
         return task.estimate_minutes
-    return sum(s.minutes for s in task.steps if s.minutes) or None
+    return sum(s.minutes for s in live_steps(task) if s.minutes) or None
 
 
 def when_label(due_on: date | None, today: date) -> str:

@@ -36,9 +36,9 @@
         </form>
         {% endif %}
       </span>
-      {% if task.steps %}
+      {% if task.active_steps %}
       <ol class="todo-steps">
-        {% for step in task.steps %}
+        {% for step in task.active_steps %}
         <li{% if step.done %} class="is-done"{% endif %}>{{ step.title }}{% if step.minutes %} <span class="todo-meta">{{ step.minutes }}m</span>{% endif %}</li>
         {% endfor %}
       </ol>
@@ -72,6 +72,27 @@
   </ul>
   {% else %}
   <p class="todo-empty">Nothing parked.</p>
+  {% endif %}
+
+  {% if done_recently %}
+  <details class="todo-done">
+    <summary>Done recently <span class="todo-meta">{{ done_recently | length }}</span></summary>
+    <ul class="todo-list">
+      {% for task, when in done_recently %}
+      <li class="todo-item">
+        <span class="todo-title">{{ task.title }}</span>
+        <span class="todo-meta">{{ when }}</span>
+        <span class="todo-actions">
+          <form class="inline-form" method="post" action="/todo/{{ task.id }}/done">
+            {{ f.csrf(csrf_field, csrf_token) }}
+            <input type="hidden" name="done" value="0">
+            <button class="button button-quiet" type="submit">Not done<span class="visually-hidden">: {{ task.title }}</span></button>
+          </form>
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+  </details>
   {% endif %}
 </section>
 

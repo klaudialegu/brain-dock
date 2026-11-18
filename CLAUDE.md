@@ -85,7 +85,7 @@ Describe features plainly and briefly, as product docs. Never record where an id
 - Format: `uv run ruff format .`
 
 ## Map
-- src/brain_dock/core/: the dock (ADR 0007): app factory, storage and migrations, security, web helpers, the Manifest and Card types, the shell (shell.py: rail, Home, Settings, the Brief card; layout.py; palette.py; brief.py, ADR 0016), and agents/ (the agent harness, ADR 0008). Never imports a module.
+- src/brain_dock/core/: the dock (ADR 0007): app factory, storage and migrations, security, web helpers, the Manifest and Card types, the shell (shell.py: rail, Home, Settings, the Brief card; layout.py; palette.py; brief.py, ADR 0016), flash.py (the one-time message bar, ADR 0018), and agents/ (the agent harness, ADR 0008). Never imports a module.
 - src/brain_dock/modules/<name>/: one module each (job_search, shown as Career Radar, is #1): manifest.py, routes, models, its own migrations/, templates/ (loaded as "<name>/..."), static/.
 - src/brain_dock/brief.py: the daily brief as text, from each enabled module's `Manifest.brief` (ADR 0013). voice.py reads the morning brief aloud (ElevenLabs, opt-in): morning_brief.py writes the script, weather.py (Open-Meteo), ics.py (Runna feed), outbound.py (guarded read-only fetches, keychain, private files).
 - src/brain_dock/registry.py: installed and enabled modules (BRAIN_DOCK_MODULES); the only place that imports modules. main.py composes the app.

@@ -112,4 +112,4 @@ def test_todo_demo_writes_only_the_demo_database(tmp_path, monkeypatch):
             "SELECT count(*) FROM todo_task WHERE ok_to_read_aloud"
         ).scalar()
     engine.dispose()
-    assert (count, read_aloud) == (5, 1)
+    assert (count, read_aloud) == (7, 1)
