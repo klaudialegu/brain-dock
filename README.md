@@ -33,12 +33,12 @@ Open http://127.0.0.1:8000. Needs [uv](https://docs.astral.sh/uv/). CI runs thes
 - **Triage**: job-alert emails are checked by plain-Python rules first; each suggestion waits for my approve or reject, and every skip keeps its reason. An accepted role links to a prefilled "Save a job" form in Career Radar; the inbox itself writes nothing there ([ADR 0011](docs/decisions/0011-inbox-writes-stay-in-the-inbox.md)).
 
 **Planned** (not built yet)
-- **Daily brief** *(planned)*: one morning page that pulls from every module. The first piece exists: a short text brief (counts and dates) that `uv run python -m brain_dock.brief` prints, and the optional spoken brief below can read aloud.
+- **Daily brief** *(planned)*: one morning page that pulls from every module. The first piece exists: a short text brief (counts and dates) that `uv run python -m brain_dock.brief` prints, and the optional morning show below reads aloud.
 - **Projects and learning** *(planned)*: side projects and what I'm learning, in one place.
 
 **Every module gets, from the core**
 - **Backups**: one command writes a complete, validated JSON backup.
-- **Local only**: no accounts, no cloud; pages load nothing from other sites. The one exception is the optional spoken brief, off unless you turn it on.
+- **Local only**: no accounts, no cloud; pages load nothing from other sites. The one exception is the optional morning show, off unless you turn it on.
 - **On or off**: `BRAIN_DOCK_MODULES` turns a module off without touching its data ([usage](docs/usage.md#modules)).
 
 ## Engineering highlights
@@ -55,17 +55,31 @@ Open http://127.0.0.1:8000. Needs [uv](https://docs.astral.sh/uv/). CI runs thes
 
 I'm a support engineer growing my agentic development skills by building something I use every day. Brain Dock is where I practice working with an AI pair programmer the way I'd want to ship for a customer: written rules, small slices, tests that are broken on purpose to prove they work, recorded decisions, and an independent review before anything risky. Career Radar is the first module.
 
-## Spoken brief (optional)
+## Morning show (optional)
 
-A voice feature that reads the daily brief aloud with [ElevenLabs](https://elevenlabs.io) text-to-speech. It's off by default. **When enabled, the brief text is sent to ElevenLabs**, which keeps the text and audio by default under its privacy policy (zero retention is for enterprise accounts only). The brief is counts and dates only: no company, role, note, link or person, and anything shaped like a secret is masked first. Nothing else is sent; mood never leaves the Mac ([ADR 0013](docs/decisions/0013-spoken-brief-with-elevenlabs.md)).
+A voice feature that reads a short morning script aloud with [ElevenLabs](https://elevenlabs.io) text-to-speech: a greeting, today's weather, today's workout from a Runna calendar feed, job counts, and a sign-off. It's off by default ([ADR 0013](docs/decisions/0013-spoken-brief-with-elevenlabs.md), [ADR 0014](docs/decisions/0014-morning-show.md)).
 
-1. Store your ElevenLabs API key in the macOS keychain. It asks for the key at a hidden prompt, so it never lands in a file or your shell history:
+**What leaves your Mac when it's on:**
+- **ElevenLabs** gets the script text only: your greeting name (if you set one), the weather numbers, the workout's name, minutes and distance, and job counts. Anything shaped like a secret is masked first. ElevenLabs keeps text and audio by default under its privacy policy (zero retention is for enterprise accounts only).
+- **Open-Meteo** gets your coordinates rounded to about 10 km. Their server logs may keep them for 90 days.
+- **Runna's calendar feed** is read (read-only). Its address stays in your keychain, and only today's workout is used.
+
+Nothing else is sent. No event notes, locations, feed addresses or exact coordinates ever reach ElevenLabs.
+
+1. Store your ElevenLabs API key in the macOS keychain. It asks at a hidden prompt, so the key never lands in a file or your shell history:
    `security add-generic-password -s brain-dock-elevenlabs -a brain-dock -w`
-2. In `config.toml`, add `[voice]` with `enabled = true` and a `voice_id` (see `config.example.toml`).
-3. Check exactly what would be sent, for free: `uv run python -m brain_dock.voice --dry-run`
-4. Hear it: `uv run python -m brain_dock.voice`. It asks how you're feeling (low days play a little slower); the answer isn't stored or sent.
+2. Optional, for the workout: in Runna, go to Connected Apps & Devices → Calendars → Other Calendar and copy the calendar address. Store it the same way:
+   `security add-generic-password -s brain-dock-runna-ics -a brain-dock -w`
+3. In `config.toml`, add `[voice]` with `enabled = true`, a `voice_id`, and optionally `greeting_name`, `weather_latitude` and `weather_longitude` (see `config.example.toml`). `uv run python -m brain_dock.voice --voices` lists the voices your key can use.
+4. Check exactly what would be sent, for free: `uv run python -m brain_dock.voice --dry-run`
+5. Hear it: `uv run python -m brain_dock.voice`
 
-Credits: the brief is capped at 600 characters, the same brief is never generated twice (audio is cached in `data/voice_cache/`, owner-only, for 7 days), and at most 3 requests go out a day. macOS only (playback uses `afplay`).
+**Credits:**
+- The model is Eleven v3, falling back to Multilingual v2 if your plan can't use v3.
+- A show is at most 420 characters (at most 420 credits). That's about 9,700 credits for 23 weekdays, under the free plan's 10,000.
+- A local monthly counter stops at 9,800 characters, and at most 3 requests go out a day.
+- The same script is never generated twice: audio is cached in `data/voice_cache/`, owner-only, for 7 days, and the forecast is cached for the morning.
+- macOS only (playback uses `afplay`).
 
 ## Where it's going (roadmap)
 

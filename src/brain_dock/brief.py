@@ -5,7 +5,8 @@ module's tables. `uv run python -m brain_dock.brief` prints it and sends nothing
 """
 
 import sys
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
+from contextlib import contextmanager
 from datetime import date
 
 from sqlmodel import Session
@@ -44,8 +45,9 @@ def build_brief(session: Session, today: date, modules: Iterable[Manifest]) -> s
     return cap([greeting(today), *(body or [NOTHING])])
 
 
-def current_brief(today: date | None = None) -> str:
-    """Today's brief from the configured database (BRAIN_DOCK_DB, or data/brain_dock.db)."""
+@contextmanager
+def database_session() -> Iterator[Session]:
+    """The configured database (BRAIN_DOCK_DB, or data/brain_dock.db), checked first."""
     if not db.DB_PATH.exists():
         raise RuntimeError("No database yet. Run: uv run python -m brain_dock.db")
     engine = get_engine()
@@ -53,9 +55,24 @@ def current_brief(today: date | None = None) -> str:
         if not is_at_head(engine):
             raise RuntimeError("The database needs migrating. Run: uv run python -m brain_dock.db")
         with Session(engine) as session:
-            return build_brief(session, today or date.today(), registry.enabled())
+            yield session
     finally:
         engine.dispose()
+
+
+def module_lines(today: date | None = None) -> list[str]:
+    """Each enabled module's lines for today (counts and dates only)."""
+    with database_session() as session:
+        modules = registry.enabled()
+        return [
+            line for m in modules if m.brief for line in m.brief(session, today or date.today())
+        ]
+
+
+def current_brief(today: date | None = None) -> str:
+    """Today's brief from the configured database."""
+    today = today or date.today()
+    return cap([greeting(today), *(module_lines(today) or [NOTHING])])
 
 
 def main() -> int:
