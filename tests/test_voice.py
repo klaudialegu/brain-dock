@@ -468,7 +468,7 @@ def test_show_asks_nothing_and_plays_at_normal_speed(tmp_path, monkeypatch):
 
 
 def test_dry_run_prints_the_script_and_sends_nothing_to_elevenlabs(tmp_path, capsys):
-    from .show_fixtures import COORDS, FakeNet
+    from .show_fixtures import COORDS, FEED_URL, FakeNet
 
     path = tmp_path / "config.toml"
     path.write_text(
@@ -496,6 +496,9 @@ def test_dry_run_prints_the_script_and_sends_nothing_to_elevenlabs(tmp_path, cap
     )
     assert fake.events == []  # no key, no guard, no send
     assert len(net.fetched) == 2
+    assert net.secrets == ["brain-dock-runna-ics"]  # the feed URL was read from the keychain
+    for leak in [FEED_URL, "feeds.example.test", "feed-secret-qwfp", KEY]:  # and never shown
+        assert leak not in script and leak not in summary
 
 
 def test_dry_run_with_voice_off_reaches_no_network(tmp_path, capsys, monkeypatch):
