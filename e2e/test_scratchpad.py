@@ -66,3 +66,37 @@ def test_words_typed_just_before_switching_paper_are_kept(page):
     expect(page.locator("section.pad-sheet")).to_have_class(re.compile(r"\bpaper-lined\b"))
     page.reload()
     expect(page.locator("#pad-text")).to_have_value(original)
+
+
+def test_an_out_of_date_tab_keeps_both_the_note_and_the_typing(page, recorder):
+    recorder.expect_error_page(409)  # the refused save answers 409 on purpose
+    page.goto("/scratchpad")
+    box = page.locator("#pad-text")
+    original = box.input_value()
+
+    other = page.context.new_page()  # meanwhile, a quick note lands from another tab
+    other.goto("/")
+    other.get_by_role("textbox", name="Quick capture").fill("landed meanwhile")
+    other.get_by_role("textbox", name="Quick capture").press("Enter")
+    expect(other.locator(".pad-card")).to_contain_text("landed meanwhile")
+    other.close()
+
+    box.focus()
+    box.evaluate("el => el.setSelectionRange(el.value.length, el.value.length)")
+    box.press_sequentially(" typed here")
+    expect(page.locator("[data-save-state]")).to_contain_text("changed elsewhere")  # refused
+    page.get_by_role("button", name="Dotted").click()  # a paper change waits: nothing dropped
+    expect(page.locator("section.pad-sheet")).to_have_class(re.compile(r"\bpaper-lined\b"))
+    expect(box).to_have_value(original + " typed here")
+
+    page.get_by_role("button", name="Save").click()  # brings the new line in, typing kept
+    merged = re.compile(re.escape(original + " typed here") + r"\n(.*\n)?landed meanwhile$")
+    expect(page.locator("#pad-text")).to_have_value(merged)
+    expect(page.locator("details.pad-saved")).to_contain_text("landed meanwhile")
+    page.get_by_role("button", name="Save").click()
+    expect(page.locator("details.pad-saved")).to_have_count(0)
+    expect(page.locator("#pad-text")).to_have_value(merged)  # saved as merged
+
+    page.locator("#pad-text").fill(original)  # put it back
+    page.get_by_role("button", name="Save").click()
+    expect(page.locator("#pad-text")).to_have_value(original)

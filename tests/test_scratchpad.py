@@ -26,6 +26,7 @@ from brain_dock.modules.scratchpad.models import (
     set_style,
     set_text,
     text_layer,
+    with_new_lines,
 )
 
 from .conftest import BASE_URL, SECRET
@@ -232,11 +233,23 @@ def test_a_stale_page_never_replaces_newer_text(client, session):
     refused = save(client, page.id, "first, edited", base=stale)
     assert refused.status_code == 409
     assert "changed since you opened it" in refused.text
-    assert ">first, edited</textarea>" in refused.text  # what was typed is kept on screen
+    # the typed text, with the line that landed since added at the end…
+    # (the old "first" comes back too: a line kept twice beats a line lost)
+    assert ">first, edited\nfirst\ncaptured since</textarea>" in refused.text
+    assert "<summary>The page as saved</summary>" in refused.text  # …and the saved page shown
+    assert "data-unsaved" in refused.text  # the script knows this text isn't saved yet
     assert text_layer(pages(session)[0]).content == "first\ncaptured since"
     fresh = re.search(r'name="base" value="([0-9a-f]+)"', refused.text).group(1)
-    assert save(client, page.id, "first, edited", base=fresh).status_code == 303  # Save again
-    assert text_layer(pages(session)[0]).content == "first, edited"
+    assert save(client, page.id, "first, edited\ncaptured since", base=fresh).status_code == 303
+    assert text_layer(pages(session)[0]).content == "first, edited\ncaptured since"
+    assert "data-unsaved" not in client.get(f"/scratchpad/{page.id}").text
+
+
+def test_merging_keeps_typed_text_and_adds_only_new_lines():
+    assert with_new_lines("a\nb", "a\nb\nnote") == "a\nb\nnote"
+    assert with_new_lines("a, edited\r\nb\n", "a\nb\nnote") == "a, edited\nb\na\nnote"
+    assert with_new_lines("", "note") == "note"
+    assert with_new_lines("same", "same\n\n") == "same"  # blank lines aren't news
 
 
 def test_capture_starts_a_new_page_when_the_page_is_full(client, session):

@@ -20,8 +20,13 @@ def test_reduced_motion_keeps_the_orb_still(page):
     page.goto("/")
     expect(page.locator(ORB)).to_have_attribute("data-animating", "true")
     before = int(page.get_attribute(ORB, "data-frames"))
-    page.wait_for_timeout(500)
-    assert int(page.get_attribute(ORB, "data-frames")) > before + 5  # the loop really runs
+    # The loop really runs: frames keep coming. A generous wait, since a busy CI browser
+    # ticks animation frames slowly; a loop that never runs still times out.
+    page.wait_for_function(
+        "n => Number(document.querySelector('[data-orb]').dataset.frames) >= n",
+        arg=before + 5,
+        timeout=5000,
+    )
 
     page.emulate_media(reduced_motion="reduce")
     page.reload()

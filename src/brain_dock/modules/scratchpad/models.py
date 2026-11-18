@@ -12,8 +12,8 @@ from datetime import UTC, date, datetime
 from sqlalchemy import UniqueConstraint
 from sqlmodel import Field, Relationship, Session, SQLModel, select
 
-TEXT_MAX = 20_000
-CAPTURE_MAX = 2_000  # one quick note  # characters on one page
+TEXT_MAX = 20_000  # characters on one page
+CAPTURE_MAX = 2_000  # characters in one quick note
 
 
 @dataclass(frozen=True)
@@ -154,6 +154,17 @@ def revision(page: ScratchpadPage) -> str:
     """A fingerprint of the page's text. The page form carries the one it loaded, so a save
     from a tab opened before a quick note landed can't silently replace that note."""
     return hashlib.sha256(text_layer(page).content.encode()).hexdigest()[:16]
+
+
+def with_new_lines(typed: str, saved: str) -> str:
+    """For a refused save: the typed text, plus any saved line it doesn't have (quick notes
+    only ever add lines), at the end. Keeping a line twice beats losing one."""
+    typed = typed.replace("\r\n", "\n")
+    have = set(typed.split("\n"))
+    extra = [line for line in saved.split("\n") if line.strip() and line not in have]
+    if not extra:
+        return typed
+    return "\n".join([typed.rstrip("\n"), *extra]) if typed.strip() else "\n".join(extra)
 
 
 def append_line(session: Session, day: date, line: str) -> ScratchpadPage:

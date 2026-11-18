@@ -1,7 +1,8 @@
-from pathlib import Path
-
 """Home and the static stylesheet. Every page reads the saved layout, so these use the
 `client` fixture (an in-memory database), never a shared app state."""
+
+import re
+from pathlib import Path
 
 
 def test_home_is_a_page_of_cards_not_a_redirect(client):
@@ -27,7 +28,6 @@ def test_pages_use_the_static_css(client):
 
 # --- Home's cards and the rail (ADR 0016) ------------------------------------------------
 
-import re  # noqa: E402
 
 from .conftest import BASE_URL  # noqa: E402
 
@@ -131,4 +131,9 @@ def test_quick_capture_placeholder_is_readable(client):
     assert 'data-capture="/scratchpad/capture"' in html  # the shortcut finds it from any page
     css = (Path(__file__).parents[1] / "src/brain_dock/static/app.css").read_text()
     assert ".quick-capture input::placeholder { color: var(--muted); opacity: 1; }" in css
-    assert contrast("#6B6862", "#FFFEFB") >= 4.5  # --muted on the card
+    assert ".quick-capture { " in css and "background: var(--card);" in css
+
+    def var(name):
+        return re.search(rf"--{name}:\s*(#[0-9A-Fa-f]{{6}})", css).group(1)
+
+    assert contrast(var("muted"), var("card")) >= 4.5  # the colors as they are in app.css

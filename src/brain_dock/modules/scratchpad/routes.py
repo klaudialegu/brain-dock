@@ -26,6 +26,7 @@ from brain_dock.modules.scratchpad.models import (
     set_style,
     set_text,
     text_layer,
+    with_new_lines,
 )
 
 router = APIRouter()
@@ -47,8 +48,10 @@ def page_view(
     errors: dict | None = None,
     status_code: int = 200,
     text: str | None = None,
+    saved: str | None = None,
 ) -> HTMLResponse:
-    """`text` keeps what was typed when a save is refused, so nothing typed is lost."""
+    """`text` keeps what was typed when a save is refused, so nothing typed is lost; `saved`
+    shows the page as stored when it changed elsewhere."""
     return render_form(
         request,
         "scratchpad/page.html",
@@ -62,6 +65,7 @@ def page_view(
         sizes=SIZES,
         today=date.today(),
         base=revision(page) if page else "",
+        saved=saved,
     )
 
 
@@ -113,11 +117,14 @@ def save_text(request: Request, page_id: int, session: SessionDep, values: FormV
     if values.get("base", "") != revision(page):  # changed since this form loaded
         if by_script:
             return Response(status_code=409)
+        saved = text_layer(page).content
         message = (
-            "Text: this page changed since you opened it (a quick note may have landed). "
-            "What you typed is below; Save again to keep it as the page."
+            "Text: this page changed since you opened it. Lines added elsewhere (a quick "
+            "note, say) are now at the end of your text. Check it, then Save."
         )
-        return page_view(request, session, page, {"text": message}, 409, text)
+        return page_view(
+            request, session, page, {"text": message}, 409, with_new_lines(text, saved), saved
+        )
     try:
         set_text(page, text)
     except ScratchpadError as e:

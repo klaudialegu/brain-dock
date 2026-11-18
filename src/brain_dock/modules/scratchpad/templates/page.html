@@ -72,7 +72,13 @@
   <section class="pad-sheet paper-{{ page.paper }} size-{{ page.size }}" aria-label="Page">
     <p class="eyebrow">{{ page.day.strftime("%a · %b") }} {{ page.day.day }}{% if page.position > 1 %} · page {{ page.position }}{% endif %}</p>
     {{ f.form_errors(errors) }}
-    <form method="post" action="/scratchpad/{{ page.id }}/text" data-autosave>
+    {% if saved is not none %}
+    <details class="pad-saved">
+      <summary>The page as saved</summary>
+      <pre class="hand">{{ saved }}</pre>
+    </details>
+    {% endif %}
+    <form method="post" action="/scratchpad/{{ page.id }}/text" data-autosave{% if errors %} data-unsaved{% endif %}>
       {{ f.csrf(csrf_field, csrf_token) }}
       <input type="hidden" name="base" value="{{ base }}">
       <label class="visually-hidden" for="pad-text">Page text</label>
