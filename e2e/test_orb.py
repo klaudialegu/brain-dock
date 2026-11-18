@@ -29,6 +29,16 @@ def test_reduced_motion_keeps_the_orb_still(page):
     expect(button).to_be_disabled()
     expect(button).to_have_attribute("title", "Available after the next update")
     expect(button).to_have_css("opacity", "1")  # disabled, but not dimmed
+    # Hover lands on the wrapper (the disabled button ignores the pointer): the tooltip
+    # must be on whatever is under the pointer, or one of its parents.
+    under = page.evaluate(
+        """() => {
+            const b = document.querySelector(".play-brief").getBoundingClientRect();
+            const el = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+            return el && el.closest("[title]") ? el.closest("[title]").title : null;
+        }"""
+    )
+    assert under == "Available after the next update"
     expect(page.locator(f"{ORB} canvas")).to_have_attribute("aria-hidden", "true")
 
 

@@ -194,7 +194,7 @@ Today 673. Per-module and per-template tests grow on their own (each new templat
 - **After the owner's first look (2026-11-18), before merge:**
   - **Buttons:** no black buttons. Primary is the highlighter tint with ink text, at most one per view. Secondary and row actions are cream pills.
   - **Links:** "Open →" in soft grey; dotted underlines in text and tables; focus rings kept.
-  - **Inbox:** gets its own color, teal (`#C6E6E1` / `#3E8A80`), pending the owner's choice between teal and moss (`#E2E3B9` / `#7B8237`). Sky stays for Schedule. The palette now has eight colors.
+  - **Inbox:** gets its own color, teal (`#C6E6E1` / `#3E8A80`, the owner's choice). Sky stays for Schedule. The palette now has eight colors.
   - **Pipeline chart and chips:** warm. `StageInfo.chart` holds the module ink per stage, and the closed stages use warm greys at 3:1 or better.
   - **Home:** packs its cards.
   - **Play brief:** the pill and dot orb come forward from PR 4, display-only.
