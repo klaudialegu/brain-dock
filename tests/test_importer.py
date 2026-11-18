@@ -352,6 +352,7 @@ def test_invalid_file_imports_nothing_and_hides_values(paths, capsys):
         "anything.db",
         "config.toml",
         ".env",
+        "data/voice_cache/0123abcd.mp3",
     ],
 )
 def test_personal_data_files_are_gitignored(path):

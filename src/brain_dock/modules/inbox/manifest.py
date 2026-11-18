@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from brain_dock.core.modules import Manifest, NavEntry
+from brain_dock.modules.inbox.brief import brief_lines
 from brain_dock.modules.inbox.routes import router
 from brain_dock.modules.inbox.tools import AGENT_TOOLS
 
@@ -22,4 +23,5 @@ manifest = Manifest(
     stylesheets=("/static/modules/inbox/inbox.css",),
     permissions=("storage",),
     agent_tools=AGENT_TOOLS,
+    brief=brief_lines,
 )

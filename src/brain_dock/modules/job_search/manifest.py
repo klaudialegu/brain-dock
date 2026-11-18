@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from brain_dock.core.modules import Manifest, NavEntry
+from brain_dock.modules.job_search.brief import brief_lines
 from brain_dock.modules.job_search.routes import router
 from brain_dock.modules.job_search.stages import stage_label
 
@@ -27,6 +28,7 @@ manifest = Manifest(
     stylesheets=("/stages.css",),
     template_globals={"stage_label": stage_label},
     permissions=("storage",),
+    brief=brief_lines,
     # Job search predates module prefixes; ADR 0007 keeps these names as the documented
     # exception, and the contract test allows exactly these.
     legacy_table_names=TABLES,

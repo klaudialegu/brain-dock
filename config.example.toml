@@ -10,3 +10,13 @@ seniority = ["senior", "staff"]
 # Yearly floor in `currency`. A role passes when the top of its range is at or above it.
 salary_floor = 100000
 currency = "USD"
+
+[voice]
+# Optional: read the daily brief aloud with ElevenLabs (ADR 0013). Off unless enabled = true.
+# When enabled, the brief text (counts and dates only) is sent to ElevenLabs, which keeps it
+# by default. The API key never goes in this file: it lives in the macOS keychain (README).
+enabled = false
+# An ElevenLabs voice ID (from your voice library). This one is a made-up example.
+voice_id = "ExampleVoiceId123"
+# Optional; eleven_flash_v2_5 is the default (half the price per character).
+model_id = "eleven_flash_v2_5"

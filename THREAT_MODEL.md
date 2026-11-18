@@ -14,7 +14,10 @@ One page: what's sensitive in Brain Dock, what agents may never do, and what enf
 | Secrets (API keys, tokens) | `.env` or the macOS keychain | Never in git, logs or output | `test_importer.py::test_personal_data_files_are_gitignored`; GitHub secret scanning and push protection |
 | Audit key | next to the database | Owner-only, never shown, never in git | `test_audit_log.py::test_key_is_made_once_owner_only_and_stays_out_of_git`, `::test_a_key_others_can_read_is_refused`, `::test_key_never_shows_in_repr_or_logs` |
 | Anything typed into a form | the request | Never logged | `test_application_form.py::test_typed_values_never_appear_in_logs`; `test_edit_and_stages.py::test_edit_never_logs_typed_values` |
-| Not built yet: real email, wellbeing data | — | Gmail read-only with a narrow query (its own ADR first). Wellbeing data stays local, never goes to any API, deletable in one click | Nothing yet: each feature lands with its own row here and a test ID |
+| ElevenLabs API key (spoken brief) | the macOS keychain, never a file | Never in git, files, logs, output or errors; sent only in the request header | `test_voice.py::test_key_is_read_from_the_keychain_before_the_guarded_request`, `::test_api_key_never_in_output_logs_errors_or_repr`, `::test_config_errors_name_the_key_never_the_value` |
+| Spoken brief audio | `data/voice_cache/` | Never in git; owner-only; deleted after 7 days | `test_importer.py::test_personal_data_files_are_gitignored`; `test_voice.py::test_cache_files_are_owner_only`, `::test_old_cache_files_are_pruned` |
+| Mood (the spoken brief asks for it) | nowhere: a prompt, used for that run only | Never stored, logged or sent; never a command-line flag (shell history); changes only local playback speed | `test_voice.py::test_mood_is_never_stored_or_logged`, `::test_mood_is_asked_at_a_prompt_never_a_flag`, `::test_mood_changes_only_local_playback` |
+| Not built yet: real email, stored wellbeing data | — | Gmail read-only with a narrow query (its own ADR first). Stored wellbeing data stays local, never goes to any API, deletable in one click | Nothing yet: each feature lands with its own row here and a test ID |
 
 ## What agents may never do
 
@@ -29,13 +32,14 @@ One page: what's sensitive in Brain Dock, what agents may never do, and what enf
 | Keep running after I switch agents off | Kill-switch files, checked before every call; an error counts as off | `test_kill_switches.py::test_switch_works_mid_run_and_can_be_turned_back`, `::test_an_error_while_checking_means_agents_off` |
 | Act without a trace | Audit before anything runs (fail closed); keyed hashes, no content; hash chain | `test_capability_pass.py::test_if_the_audit_write_fails_the_tool_does_not_run`; `test_gateway.py::test_if_the_audit_write_fails_nothing_is_sent`; `test_inbox_workflow.py::test_decisions_leave_no_content_or_thresholds_in_core_tables_audit_or_logs`; `test_audit_log.py::test_tampering_is_detected` |
 
-## The web app
+## The web app and outside services
 
 | Threat | Enforced by | Test |
 |---|---|---|
 | Another site posting to the app (CSRF) or reaching it by DNS rebinding | CSRF token + Origin check, Host allow-list (ADR 0005) | `test_application_form.py::test_every_post_route_checks_csrf`, `::test_foreign_or_missing_origin_is_refused`, `::test_unknown_host_is_refused` |
 | Script or HTML injected through stored data or an email | Escaped output, strict CSP, `safe_link` for every link | `test_applications_page.py::test_html_in_data_is_escaped`, `::test_safe_link_drops_everything_else`; `test_security_headers.py::test_every_response_has_the_policy`; `e2e/test_safari_checklist.py::test_10_no_csp_violations_or_console_errors` |
 | A module reaching into another module | Core and module boundaries (ADR 0007) | `test_module_contract.py::test_imports_no_other_module`; `test_core_boundaries.py::test_core_never_imports_a_module` |
+| The brief text going to ElevenLabs (spoken brief, ADR 0013) | Off by default. Only the masked brief text (counts and dates; secret shapes masked, then `redact()`), the model ID and fixed voice settings; the network guard allows only `api.elevenlabs.io`; capped, cached, at most 3 requests a day | `test_voice.py::test_off_by_default_sends_nothing`, `::test_request_body_is_only_the_masked_brief`, `::test_secret_shaped_text_is_masked`, `::test_request_runs_under_the_network_guard_with_only_elevenlabs_allowed`, `::test_text_over_the_cap_is_refused_before_sending`, `::test_same_brief_is_generated_once`, `::test_daily_generation_limit`; `test_brief.py::test_brief_never_names_companies_roles_notes_or_links` |
 | A workflow that can push or leak | CI is `contents: read`, actions pinned to SHAs, no secrets; secret scanning, push protection, CodeQL, Dependabot | Settings and `.github/workflows/ci.yml`, no test |
 
 ## Known gaps (honest limits)
@@ -45,6 +49,7 @@ One page: what's sensitive in Brain Dock, what agents may never do, and what enf
 - **The network guard is Python-level,** not an operating-system sandbox: a compiled extension making raw system calls could slip past.
 - **Binding to `127.0.0.1` is a documented command, not code:** nothing stops running the app with `--host 0.0.0.0`. The Host check and CSRF still apply.
 - **The CSP template scan is case-sensitive** (CodeQL alert #1): `<SCRIPT>` would slip past `test_templates_have_no_inline_scripts_or_styles`. The live CSP still blocks it; the fix is parked.
+- **ElevenLabs keeps the brief text and audio** by default (zero retention is enterprise-only). The brief is counts and dates only; deleting each generation from their history after download is parked. Secret masking is by shape, so it backs up "no free text in the brief" rather than replacing it.
 - **Personal data in commits** is caught by gitignore and by GitHub for secrets, not by a scan for names or numbers. Reviews check by hand (`.claude/agents/reviewer.md`).
 
 **Keeping this page true:** a change that adds sensitive data, an agent capability or an outside service adds or updates a row here, with the code and test that enforce it. The reviewer checks every change against this page.
