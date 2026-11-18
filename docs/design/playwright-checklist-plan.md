@@ -34,6 +34,7 @@
 7. **CI job `e2e`** (ubuntu-latest, 15-minute timeout, `contents: read`):
    - Steps: checkout (with `persist-credentials: false`, like the other jobs) and setup-uv (same pinned SHAs as now), `uv sync --locked`, `uv run playwright install --with-deps webkit`, `uv run pytest e2e`.
    - Then `actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2` with `if: always()`, artifact name `safari-checklist`, kept 14 days. The SHA was checked against the upstream tag on 2026-11-01.
+   - **Changed 2026-11-18:** the job now runs inside Microsoft's Playwright image (`mcr.microsoft.com/playwright/python`, pinned by tag and digest), so there's no `--with-deps` apt step. A slow Ubuntu mirror stalled that step past the 15-minute limit on several PRs. The tag must equal the playwright version in uv.lock, which `test_ci.py::test_e2e_image_matches_the_locked_playwright_version` checks.
 8. **Docs:** README (Development: how to run the browser tests locally), CHANGELOG `[Unreleased]`, and the CLAUDE.md Commands section.
 
 ## Test IDs

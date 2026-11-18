@@ -18,6 +18,7 @@ Each line links to the pull request that made the change.
 - opentelemetry-api 1.45.1 → 1.45.2 (a FastAPI dependency; GHSA-mf5v-w3w3-f6cg, a denial of service when parsing `traceparent`). ([#53](https://github.com/klaudialegu/brain-dock/pull/53))
 
 ### Changed
+- The `e2e` CI job runs inside Microsoft's Playwright image, pinned by tag and digest, so WebKit's system packages aren't installed with apt on every run (a slow Ubuntu mirror stalled that step past the time limit). A test fails if the image's Playwright version and uv.lock's ever differ.
 - Brain Dock is described as a modular personal daily-efficiency assistant. The job search module is shown as **Career Radar** (nav, headings, page titles); its code name `job_search` stays (ADR 0012). Planned modules are marked as planned. No behaviour changes. ([#52](https://github.com/klaudialegu/brain-dock/pull/52))
 
 ## [v0.1] - 2026-11-01
