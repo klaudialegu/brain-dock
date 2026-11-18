@@ -18,7 +18,7 @@ Each line links to the pull request that made the change.
 - opentelemetry-api 1.45.1 → 1.45.2 (a FastAPI dependency; GHSA-mf5v-w3w3-f6cg, a denial of service when parsing `traceparent`). ([#53](https://github.com/klaudialegu/brain-dock/pull/53))
 
 ### Changed
-- Wide windows: one centered content column that grows to 1600px, with Home's grid and header filling it; checked in the browser at 1440, 1920 and 2560px wide. "Morning show" is now "morning brief" everywhere (the code module is `morning_brief.py`).
+- Wide windows: one centered content column that grows to 1600px, with Home's grid and header filling it; checked in the browser at 1440, 1920 and 2560px wide. The spoken script is called the morning brief everywhere (the code module is `morning_brief.py`).
 - The `e2e` CI job runs inside Microsoft's Playwright image, pinned by tag and digest, so WebKit's system packages aren't installed with apt on every run (a slow Ubuntu mirror stalled that step past the time limit). A test fails if the image's Playwright version and uv.lock's ever differ.
 - Brain Dock is described as a modular personal daily-efficiency assistant. The job search module is shown as **Career Radar** (nav, headings, page titles); its code name `job_search` stays (ADR 0012). Planned modules are marked as planned. No behaviour changes. ([#52](https://github.com/klaudialegu/brain-dock/pull/52))
 
