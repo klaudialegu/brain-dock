@@ -260,7 +260,7 @@ form.stack [aria-invalid="true"] { border-color: var(--bad); }
 .side { grid-column: span 4; display: grid; gap: 22px; }
 .side .card { transform: rotate(-0.4deg); }
 .add-module {
-  grid-column: span 3;
+  grid-column: span 4; /* home.js then matches the card above it */
   min-height: 120px;
   border-radius: var(--radius);
   border: 1.5px dashed var(--dot);

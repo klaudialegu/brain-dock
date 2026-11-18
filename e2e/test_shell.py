@@ -4,7 +4,10 @@ changed."""
 
 import re
 
+import pytest
 from playwright.sync_api import expect
+
+from e2e.support import settle
 
 
 def card_order(page) -> list[str]:
@@ -101,3 +104,22 @@ def test_home_packs_cards_without_gaps(page):
     assert abs(radar["x"] - todo["x"]) < 2  # Career Radar sits in To do's column…
     gap = radar["y"] - (todo["y"] + todo["height"])
     assert 18 <= gap <= 26, gap  # …right under it (the 22px grid gap), not under Brief
+
+
+@pytest.mark.parametrize("width", [1280, 2560])
+def test_add_module_tile_lines_up_with_the_card_above(page, width):
+    page.set_viewport_size({"width": width, "height": 1000})
+    page.goto("/")
+    settle(page)
+    tile = page.locator(".add-module").bounding_box()
+    boxes = [
+        page.locator("section.card").nth(i).bounding_box()
+        for i in range(page.locator("section.card").count())
+    ]
+    above = [
+        b for b in boxes if b["y"] + b["height"] <= tile["y"] + 1 and abs(b["x"] - tile["x"]) < 4
+    ]
+    assert above, "the tile sits under a card"
+    card = max(above, key=lambda b: b["y"])
+    assert abs(card["x"] - tile["x"]) <= 1  # left edges line up
+    assert abs(card["width"] - tile["width"]) <= 1  # and so do the right edges
