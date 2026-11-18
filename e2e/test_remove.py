@@ -175,6 +175,11 @@ def test_removed_page_in_another_tab_keeps_its_text(page, recorder):
     expect(page.locator("#pad-text")).to_have_count(0)  # no editor
     snap(page, recorder, "page-removed")
 
+    press(page.get_by_role("button", name="Undo"))  # the page is back, with the typed words
+    expect(page).to_have_url(here)
+    expect(page.locator("#pad-text")).to_have_value("words typed in the old tab")
+    press(page.get_by_role("button", name="Remove page"))  # tidy up: it stays removed
+
 
 def test_quick_capture_esc_leaves_the_field(page):
     page.goto("/")
@@ -202,3 +207,29 @@ def test_done_recently_not_done(page, recorder):
     expect(today).to_contain_text("Book the bike service")  # back in Today, open
     open_edit(page, "Book the bike service")  # tidy up: removed, so other tests see the demo
     press(page.get_by_role("button", name="Remove task"))
+
+
+def test_remove_from_a_task_row_and_undo(page, recorder):
+    title = new_task(page, "e2e row")
+    row = page.locator(".todo-item", has=page.get_by_text(title, exact=True))
+    remove = row.get_by_role("button", name=named("Remove", title))
+    row.evaluate("el => el.scrollIntoView({block: 'center'})")
+    ARTIFACTS.mkdir(exist_ok=True)
+    before = len(recorder.entries)
+    row.screenshot(path=ARTIFACTS / "look-row-remove.png", caret="initial")
+    page.wait_for_timeout(100)
+    new = recorder.entries[before:]
+    del recorder.entries[before:]
+    recorder.entries.extend(e for e in new if not e[1].startswith(SCREENSHOT_STYLE))
+
+    press(remove)
+    expect(page).to_have_url(re.compile(r"/todo$"))
+    expect(page.locator(BAR)).to_contain_text(f"Removed: {title}")
+    expect(page.locator(".todo-list .todo-title").get_by_text(title, exact=True)).to_have_count(0)
+    press(page.locator(BAR).get_by_role("button", name="Undo"))
+    expect(page.locator(".todo-list .todo-title").get_by_text(title, exact=True)).to_be_visible()
+    press(
+        page.locator(".todo-item", has=page.get_by_text(title, exact=True)).get_by_role(
+            "button", name=named("Remove", title)
+        )
+    )  # tidy up

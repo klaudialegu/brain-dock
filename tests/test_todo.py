@@ -486,3 +486,21 @@ def test_undo_and_changes_refuse_items_in_the_wrong_state(client, session):
     assert done.status_code == moved.status_code == stepped.status_code == 410
     session.expire_all()
     assert (task.done, task.bucket, len(task.steps)) == (False, "today", 1)
+
+
+def test_every_task_row_has_remove_with_undo(client, session):
+    today_task = add_task(session, "Row in Today")
+    parked = add_task(session, "Row in Can wait", bucket="can_wait")
+    finished = add_task(session, "Row done earlier")
+    set_done(finished, True, datetime.now(UTC) - timedelta(days=2))
+    session.commit()
+
+    page = client.get("/todo").text
+    for task in [today_task, parked, finished]:
+        assert f'action="/todo/{task.id}/remove"' in page  # in each list, next to Edit
+    row = page[page.index("Row in Today") : page.index("</li>", page.index("Row in Today"))]
+    assert row.index("Edit") < row.index("Remove")
+    assert 'Remove<span class="visually-hidden">: Row in Today</span>' in row  # named
+    removed = post(client, f"/todo/{parked.id}/remove")
+    assert removed.headers["location"] == "/todo"
+    assert "Removed: Row in Can wait" in client.get("/todo").text  # the same Undo bar

@@ -28,6 +28,10 @@
       {% if info %}<span class="todo-meta">{{ info }}</span>{% endif %}
       <span class="todo-actions">
         <a href="/todo/{{ task.id }}/edit">Edit<span class="visually-hidden">: {{ task.title }}</span></a>
+        <form class="inline-form" method="post" action="/todo/{{ task.id }}/remove">
+          {{ f.csrf(csrf_field, csrf_token) }}
+          <button class="button button-quiet" type="submit">Remove<span class="visually-hidden">: {{ task.title }}</span></button>
+        </form>
         {% if not task.done and task.bucket == "today" %}
         <form class="inline-form" method="post" action="/todo/{{ task.id }}/bucket">
           {{ f.csrf(csrf_field, csrf_token) }}
@@ -61,6 +65,10 @@
       <span class="todo-meta">{{ when }}</span>
       <span class="todo-actions">
         <a href="/todo/{{ task.id }}/edit">Edit<span class="visually-hidden">: {{ task.title }}</span></a>
+        <form class="inline-form" method="post" action="/todo/{{ task.id }}/remove">
+          {{ f.csrf(csrf_field, csrf_token) }}
+          <button class="button button-quiet" type="submit">Remove<span class="visually-hidden">: {{ task.title }}</span></button>
+        </form>
         <form class="inline-form" method="post" action="/todo/{{ task.id }}/bucket">
           {{ f.csrf(csrf_field, csrf_token) }}
           <input type="hidden" name="bucket" value="today">
@@ -87,6 +95,10 @@
             {{ f.csrf(csrf_field, csrf_token) }}
             <input type="hidden" name="done" value="0">
             <button class="button button-quiet" type="submit">Not done<span class="visually-hidden">: {{ task.title }}</span></button>
+          </form>
+          <form class="inline-form" method="post" action="/todo/{{ task.id }}/remove">
+            {{ f.csrf(csrf_field, csrf_token) }}
+            <button class="button button-quiet" type="submit">Remove<span class="visually-hidden">: {{ task.title }}</span></button>
           </form>
         </span>
       </li>

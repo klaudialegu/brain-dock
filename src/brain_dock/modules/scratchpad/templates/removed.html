@@ -6,13 +6,14 @@
 {% block content %}
 <section class="removed-notice">
 <h1>This page was removed</h1>
-<p>{{ label }} isn't in your Scratchpad any more. Undo brings it back as it was.</p>
+<p>{{ label }} isn't in your Scratchpad any more. Undo brings it back{% if typed.strip() %}, with what you just typed added{% else %} as it was{% endif %}.</p>
 <form class="inline-form" method="post" action="/scratchpad/{{ page.id }}/restore">
   {{ f.csrf(csrf_field, csrf_token) }}
+  {% if typed.strip() %}<input type="hidden" name="typed" value="{{ typed }}">{% endif %}
   <button class="button" type="submit">Undo</button>
 </form>
 {% if typed.strip() %}
-<h2 id="typed-heading">What you just typed (not saved)</h2>
+<h2 id="typed-heading">What you just typed (kept if you Undo)</h2>
 <pre class="pad-typed hand" aria-labelledby="typed-heading">{{ typed }}</pre>
 {% endif %}
 <p><a href="/scratchpad">Back to the Scratchpad</a></p>

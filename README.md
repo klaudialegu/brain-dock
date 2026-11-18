@@ -38,7 +38,7 @@ Home shows one card per module on a calm grid: a washi-tape label in the module'
 
 **To do**
 - **Tasks**: Today and Can wait, each with an optional due date, an estimate, and ordered steps with their own minutes. Overdue tasks surface in Today; a task can move between the two.
-- **Remove with Undo**: removing a task or a step hides it, and "Undo" in the message that follows brings it back. Tasks finished in the last week are under "Done recently", where one can be marked not done ([ADR 0018](docs/decisions/0018-remove-with-undo.md)).
+- **Remove with Undo**: removing a task (from its row or its edit page) or a step hides it, and "Undo" in the message that follows brings it back. Tasks finished in the last week are under "Done recently", where one can be marked not done ([ADR 0018](docs/decisions/0018-remove-with-undo.md)).
 - **Read aloud, only if you say so**: the morning brief counts today's tasks and reads a title only when you tick "ok to read aloud" on that task (off by default) ([ADR 0015](docs/decisions/0015-todo-module.md)).
 
 **Scratchpad**

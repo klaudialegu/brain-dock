@@ -366,3 +366,32 @@ def test_empty_pages_from_earlier_days_are_not_tabs(client, session):
     session.commit()
     assert latest(session, TODAY) == today_page
     assert pages_by_day(session, today=TODAY)[0] == (TODAY, [today_page])
+
+
+def test_undo_keeps_the_words_typed_in_the_old_tab(client, session):
+    page = new_page(session, TODAY)
+    set_text(page, "first line\nsecond line")
+    session.commit()
+    html = client.get(f"/scratchpad/{page.id}").text
+    token = re.search(r'name="csrf_token" value="([^"]+)"', html).group(1)
+    base = re.search(r'name="base" value="([0-9a-f]+)"', html).group(1)
+    post(client, f"/scratchpad/{page.id}/remove", {})
+    refused = client.post(
+        f"/scratchpad/{page.id}/text",
+        data={"text": "first line, edited\nnew words", "base": base, "csrf_token": token},
+        headers={"Origin": BASE_URL},
+        follow_redirects=False,
+    )
+    assert 'name="typed" value="first line, edited\nnew words"' in refused.text  # Undo carries it
+
+    undone = post(
+        client, f"/scratchpad/{page.id}/restore", {"typed": "first line, edited\nnew words"}
+    )
+    assert undone.status_code == 303
+    stored = pages(session)[0]
+    assert stored.removed_at is None
+    # the typed words, then the saved lines they lack (a line kept twice beats a line lost)
+    assert text_layer(stored).content == "first line, edited\nnew words\nfirst line\nsecond line"
+    post(client, f"/scratchpad/{page.id}/remove", {})
+    assert post(client, f"/scratchpad/{page.id}/restore", {}).status_code == 303  # plain Undo
+    assert text_layer(pages(session)[0]).content.startswith("first line, edited")  # unchanged

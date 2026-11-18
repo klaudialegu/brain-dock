@@ -204,11 +204,22 @@ def remove(request: Request, page_id: int, session: SessionDep):
 
 
 @router.post("/scratchpad/{page_id}/restore", dependencies=[Depends(verify_csrf)])
-def restore(page_id: int, session: SessionDep):
+def restore(request: Request, page_id: int, session: SessionDep, values: FormValues):
+    """Undo. From "This page was removed" the form also carries what was typed in the old
+    tab: it's kept, merged like a refused save (the typed text, then any saved line it
+    lacks), so Undo never loses those words either."""
     page = load_page(session, page_id)
     try:
         restore_page(page)
     except ScratchpadError:
         return Response("Nothing to undo", status_code=409)  # a live page: nothing changes
+    typed = values.get("typed", "")
+    if typed.strip():
+        merged = with_new_lines(typed, text_layer(page).content)
+        try:
+            set_text(page, merged)
+        except ScratchpadError as e:  # too long to keep: the page is back, the words on screen
+            session.commit()
+            return page_view(request, session, page, {"text": str(e)}, 400, merged)
     session.commit()
     return RedirectResponse(f"/scratchpad/{page.id}", status_code=303)

@@ -6,7 +6,7 @@
 To do tasks and Scratchpad pages had no way to be removed, and removing a step deleted it for good. Removing should be as safe as typing: a slip shouldn't lose anything. Messages after an action ("Approved", "Removed") also need a visible way to close, and they shouldn't come back on reload.
 
 ## Decision
-1. **Remove hides; it doesn't delete.**
+1. **Remove hides; it doesn't delete.** Tasks can be removed from each row of the To do list and from their edit page.
    - Tasks, steps and Scratchpad pages get a `removed_at` time (migrations `todo_0002` and `scratchpad_0002`).
    - A removed item stays in the local database. It's out of every list, card, count, tab, quick capture and brief.
 2. **Undo, from a one-time message bar.**
@@ -25,6 +25,7 @@ To do tasks and Scratchpad pages had no way to be removed, and removing a step d
 6. **A removed item refuses changes, never with a bare 404.** This covers a page left open in another tab, the Back button, or an old link.
    - The item answers 410 with "This … was removed", Undo, and anything just typed shown so it isn't lost.
    - Undo on an item that isn't removed changes nothing (409).
+   - On a removed page, Undo also keeps what was just typed. It's merged like a refused save: the typed text, then any saved line it lacks.
 7. **Downgrades refuse while anything is removed.** Going back would fail part-way, or quietly bring removed items back.
 
 ## Options considered
