@@ -87,7 +87,7 @@ h2 { margin: 0 0 0.5rem; font-size: 1.0625rem; font-weight: 600; }
 p { margin: 0 0 1rem; color: var(--muted); }
 a {
   color: var(--accent);
-  text-decoration: underline dotted var(--dot);
+  text-decoration: underline dotted var(--muted); /* 5.5:1 on cards: clearly a link */
   text-decoration-thickness: 1.5px;
   text-underline-offset: 3px;
 }

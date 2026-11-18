@@ -65,3 +65,11 @@ def test_stage_colors_are_warm_and_readable():
     greys = [STAGES[s].chart for s in STAGES if STAGES[s].kind == "closed"]
     for grey in greys:  # warm: red channel at or above blue
         assert int(grey[1:3], 16) >= int(grey[5:7], 16), grey
+
+
+def test_each_open_stage_has_its_own_color():
+    open_stages = [s for s, i in STAGES.items() if i.kind in ("saved", "active", "won")]
+    chips = [STAGES[s].color for s in open_stages if s != Stage.applied]
+    charts = [STAGES[s].chart for s in open_stages]
+    assert len(set(chips)) == len(chips)  # interested and interview no longer look alike
+    assert len(set(charts)) == len(charts)

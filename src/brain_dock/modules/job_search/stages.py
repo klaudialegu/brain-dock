@@ -26,7 +26,7 @@ STAGES: dict[Stage, StageInfo] = {
     Stage.interested: StageInfo("Interested", 0, "saved", "#3A2F66", "#ad98dc", "#8C7BD0"),
     Stage.applied: StageInfo("Applied", 1, "active", "#3F3C37", "#e8e6e3", "#3F3C37"),
     Stage.screen: StageInfo("Screen", 2, "active", "#1E3F63", "#7aa7d9", "#4A86C2"),
-    Stage.interview: StageInfo("Interview", 3, "active", "#3A2F66", "#7aa7d9", "#8C7BD0"),
+    Stage.interview: StageInfo("Interview", 3, "active", "#6A2A42", "#7aa7d9", "#B25C7A"),
     Stage.onsite: StageInfo("Onsite", 4, "active", "#6A3414", "#7aa7d9", "#C2703D"),
     Stage.offer: StageInfo("Offer", 5, "won", "#1F4A33", "#6cc191", "#4E9A6E"),
     Stage.rejected: StageInfo("Rejected", 6, "closed", "#6B6862", "#9a9ea6", "#7D776E"),

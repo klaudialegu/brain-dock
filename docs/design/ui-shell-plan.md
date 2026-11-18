@@ -209,6 +209,10 @@ Today 673. Per-module and per-template tests grow on their own (each new templat
   - **Tests:**
     - `uv run pytest`: 752 → 753, adding `test_look.py::test_buttons_are_pills_in_every_stylesheet`; it fails on the old `inbox.css`. The palette test also checks ink on every tint is 11:1 or better.
     - `uv run pytest e2e`: 42 → 44, adding `e2e/test_shell.py::test_every_button_is_a_pill_on_every_page` and `::test_home_packs_cards_without_gaps` (fails without `home.js`).
+- **The owner's last two choices:**
+  - Text and table links keep the dotted underline, in the secondary grey `#6B6862` (5.5:1), solid on hover.
+  - Interview's chip and chart node are rose, so Interested and Interview no longer look alike.
+  - `uv run pytest`: 753 → 755, adding `test_look.py::test_text_links_have_a_visible_dotted_underline` and `test_stages.py::test_each_open_stage_has_its_own_color`. Both fail with the old values.
 - **Not yet in PR 1:**
   - The greeting name, the dot halo, playback and the audio-driven ripples (PR 4).
   - Quick capture (PR 2: the Scratchpad declares `capture`).
