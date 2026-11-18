@@ -202,6 +202,13 @@ Today 673. Per-module and per-template tests grow on their own (each new templat
     - `uv run pytest`: 750 → 752, adding `test_stages.py::test_stage_colors_are_warm_and_readable` and `test_home.py::test_play_brief_pill_is_shown_disabled_until_audio_arrives`. `test_dashboard.py`'s chart test now reads `.chart`.
     - `uv run pytest e2e`: 40 → 42, adding `e2e/test_orb.py::test_reduced_motion_keeps_the_orb_still` and `::test_drawing_stops_when_the_tab_is_hidden` (moved from PR 4; break-tested).
     - PR 4 keeps the label switch, playback and the audio-driven ripples.
+- **Last fixes before merge (2026-11-18):**
+  - **Every secondary button is a full pill.** An unscoped `.button-quiet` rule in `inbox.css`, loaded on every page, had given them an 8px radius.
+  - **The orb:** nine dots across, bigger and darker toward the middle, never dimmed.
+  - **The pill's label:** "Play brief", disabled, with the native tooltip "Available after the next update".
+  - **Tests:**
+    - `uv run pytest`: 752 → 753, adding `test_look.py::test_buttons_are_pills_in_every_stylesheet`; it fails on the old `inbox.css`. The palette test also checks ink on every tint is 11:1 or better.
+    - `uv run pytest e2e`: 42 → 44, adding `e2e/test_shell.py::test_every_button_is_a_pill_on_every_page` and `::test_home_packs_cards_without_gaps` (fails without `home.js`).
 - **Not yet in PR 1:**
   - The greeting name, the dot halo, playback and the audio-driven ripples (PR 4).
   - Quick capture (PR 2: the Scratchpad declares `capture`).

@@ -37,7 +37,7 @@ Each module had its own pages and a shared text nav, and `/` jumped to the first
    - **Links:** in text and tables, a dotted underline that turns solid on hover. A card's "Open →" is soft grey with no underline until hover or focus. Focus rings stay visible.
    - **Stage chips and the pipeline chart are warm:** chips use the palette's dark tape inks, and the chart uses the module inks and warm greys.
    - **Home packs its cards** (`static/home.js`), so a short card leaves no gap under it. Without scripts, cards align to the top of their row.
-   - **The header's Play brief pill:** the highlighter tint, with a dot orb drawn on a canvas (`static/orb.js`). It breathes slowly, leans toward the pointer, stays still under reduced motion, and stops in a hidden tab. The canvas is `aria-hidden`. It's display-only until playback arrives: a disabled button labelled "Brief audio comes soon".
+   - **The header's Play brief pill:** the highlighter tint, with a dot orb drawn on a canvas (`static/orb.js`). It breathes slowly, leans toward the pointer, stays still under reduced motion, and stops in a hidden tab. The canvas is `aria-hidden`. It's display-only until playback arrives: a disabled "Play brief" button with the native tooltip "Available after the next update", not dimmed.
    - **One light look for now.** A dark palette is parked.
    - **Motion:** `prefers-reduced-motion` turns animation off everywhere.
 

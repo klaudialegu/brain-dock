@@ -68,3 +68,36 @@ def test_layout_persists_after_reload(page):
     settings_row(page, "Career Radar").get_by_label(re.compile("Width of")).select_option("L")
     settings_row(page, "Career Radar").get_by_role("button", name=re.compile("Set width")).click()
     assert card_order(page) == before
+
+
+def test_every_button_is_a_pill_on_every_page(page):
+    from e2e.support import PAGES, open_named_page
+
+    seen = 0
+    for name in PAGES:
+        open_named_page(page, name)
+        radii = page.eval_on_selector_all(
+            ".button, .button-quiet, .play-brief",
+            "els => els.map(e => [e.textContent.trim().slice(0, 30), "
+            "getComputedStyle(e).borderTopLeftRadius])",
+        )
+        for label, radius in radii:
+            assert radius == "999px", f"{name}: {label!r} has radius {radius}"
+        seen += len(radii)
+    assert seen > 20  # the check really covered buttons across the pages
+
+
+def test_home_packs_cards_without_gaps(page):
+    page.goto("/")
+    expect(page.locator(".grid[data-pack]")).to_have_class(re.compile(r"\bpacked\b"))
+
+    def box(label):
+        return page.locator(
+            "section.card", has=page.locator(".tape", has_text=label)
+        ).bounding_box()
+
+    todo, brief, radar = box("To do"), box("Brief"), box("Career Radar")
+    assert brief["height"] > todo["height"]  # the case packing is for: a taller neighbour
+    assert abs(radar["x"] - todo["x"]) < 2  # Career Radar sits in To do's column…
+    gap = radar["y"] - (todo["y"] + todo["height"])
+    assert 18 <= gap <= 26, gap  # …right under it (the 22px grid gap), not under Brief

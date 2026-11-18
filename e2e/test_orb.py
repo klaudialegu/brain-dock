@@ -25,8 +25,10 @@ def test_reduced_motion_keeps_the_orb_still(page):
     still = frames(page)
     assert still[0] == still[1]
     assert still[0] != page.evaluate("() => document.createElement('canvas').toDataURL()")
-    button = page.get_by_role("button", name="Brief audio comes soon")
+    button = page.get_by_role("button", name="Play brief")
     expect(button).to_be_disabled()
+    expect(button).to_have_attribute("title", "Available after the next update")
+    expect(button).to_have_css("opacity", "1")  # disabled, but not dimmed
     expect(page.locator(f"{ORB} canvas")).to_have_attribute("aria-hidden", "true")
 
 

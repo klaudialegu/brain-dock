@@ -8,7 +8,7 @@
   const canvas = wrap.querySelector("canvas");
   const ctx = canvas.getContext("2d");
   const still = window.matchMedia("(prefers-reduced-motion: reduce)");
-  const ACROSS = 9; // dots across the widest row
+  const ACROSS = 9; // dots across the diameter: few and big, so it reads as dots
   const started = performance.now();
   let pointer = null;
   let frame = null;
@@ -49,8 +49,9 @@
             py += (dy / away) * pull;
           }
         }
-        const r = Math.max(step * 0.2 * (1 - k * 0.45), 0.5);
-        ctx.fillStyle = `rgba(29, 27, 24, ${(0.3 + 0.7 * (1 - k * 0.7)).toFixed(3)})`;
+        // Bigger and darker toward the middle, smaller and lighter at the edge.
+        const r = Math.max(step * 0.46 * (1 - k * 0.32), 1);
+        ctx.fillStyle = `rgba(29, 27, 24, ${(1 - k * 0.45).toFixed(3)})`;
         ctx.beginPath();
         ctx.arc(px, py, r, 0, Math.PI * 2);
         ctx.fill();

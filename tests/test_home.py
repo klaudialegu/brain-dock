@@ -112,7 +112,8 @@ def test_play_brief_pill_is_shown_disabled_until_audio_arrives(client):
 
     button = re.search(r'<button class="play-brief"[^>]*>(.*?)</button>', html, re.S)
     assert button and " disabled" in button.group(0)  # display-only until playback exists
-    assert "Brief audio comes soon" in button.group(1)  # its visible text is its label
+    assert ">Play brief<" in button.group(1)  # its visible text is its label
+    assert 'title="Available after the next update"' in button.group(0)  # a native tooltip
     assert '<canvas class="orb"' in button.group(1) and 'aria-hidden="true"' in button.group(1)
     assert '<script src="/static/orb.js" defer></script>' in html
     assert client.get("/static/orb.js").status_code == 200

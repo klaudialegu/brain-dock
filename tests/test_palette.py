@@ -6,6 +6,7 @@ from brain_dock.core.palette import CARD, INK, MUTED, PALETTE, PAPER, contrast, 
 def test_tape_text_reads_at_4_5_to_1_on_its_tint():
     for color in PALETTE.values():
         assert contrast(color.tape_text, color.tint) >= 4.5, color.name
+        assert contrast(INK, color.tint) >= 11, color.name  # primary buttons: ink on the tint
     assert contrast(INK, CARD) >= 4.5 and contrast(MUTED, CARD) >= 4.5
     assert contrast(MUTED, PAPER) >= 4.5  # secondary text on the page background
 
