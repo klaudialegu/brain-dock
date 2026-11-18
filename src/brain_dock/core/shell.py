@@ -149,16 +149,16 @@ def home(request: Request, session: SessionDep) -> HTMLResponse:
             "state": _state(placed.card, view, ctx),
         }
         (side if placed.card.side else main).append(item)
-    return render(
+    # A form page: quick capture posts with the CSRF token (when a module accepts notes).
+    return render_form(
         request,
         "home.html",
-        {
-            "cards": main,
-            "side_cards": side,
-            "today": today,
-            "greeting": greeting_word(datetime.now()),
-            "no_modules": not modules,
-        },
+        {},
+        cards=main,
+        side_cards=side,
+        today=today,
+        greeting=greeting_word(datetime.now()),
+        no_modules=not modules,
     )
 
 

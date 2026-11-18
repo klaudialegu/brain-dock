@@ -249,6 +249,13 @@ form.stack [aria-invalid="true"] { border-color: var(--bad); }
 /* Disabled until playback exists, but never dimmed; hover reaches the wrapper (the orb). */
 .play-brief:disabled { cursor: default; pointer-events: none; color: var(--text); opacity: 1; }
 .orb { display: block; width: 34px; height: 34px; }
+/* Quick capture: one line that lands on the Scratchpad (ADR 0017). */
+.quick-capture { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 18px; margin: 0 0 22px; background: var(--card); border-radius: 16px; box-shadow: 0 0 0 1px var(--border); }
+.quick-capture svg { width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.quick-capture input[name="text"] { flex: 1; min-width: 0; min-height: 44px; border: 0; background: transparent; font: inherit; color: var(--text); }
+.quick-capture input[name="text"]:focus-visible { outline: none; }
+.quick-capture:focus-within { box-shadow: 0 0 0 2px var(--text); }
+.quick-capture kbd { color: var(--muted); font-size: 0.75rem; }
 /* Cards align to the top of their row. With scripts on, static/home.js packs them so a short
    card leaves no gap: tiny grid rows, each card spanning its own height. */
 .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 22px; align-items: start; }

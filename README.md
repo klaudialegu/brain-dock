@@ -40,6 +40,10 @@ Home shows one card per module on a calm grid: a washi-tape label in the module'
 - **Tasks**: Today and Can wait, each with an optional due date, an estimate, and ordered steps with their own minutes. Overdue tasks surface in Today; a task can move between the two.
 - **Read aloud, only if you say so**: the morning brief counts today's tasks and reads a title only when you tick "ok to read aloud" on that task (off by default) ([ADR 0015](docs/decisions/0015-todo-module.md)).
 
+**Scratchpad**
+- **Pages by day**: write freely on blank, lined, squared, dotted or kraft paper, with a pen from the tray (fineliner, gel, pencil, brush, rose gel, highlighter). Pen, paper and size are remembered per page, and it saves while you type.
+- **Quick capture**: a field on Home, or ⌘K / Ctrl+K from anywhere; each note lands as a line on today's page. Notes stay on this computer and never go into the brief ([ADR 0017](docs/decisions/0017-scratchpad.md)).
+
 **Planned** (not built yet)
 - **Daily brief** *(planned)*: one morning page that pulls from every module. The first pieces exist: the Brief card on Home and its page (`/brief`), the same lines that `uv run python -m brain_dock.brief` prints, and the optional morning brief below reads aloud.
 - **Projects and learning** *(planned)*: side projects and what I'm learning, in one place.

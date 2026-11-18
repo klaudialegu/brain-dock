@@ -27,6 +27,8 @@ def test_create_db_makes_the_file_and_tables(tmp_path):
         "inbox_role_source",
         "todo_task",
         "todo_step",
+        "scratchpad_page",
+        "scratchpad_layer",
     }
     with engine.connect() as conn:
         assert conn.exec_driver_sql("PRAGMA foreign_keys").scalar() == 1

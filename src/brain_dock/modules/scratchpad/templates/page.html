@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% import "partials/fields.html" as f %}
+
+{% block title %}Scratchpad · Brain Dock{% endblock %}
+
+{% block content %}
+<header class="pad-head">
+  <h1>Scratchpad</h1>
+  {% if days %}
+  <nav class="pad-days" aria-label="Pages">
+    {% for day, day_pages in days %}
+    {% for p in day_pages %}
+    <a class="pad-tab" href="/scratchpad/{{ p.id }}"{% if page and p.id == page.id %} aria-current="page"{% endif %}>
+      <span class="mono">{{ day.strftime("%a %b") }} {{ day.day }}{% if day_pages | length > 1 %} · {{ p.position }}{% endif %}</span>
+    </a>
+    {% endfor %}
+    {% endfor %}
+  </nav>
+  {% endif %}
+  <form class="inline-form" method="post" action="/scratchpad/pages">
+    {{ f.csrf(csrf_field, csrf_token) }}
+    <button class="button{% if page %} button-quiet{% endif %}" type="submit">{{ "New page" if page else "Start today's page" }}</button>
+  </form>
+</header>
+
+{% if page %}
+<div class="pad-layout">
+  <aside class="pad-tray" aria-label="Pen, paper and size">
+    <h2 class="eyebrow">Pen</h2>
+    <ul class="pad-options">
+      {% for pen in pens %}
+      <li>
+        <form method="post" action="/scratchpad/{{ page.id }}/style">
+          {{ f.csrf(csrf_field, csrf_token) }}
+          <input type="hidden" name="pen" value="{{ pen.key }}">
+          <button class="pad-option" type="submit" aria-pressed="{{ 'true' if pen.key == page.pen else 'false' }}"{% if not pen.available %} disabled{% endif %}>
+            <span class="nib nib-{{ pen.key }}" aria-hidden="true"></span>
+            <span><span class="pad-option-name">{{ pen.name }}</span> <span class="card-meta">{{ pen.spec }}</span></span>
+          </button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    <h2 class="eyebrow">Paper</h2>
+    <ul class="pad-papers">
+      {% for key, name in papers.items() %}
+      <li>
+        <form method="post" action="/scratchpad/{{ page.id }}/style">
+          {{ f.csrf(csrf_field, csrf_token) }}
+          <input type="hidden" name="paper" value="{{ key }}">
+          <button class="pad-paper" type="submit" aria-pressed="{{ 'true' if key == page.paper else 'false' }}">
+            <span class="swatch-paper paper-{{ key }}" aria-hidden="true"></span>{{ name }}
+          </button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    <h2 class="eyebrow">Size</h2>
+    <ul class="pad-sizes">
+      {% for key, name in sizes.items() %}
+      <li>
+        <form method="post" action="/scratchpad/{{ page.id }}/style">
+          {{ f.csrf(csrf_field, csrf_token) }}
+          <input type="hidden" name="size" value="{{ key }}">
+          <button class="button button-quiet" type="submit" aria-pressed="{{ 'true' if key == page.size else 'false' }}">{{ name }}</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+  </aside>
+
+  <section class="pad-sheet paper-{{ page.paper }} size-{{ page.size }}" aria-label="Page">
+    <p class="eyebrow">{{ page.day.strftime("%a · %b") }} {{ page.day.day }}{% if page.position > 1 %} · page {{ page.position }}{% endif %}</p>
+    {{ f.form_errors(errors) }}
+    <form method="post" action="/scratchpad/{{ page.id }}/text" data-autosave>
+      {{ f.csrf(csrf_field, csrf_token) }}
+      <label class="visually-hidden" for="pad-text">Page text</label>
+      <textarea id="pad-text" class="pad-text pen-{{ page.pen }}" name="text" rows="16" spellcheck="true">{{ values.text }}</textarea>
+      <p class="pad-save"><button class="button button-quiet" type="submit">Save</button> <span class="card-meta" data-save-state aria-live="polite"></span></p>
+    </form>
+  </section>
+</div>
+<script src="/static/modules/scratchpad/scratchpad.js" defer></script>
+{% else %}
+<div class="dot-grid pad-empty"><p>A clean page. Jot something down.</p></div>
+{% endif %}
+{% endblock %}

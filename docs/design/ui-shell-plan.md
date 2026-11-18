@@ -218,6 +218,22 @@ Today 673. Per-module and per-template tests grow on their own (each new templat
   - Quick capture (PR 2: the Scratchpad declares `capture`).
   - The README screenshot (PR 5).
 
+## PR 2 as built (2026-11-18)
+- **Module:** `scratchpad`, with tables `scratchpad_page` and `scratchpad_layer`. The plan's names, `scratch_page` and `scratch_layer`, took the module prefix (ADR 0007).
+- **Pens:** inks chosen for 4.5:1 or better on cream and kraft. The pencil is `#5F5A52` and rose gel is `#8E3F5C`; the other inks were already readable. On lined paper the rules are drawn in the text box, so writing sits on them.
+- **Quick capture:** the field is a form on Home, so Home now issues a CSRF token. ⌘K from another page opens `/?capture`. `next` is limited to paths on this app.
+- **Tests:**
+  - `uv run pytest`: 755 → 778. That's 8 in `tests/test_scratchpad.py`, plus 11 per-module and 4 per-template tests.
+    - One was added beyond the plan: `::test_scratchpad_demo_writes_only_the_demo_database`, which every demo has.
+    - Changed, not renamed: `test_db.py` and `test_home.py`/`test_layout.py` list the new tables and cards, `test_modules_off.py` gets a seeder and probe, and `test_home.py::test_no_capture_field_when_no_module_captures` hides the Scratchpad first.
+  - `uv run pytest e2e`: 55 → 62:
+    - `e2e/test_scratchpad.py` (2);
+    - the Scratchpad page in items 9 and 10 (2);
+    - the Scratchpad page in the wide-window checks (3).
+  - Break tests, each reverted:
+    - paper not saved → `test_paper_switching_is_remembered` failed;
+    - no shortcut script → `test_quick_capture_shortcut_lands_on_the_scratchpad` failed.
+
 ## Privacy and safety
 - The server stays on 127.0.0.1. There are no inbox or email changes.
 - Scratchpad text and layout are local. Scratchpad text is never logged, sent, or put into the brief.

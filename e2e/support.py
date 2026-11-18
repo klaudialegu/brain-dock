@@ -8,7 +8,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = REPO_ROOT / "e2e-artifacts"
-MODULES = "job_search,inbox,todo"
+MODULES = "job_search,inbox,todo,scratchpad"
 VIEWPORT = {"width": 1280, "height": 900}
 
 
@@ -71,6 +71,7 @@ PAGES = [
     "home",
     "settings",
     "brief",
+    "scratchpad",
 ]
 FIXED_PATHS = {
     "applications": "/applications",
@@ -82,6 +83,7 @@ FIXED_PATHS = {
     "home": "/",
     "settings": "/settings",
     "brief": "/brief",
+    "scratchpad": "/scratchpad",
 }
 
 

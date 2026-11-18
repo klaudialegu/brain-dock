@@ -48,7 +48,7 @@ def card_ids(html):
 def test_home_renders_a_card_per_shown_module_in_order(client):
     html = client.get("/").text
 
-    assert card_ids(html) == ["todo", "brief", "job_search", "inbox"]
+    assert card_ids(html) == ["todo", "brief", "job_search", "inbox", "scratchpad"]
     assert 'class="card size-W c-graphite state-' in html  # size and color from the manifest
     assert re.search(r'class="tape tilt-\d"[^>]*>To do<', html)
     assert 'href="/settings">' in html and "Add module" in html
@@ -96,12 +96,14 @@ def test_rail_lists_modules_in_order_with_settings_last(client):
     rail = re.search(r'<nav class="rail" aria-label="Main">(.*?)</nav>', html, re.S).group(1)
 
     labels = re.findall(r'aria-label="([^"]+)"', rail)
-    assert labels == ["Home", "To do", "Brief", "Career Radar", "Inbox", "Settings"]
+    assert labels == ["Home", "To do", "Brief", "Career Radar", "Inbox", "Scratchpad", "Settings"]
     assert re.search(r'aria-label="To do"[^>]*aria-current="page"', rail)  # this page
-    assert rail.count('class="rail-dot"') == 4  # an ink dot per module, not Home or Settings
+    assert rail.count('class="rail-dot"') == 5  # an ink dot per module, not Home or Settings
 
 
 def test_no_capture_field_when_no_module_captures(client):
+    # The Scratchpad is the module that accepts notes: hidden, nothing on Home captures.
+    form_post(client, "/settings/cards/scratchpad/shown", {"shown": "0"})
     html = client.get("/").text
 
     assert "Quick capture" not in html and 'name="text"' not in html
