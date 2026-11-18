@@ -1,0 +1,16 @@
+<h2>Today <span class="card-meta mono">{{ c.open }} open</span></h2>
+{% if c.rows %}
+<ul class="card-list">
+  {% for task, info in c.rows %}
+  <li>
+    <span{% if task.done %} class="done"{% endif %}>{{ task.title }}</span>
+    {% if info %}<span class="card-meta mono">{{ info }}</span>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="card-meta">Nothing for today.</p>
+{% endif %}
+<hr class="dotted-rule">
+<p class="card-meta">Can wait: <span class="mono">{{ c.can_wait }}</span></p>
+<a class="card-open" href="/todo">Open</a>

@@ -57,10 +57,10 @@ def recordable_stages() -> list[Stage]:
 
 
 def stage_css() -> str:
-    """Badge colors for every stage, light and dark, served as /stages.css."""
+    """Badge colors for every stage, served as /stages.css. Light only for now (ADR 0016);
+    `dark_color` is kept for a dark palette later."""
     light = [f".stage-{s.value} {{ color: {i.color}; }}" for s, i in STAGES.items()]
-    dark = [f"  .stage-{s.value} {{ color: {i.dark_color}; }}" for s, i in STAGES.items()]
     won = [
         f".stage-{s.value} {{ font-weight: 600; }}" for s, i in STAGES.items() if i.kind == "won"
     ]
-    return "\n".join(light + won + ["@media (prefers-color-scheme: dark) {", *dark, "}"]) + "\n"
+    return "\n".join(light + won) + "\n"

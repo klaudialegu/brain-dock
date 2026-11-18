@@ -9,20 +9,40 @@
   <link rel="stylesheet" href="{{ href }}">
   {% endfor %}
 </head>
-<body class="{% block body_class %}{% endblock %}">
-  <main>
-    {% if request.app.state.is_demo %}
-    <p class="demo-banner" role="status">You're looking at fake demo data (<code>data/demo.db</code>). Your own data lives in <code>data/brain_dock.db</code>.</p>
-    {% endif %}
-    {% if nav %}
-    <nav aria-label="Main">
-      {% for entry in nav %}
-      {% if not loop.first %}·{% endif %}
-      <a href="{{ entry.path }}"{% if request.url.path == entry.path %} aria-current="page"{% endif %}>{{ entry.label }}</a>
+{% set shell = request.state.shell if request.state.shell is defined else none %}
+{% set highlighter = shell.highlighter if shell else "lavender" %}
+<body class="{% block body_class %}{% endblock %} hl-{{ highlighter }}">
+  <div class="shell">
+    <nav class="rail" aria-label="Main">
+      <a href="/" aria-label="Home"{% if request.url.path == "/" %} aria-current="page"{% endif %}>
+        {% include "partials/mark.html" %}
+      </a>
+      {% for entry in (shell.rail if shell else fallback_rail) %}
+      <a href="{{ entry.path }}" class="c-{{ entry.color }}" aria-label="{{ entry.label }}" title="{{ entry.label }}"{% if entry.current %} aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ entry.icon }}"/></svg>
+        <span class="rail-dot" aria-hidden="true"></span>
+      </a>
       {% endfor %}
+      <a class="rail-bottom" href="/settings" aria-label="Settings" title="Settings"{% if request.url.path.startswith("/settings") %} aria-current="page"{% endif %}>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="{{ icons.settings }}"/></svg>
+      </a>
     </nav>
-    {% endif %}
-    {% block content %}{% endblock %}
-  </main>
+    <main class="page">
+      <div class="page-inner">
+        {% if request.app.state.is_demo is defined and request.app.state.is_demo %}
+        <p class="demo-banner" role="status">You're looking at fake demo data (<code>data/demo.db</code>). Your own data lives in <code>data/brain_dock.db</code>.</p>
+        {% endif %}
+        {% set module = page_module(request) %}
+        {% if module and module.nav | length > 1 %}
+        <nav class="subnav" aria-label="{{ module.display_name }}">
+          {% for entry in module.nav %}
+          <a href="{{ entry.path }}"{% if request.url.path == entry.path %} aria-current="page"{% endif %}>{{ entry.label }}</a>
+          {% endfor %}
+        </nav>
+        {% endif %}
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
 </body>
 </html>

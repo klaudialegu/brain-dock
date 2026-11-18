@@ -5,11 +5,9 @@
   if (!el || !dataEl || !window.echarts) return;
 
   const data = JSON.parse(dataEl.textContent);
-  const dark = window.matchMedia("(prefers-color-scheme: dark)");
   let chart;
 
   function render() {
-    const isDark = dark.matches;
     if (chart) chart.dispose();
     chart = window.echarts.init(el);
     chart.setOption({
@@ -25,17 +23,16 @@
           emphasis: { focus: "adjacency" },
           data: data.nodes.map((n) => ({
             name: n.name,
-            itemStyle: { color: isDark ? n.darkColor : n.color },
+            itemStyle: { color: n.color },
           })),
           links: data.links,
           lineStyle: { color: "gradient", opacity: 0.35 },
-          label: { color: isDark ? "#e8e6e3" : "#1f2328" },
+          label: { color: "#1D1B18", fontFamily: "Inter, system-ui, sans-serif" },
         },
       ],
     });
   }
 
   render();
-  dark.addEventListener("change", render);
   window.addEventListener("resize", () => chart && chart.resize());
 })();

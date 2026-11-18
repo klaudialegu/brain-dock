@@ -1,0 +1,11 @@
+<ul class="card-list">
+  {% for a in c.rows %}
+  <li>
+    <span>{{ a.role_title }}</span>
+    <span class="card-meta">{{ a.company }}</span>
+    <span class="stage stage-{{ a.current_stage.value }}">{{ stage_label(a.current_stage) }}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% if c.more %}<p class="card-meta mono">+{{ c.more }} more</p>{% endif %}
+<a class="card-open" href="/applications">Open</a>

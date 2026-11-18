@@ -4,6 +4,7 @@ from pathlib import Path
 
 from brain_dock.core.modules import Manifest, NavEntry
 from brain_dock.modules.job_search.brief import brief_lines
+from brain_dock.modules.job_search.card import CARD
 from brain_dock.modules.job_search.routes import router
 from brain_dock.modules.job_search.stages import stage_label
 
@@ -32,4 +33,8 @@ manifest = Manifest(
     # Job search predates module prefixes; ADR 0007 keeps these names as the documented
     # exception, and the contract test allows exactly these.
     legacy_table_names=TABLES,
+    label="Career Radar",
+    color="sage",
+    icon="M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18M12 8a4 4 0 1 0 0 8a4 4 0 1 0 0-8M12 12l6-6",
+    cards=(CARD,),
 )

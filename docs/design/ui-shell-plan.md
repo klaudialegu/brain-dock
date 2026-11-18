@@ -173,6 +173,29 @@ Today 673. Per-module and per-template tests grow on their own (each new templat
 - Keep the orb animating under reduced motion, and the orb test fails.
 - Drop the layout save, and the persistence test fails.
 
+## PR 1 as built (2026-11-18)
+- **Tests:**
+  - `uv run pytest`: 673 → 749. 78 new: 42 font checks, 3 palette, 6 layout, 5 Home, 1 core brief, 3 manifest-field checks, and 16 per-template checks for the 8 new templates.
+  - 2 renamed:
+    - `test_home.py::test_home_redirects_to_the_pipeline` → `::test_home_is_a_page_of_cards_not_a_redirect`.
+    - `test_stages.py::test_css_has_light_and_dark_colors_for_every_stage` → `::test_css_has_a_color_for_every_stage_light_only` (D8 A).
+  - `uv run pytest e2e`: 32 → 40. Home, Settings and Brief join items 9 and 10 (6), plus `e2e/test_shell.py` (2).
+- **Changed, not renamed:**
+  - `test_db.py` and `test_migrations.py` list the two new core tables.
+  - `test_applications_page.py`'s nav test finds the rail.
+  - `test_home.py` and `test_stages.py` use the `client` fixture, because every page reads the layout.
+  - `e2e` item 2 finds "Save a job" in Career Radar's own menu.
+  - `scripts/check_quickstart.sh` checks Home at `/` and Career Radar at `/applications`.
+- **Found during the build:**
+  - The butter ink needed darkening to `#9E7F24` to reach 3:1 on cards.
+  - Cards got a default `rank`, so a fresh Home shows To do, then Brief, then Career Radar, then Inbox.
+  - The table classes went into their own file (`core/layout_tables.py`) to avoid a circular import with the database module.
+  - The inbox card uses sky for now.
+- **Not yet in PR 1:**
+  - The greeting name and the dot halo (PR 4).
+  - Quick capture (PR 2: the Scratchpad declares `capture`).
+  - The README screenshot (PR 5).
+
 ## Privacy and safety
 - The server stays on 127.0.0.1. There are no inbox or email changes.
 - Scratchpad text and layout are local. Scratchpad text is never logged, sent, or put into the brief.

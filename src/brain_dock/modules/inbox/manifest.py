@@ -4,6 +4,7 @@ from pathlib import Path
 
 from brain_dock.core.modules import Manifest, NavEntry
 from brain_dock.modules.inbox.brief import brief_lines
+from brain_dock.modules.inbox.card import CARD
 from brain_dock.modules.inbox.routes import router
 from brain_dock.modules.inbox.tools import AGENT_TOOLS
 
@@ -24,4 +25,8 @@ manifest = Manifest(
     permissions=("storage",),
     agent_tools=AGENT_TOOLS,
     brief=brief_lines,
+    label="Inbox",
+    color="sky",
+    icon="M4 13l2.5-7h11l2.5 7v6H4zM4 13h5l1 2h4l1-2h5",
+    cards=(CARD,),
 )

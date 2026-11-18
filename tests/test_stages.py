@@ -1,6 +1,3 @@
-from fastapi.testclient import TestClient
-
-from brain_dock.main import app
 from brain_dock.modules.job_search.models import Stage
 from brain_dock.modules.job_search.stages import (
     KINDS,
@@ -9,8 +6,6 @@ from brain_dock.modules.job_search.stages import (
     stage_css,
     stage_label,
 )
-
-from .conftest import BASE_URL
 
 
 def test_every_stage_has_metadata():
@@ -41,17 +36,15 @@ def test_labels_and_recordable_stages():
     assert len(recordable_stages()) == len(Stage) - 2
 
 
-def test_css_has_light_and_dark_colors_for_every_stage():
+def test_css_has_a_color_for_every_stage_light_only():
     css = stage_css()
 
     for stage, info in STAGES.items():
         assert f".stage-{stage.value} {{ color: {info.color}; }}" in css
-        assert f".stage-{stage.value} {{ color: {info.dark_color}; }}" in css
-    assert "@media (prefers-color-scheme: dark)" in css
+    assert "prefers-color-scheme" not in css  # one light look for now (ADR 0016)
 
 
-def test_stage_css_is_served_and_linked():
-    client = TestClient(app, base_url=BASE_URL)
+def test_stage_css_is_served_and_linked(client):  # the fixture: pages read the layout
 
     response = client.get("/stages.css")
     assert response.status_code == 200

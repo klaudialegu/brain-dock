@@ -1,11 +1,10 @@
-"""The daily brief as text (ADR 0013): a greeting, then each enabled module's lines.
-
-Modules add lines through their manifest's `brief`, so this file never reaches into a
-module's tables. `uv run python -m brain_dock.brief` prints it and sends nothing.
+"""The daily brief as text, from the command line (ADR 0013): `uv run python -m
+brain_dock.brief` prints it and sends nothing. The brief itself is built in the core
+(core/brief.py); this file adds the configured database and the enabled modules.
 """
 
 import sys
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import date
 
@@ -13,36 +12,16 @@ from sqlmodel import Session
 
 from brain_dock import registry
 from brain_dock.core import db
+from brain_dock.core.brief import (  # noqa: F401  (also the names other code uses)
+    CLOSING,
+    MAX_BRIEF_CHARS,
+    NOTHING,
+    build_brief,
+    cap,
+    greeting,
+    lines_by_module,
+)
 from brain_dock.core.db import get_engine, is_at_head
-from brain_dock.core.modules import Manifest
-
-# Text-to-speech is billed per character, so the brief has a hard cap (about $0.024 a
-# generation at ElevenLabs' Flash price).
-MAX_BRIEF_CHARS = 600
-CLOSING = "More in the app."
-NOTHING = "Nothing needs your attention today."
-
-
-def greeting(today: date) -> str:
-    return f"Good morning. Here's your brief for {today:%A, %B} {today.day}."
-
-
-def cap(lines: list[str], limit: int = MAX_BRIEF_CHARS) -> str:
-    """Join the lines; past the cap, drop whole lines (never cut one) and say there's more."""
-    text = " ".join(lines)
-    if len(text) <= limit:
-        return text
-    kept: list[str] = []
-    for line in lines:
-        if len(" ".join([*kept, line, CLOSING])) > limit:
-            break
-        kept.append(line)
-    return " ".join([*kept, CLOSING])
-
-
-def build_brief(session: Session, today: date, modules: Iterable[Manifest]) -> str:
-    body = [line for m in modules if m.brief for line in m.brief(session, today)]
-    return cap([greeting(today), *(body or [NOTHING])])
 
 
 @contextmanager
@@ -61,10 +40,9 @@ def database_session() -> Iterator[Session]:
 
 
 def module_lines(today: date | None = None) -> dict[str, list[str]]:
-    """Each enabled module's lines for today, by module name, in nav order."""
+    """Each enabled and shown module's lines for today, by module name, in nav order."""
     with database_session() as session:
-        today = today or date.today()
-        return {m.name: m.brief(session, today) for m in registry.enabled() if m.brief}
+        return lines_by_module(session, today or date.today(), registry.enabled())
 
 
 def current_brief(today: date | None = None) -> str:

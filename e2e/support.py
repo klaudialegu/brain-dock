@@ -68,6 +68,9 @@ PAGES = [
     "inbox-review",
     "todo",
     "todo-edit",
+    "home",
+    "settings",
+    "brief",
 ]
 FIXED_PATHS = {
     "applications": "/applications",
@@ -76,6 +79,9 @@ FIXED_PATHS = {
     "inbox": "/inbox",
     "inbox-review": "/inbox/review",
     "todo": "/todo",
+    "home": "/",
+    "settings": "/settings",
+    "brief": "/brief",
 }
 
 

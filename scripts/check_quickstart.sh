@@ -63,7 +63,8 @@ if [ "$up" -ne 1 ]; then
   exit 1
 fi
 
-page=$(curl -s -L "http://127.0.0.1:$port/")
+home=$(curl -s "http://127.0.0.1:$port/")
+page=$(curl -s "http://127.0.0.1:$port/applications")
 failed=0
 check() {
   if printf '%s' "$page" | grep -qF -- "$2"; then
@@ -73,7 +74,13 @@ check() {
     failed=1
   fi
 }
-check "home lands on the applications page" "<h1>Career Radar</h1>"
+if printf '%s' "$home" | grep -qF 'aria-labelledby="card-job_search"'; then
+  echo "  ok: Home shows the module cards"
+else
+  echo "  MISSING: Home shows the module cards" >&2
+  failed=1
+fi
+check "the applications page" "<h1>Career Radar</h1>"
 check "demo banner" "You're looking at fake demo data"
 check "demo data" "Acme Analytics"
 check "pipeline chart data" 'id="pipeline-data"'

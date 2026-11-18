@@ -8,4 +8,6 @@ Served from `/static/vendor/` so pages never load anything from another site (lo
 
 Checked before vendoring: no `eval`, `fetch`, `XMLHttpRequest`, WebSocket or beacon calls; its only `new Function` is a fallback for browsers without `JSON.parse`.
 
+| Fonts: Inter, Newsreader, Geist Mono, Kalam | 5.3.0 (`@fontsource/*`) | SIL Open Font License 1.1 (`LICENSE` in each `fonts/<family>-5.3.0/`) | npm `@fontsource/<family>@5.3.0` tarballs, `package/files/*-normal.woff2` (Latin and Latin Extended; Geist Mono Latin only); each tarball checked against the registry's sha512 integrity | per file in `VENDORED`, `tests/test_vendor.py` |
+
 To update: download the new npm tarball, verify its integrity against the registry, copy the same three files into a new `echarts-<version>/` folder, update this table and `VENDORED` in `tests/test_vendor.py`, then point the template at the new folder.

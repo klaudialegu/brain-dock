@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% import "partials/fields.html" as f %}
+
+{% block title %}Settings · Brain Dock{% endblock %}
+
+{% block content %}
+<h1>Settings</h1>
+<p>Choose what Home shows, in what order and how wide. Hiding a module keeps its pages and data, and takes it out of the rail and the brief.</p>
+
+<h2 id="cards-heading">Home</h2>
+<ul class="settings-list" aria-labelledby="cards-heading">
+  {% for p in placed %}
+  <li class="settings-row c-{{ p.card.color }}{% if not p.shown %} is-off{% endif %}">
+    <span class="tape tilt-{{ loop.index0 % 5 }}">{{ p.card.label }}</span>
+    <span class="grow card-meta">{{ p.module.display_name if p.module else "Core" }}</span>
+    <form class="inline-form" method="post" action="/settings/cards/{{ p.card.id }}/shown">
+      {{ f.csrf(csrf_field, csrf_token) }}
+      <input type="hidden" name="shown" value="{{ '0' if p.shown else '1' }}">
+      <button class="button button-quiet" type="submit" aria-pressed="{{ 'true' if p.shown else 'false' }}">{{ "Shown" if p.shown else "Hidden" }}<span class="visually-hidden">: {{ p.card.label }}</span></button>
+    </form>
+    {% if p.card.sizes | length > 1 %}
+    <form class="inline-form" method="post" action="/settings/cards/{{ p.card.id }}/size">
+      {{ f.csrf(csrf_field, csrf_token) }}
+      <label class="visually-hidden" for="size-{{ p.card.id }}">Width of {{ p.card.label }}</label>
+      <select id="size-{{ p.card.id }}" name="size">
+        {% for size in p.card.sizes %}<option value="{{ size }}"{% if size == p.size %} selected{% endif %}>{{ {"S": "Small", "M": "Medium", "L": "Large", "W": "Wide"}[size] }}</option>{% endfor %}
+      </select>
+      <button class="button button-quiet" type="submit">Set width<span class="visually-hidden">: {{ p.card.label }}</span></button>
+    </form>
+    {% endif %}
+    {% if not loop.first %}
+    <form class="inline-form" method="post" action="/settings/cards/{{ p.card.id }}/move">
+      {{ f.csrf(csrf_field, csrf_token) }}
+      <input type="hidden" name="direction" value="up">
+      <button class="button button-quiet" type="submit">↑<span class="visually-hidden"> Move {{ p.card.label }} up</span></button>
+    </form>
+    {% endif %}
+    {% if not loop.last %}
+    <form class="inline-form" method="post" action="/settings/cards/{{ p.card.id }}/move">
+      {{ f.csrf(csrf_field, csrf_token) }}
+      <input type="hidden" name="direction" value="down">
+      <button class="button button-quiet" type="submit">↓<span class="visually-hidden"> Move {{ p.card.label }} down</span></button>
+    </form>
+    {% endif %}
+  </li>
+  {% endfor %}
+</ul>
+
+<h2 id="hl-heading">Highlighter of the day</h2>
+<form method="post" action="/settings/highlighter" aria-labelledby="hl-heading">
+  {{ f.csrf(csrf_field, csrf_token) }}
+  <fieldset class="swatches">
+    <legend class="visually-hidden">Highlighter of the day</legend>
+    {% for color in palette %}
+    <label class="swatch c-{{ color.name }}">
+      <input type="radio" name="highlighter" value="{{ color.name }}"{% if color.name == values.highlighter %} checked{% endif %}>
+      <span aria-hidden="true"></span>{{ color.label }}
+    </label>
+    {% endfor %}
+  </fieldset>
+  <button class="button" type="submit">Save highlighter</button>
+</form>
+{% endblock %}

@@ -20,6 +20,10 @@ BRAIN_DOCK_DB=data/demo.db uv run uvicorn brain_dock.main:app --host 127.0.0.1
 
 Open http://127.0.0.1:8000. Needs [uv](https://docs.astral.sh/uv/). CI runs these exact commands on a fresh clone. To fill the demo's inbox with synthetic job alerts: `uv run python -m brain_dock.modules.inbox.demo`.
 
+## Home
+
+Home shows one card per module on a calm grid: a washi-tape label in the module's color, and one of three states: calm, empty (a dot-grid page), or needs attention (a ring in the module's color, never red). A side rail lists the modules. Settings shows, hides, reorders and resizes cards and picks the highlighter of the day; hiding a module keeps its pages and data, and takes it out of the rail and the brief ([ADR 0016](docs/decisions/0016-shell-and-module-system.md)).
+
 ## Modules
 
 **Career Radar** (the first module; code name `job_search`): keeping an eye on the job market, skills in demand, and interesting roles.
@@ -37,10 +41,11 @@ Open http://127.0.0.1:8000. Needs [uv](https://docs.astral.sh/uv/). CI runs thes
 - **Read aloud, only if you say so**: the morning show counts today's tasks and reads a title only when you tick "ok to read aloud" on that task (off by default) ([ADR 0015](docs/decisions/0015-todo-module.md)).
 
 **Planned** (not built yet)
-- **Daily brief** *(planned)*: one morning page that pulls from every module. The first piece exists: a short text brief (counts and dates) that `uv run python -m brain_dock.brief` prints, and the optional morning show below reads aloud.
+- **Daily brief** *(planned)*: one morning page that pulls from every module. The first pieces exist: the Brief card on Home and its page (`/brief`), the same lines that `uv run python -m brain_dock.brief` prints, and the optional morning show below reads aloud.
 - **Projects and learning** *(planned)*: side projects and what I'm learning, in one place.
 
 **Every module gets, from the core**
+- **A card on Home, a place in the rail, and Settings**: it declares its cards in its manifest; the shell draws them all the same way.
 - **Backups**: one command writes a complete, validated JSON backup of Career Radar. To-dos aren't in it yet: backups for every module are planned.
 - **Local only**: no accounts, no cloud; pages load nothing from other sites. The one exception is the optional morning show, off unless you turn it on.
 - **On or off**: `BRAIN_DOCK_MODULES` turns a module off without touching its data ([usage](docs/usage.md#modules)).
