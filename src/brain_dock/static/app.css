@@ -94,6 +94,15 @@ a {
   text-underline-offset: 3px;
 }
 a:hover { text-decoration-style: solid; text-decoration-color: currentColor; }
+/* A form button that reads as a link (a row's "Remove" next to "Edit"): it posts, so it
+   can't be an <a>, but it looks like one, so the row keeps a single outlined button. */
+.link-button {
+  padding: 0; border: 0; background: none; font: inherit; color: var(--accent); cursor: pointer;
+  text-decoration: underline dotted var(--muted);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+.link-button:hover { text-decoration-style: solid; text-decoration-color: currentColor; }
 :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: 8px; }
 .mono, code, td.date { font-family: var(--mono); font-size: 0.875em; font-variant-numeric: tabular-nums; }
 .eyebrow { font-family: var(--mono); font-size: 0.8125rem; letter-spacing: 0.04em; color: var(--muted); text-transform: uppercase; }

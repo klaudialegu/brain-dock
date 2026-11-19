@@ -20,7 +20,7 @@
 }
 .todo-title { flex: 1 1 12rem; min-width: 0; overflow-wrap: anywhere; }
 .todo-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.875rem; }
-.todo-actions a { color: var(--accent); }
+.todo-actions a, .todo-actions .link-button { color: var(--accent); }
 .todo-check {
   width: 1.75rem;
   height: 1.75rem;

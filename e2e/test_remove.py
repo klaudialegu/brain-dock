@@ -248,3 +248,33 @@ def test_remove_from_a_task_row_and_undo(page, recorder):
             "button", name=named("Remove", title)
         )
     )  # tidy up
+
+
+def test_row_remove_is_a_dotted_link_and_can_wait_the_only_outlined_button(page, recorder):
+    title = "Finish the project write-up"
+    page.goto("/todo")
+    row = page.locator(".todo-item", has=page.get_by_text(title, exact=True))
+    expect(row).to_contain_text("~45 min")  # a busy row: estimate, due day, steps
+    remove = row.get_by_role("button", name=named("Remove", title))
+    edit = row.get_by_role("link", name=named("Edit", title))
+    look = """el => {
+        const s = getComputedStyle(el);
+        return [s.textDecorationStyle, s.borderTopWidth, s.backgroundColor, s.color];
+    }"""
+    assert remove.evaluate(look) == edit.evaluate(look)  # looks exactly like Edit
+    outlined = row.locator(".todo-actions .button")
+    expect(outlined).to_have_count(1)
+    expect(outlined).to_contain_text("Can wait")
+
+    sizes = [("1440", {"width": 1440, "height": 900}), ("narrow", {"width": 375, "height": 812})]
+    for name, size in sizes:
+        page.set_viewport_size(size)
+        row.evaluate("el => el.scrollIntoView({block: 'center'})")
+        page.evaluate("() => document.activeElement?.blur()")
+        ARTIFACTS.mkdir(exist_ok=True)
+        before = len(recorder.entries)
+        row.screenshot(path=ARTIFACTS / f"look-busy-row-{name}.png", caret="initial")
+        page.wait_for_timeout(100)
+        new = recorder.entries[before:]
+        del recorder.entries[before:]
+        recorder.entries.extend(e for e in new if not e[1].startswith(SCREENSHOT_STYLE))

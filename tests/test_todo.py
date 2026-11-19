@@ -505,6 +505,7 @@ def test_every_task_row_has_remove_with_undo(client, session):
     row = page[page.index("Row in Today") : page.index("</li>", page.index("Row in Today"))]
     assert row.index("Edit") < row.index("Remove")
     assert 'Remove<span class="visually-hidden">: Row in Today</span>' in row  # named
+    assert '<button class="link-button" type="submit">Remove' in row  # a dotted link, not a pill
     removed = post(client, f"/todo/{parked.id}/remove")
     assert removed.headers["location"] == "/todo"
     assert "Removed: Row in Can wait" in client.get("/todo").text  # the same Undo bar

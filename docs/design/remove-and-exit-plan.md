@@ -102,7 +102,7 @@ Merge this PR when review is clean and CI is green. Then rebase `feat/todo-card-
     - Save now finishes through the queue. If the page was showing a notice (changed or removed elsewhere), it reloads to the clean page.
     - If the save is refused, the form posts so the page can say why.
   - **Added after the look review:**
-    - a "Remove" on every task row (Today, Can wait, Done recently), next to Edit;
+    - a "Remove" on every task row (Today, Can wait, Done recently), next to Edit. It's a dotted text link like Edit (`.link-button`, a form button that looks like a link), so "Can wait" stays the row's only outlined button. Test: `e2e/test_remove.py::test_row_remove_is_a_dotted_link_and_can_wait_the_only_outlined_button`;
     - Undo on a removed page also keeps the words typed in the old tab, merged like a refused save.
     - Tests: `test_todo.py::test_every_task_row_has_remove_with_undo`, `test_scratchpad.py::test_undo_keeps_the_words_typed_in_the_old_tab` and `e2e/test_remove.py::test_remove_from_a_task_row_and_undo`; `e2e/test_remove.py::test_removed_page_in_another_tab_keeps_its_text` now also presses Undo.
   - **From the PR review:**
@@ -122,7 +122,7 @@ Merge this PR when review is clean and CI is green. Then rebase `feat/todo-card-
     - `test_todo_brief.py::test_todo_demo_writes_only_the_demo_database` (7 demo tasks).
 - **Tests:**
   - `uv run pytest`: 782 → 811 (806, then 2 after the look review, then 3 from the PR review). That's the plan's 18 tests plus 6 per-template security checks for the three new templates. None removed or renamed.
-  - `uv run pytest e2e`: 64 → 73: the plan's 8 in `e2e/test_remove.py`, plus the row test.
+  - `uv run pytest e2e`: 64 → 74: the plan's 8 in `e2e/test_remove.py`, plus the row test and the row-look test.
 - **Break tests** (each restored, then rerun and seen passing; compiled caches cleared each run):
   - 17 unit guards: hiding, restore, step place, done recently, the removed-task and removed-page refusals, page numbering, `latest`, both migrations, both downgrades, the message cookie and Ctrl+C.
   - 6 browser guards: Esc in a field, Esc on the bar, quick capture Esc, autosave on a removed page, the bar shown at all, and the Save race.
