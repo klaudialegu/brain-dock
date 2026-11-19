@@ -77,3 +77,30 @@ def test_focus_ring_has_one_dot_per_minute(page, recorder):
         "el => getComputedStyle(el).transitionDuration"
     )
     assert duration in ("0s", "0s, 0s")
+
+
+def test_break_into_steps_shows_on_hover_and_focus(page):
+    page.goto("/")
+    card = page.locator(CARD)
+    plain = card.locator(".tcard-item", has=page.get_by_text("Order groceries", exact=True))
+    summary = plain.locator("summary")
+    expect(summary).to_contain_text("Break into steps")
+
+    def opacity(locator):
+        return locator.evaluate("el => getComputedStyle(el).opacity")
+
+    page.mouse.move(0, 0)
+    expect(summary).to_have_css("opacity", "0")  # quiet until wanted
+    plain.hover()
+    expect(summary).to_have_css("opacity", "1")
+    page.mouse.move(0, 0)
+    expect(summary).to_have_css("opacity", "0")
+    summary.focus()  # keyboard: Tab lands on it and it shows
+    expect(summary).to_have_css("opacity", "1")
+    stepped = card.locator(
+        ".tcard-item", has=page.get_by_text("Finish the project write-up", exact=True)
+    )
+    page.mouse.move(0, 0)
+    stepped.locator("summary").blur()
+    assert opacity(stepped.locator("summary")) == "1"  # "4 steps" is always shown
+    expect(stepped.locator("summary")).to_contain_text("4 steps")

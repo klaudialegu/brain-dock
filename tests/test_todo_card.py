@@ -163,3 +163,20 @@ def test_card_forms_come_back_home_and_never_follow_an_address(client, session):
     assert stepped.headers["location"] == "/"
     assert [t.title for t in session.exec(select(TodoTask)).all()] == ["Parked task"]
     assert date.today()  # the card used the real today
+
+
+def test_break_into_steps_is_quiet_only_for_tasks_without_steps(client, session):
+    plain = add_task(session, "No steps yet")
+    stepped = add_task(session, "Has steps")
+    session.flush()
+    add_step(session, stepped, "One", 5)
+    session.commit()
+    html = client.get("/").text
+
+    def details_for(title):
+        start = html.index(f'<span class="tcard-title">{title}</span>')
+        return re.search(r'<details class="([^"]+)">', html[start:]).group(1)
+
+    assert details_for("No steps yet") == "tcard-steps no-steps"  # shows on hover or focus
+    assert details_for("Has steps") == "tcard-steps"  # "1 step" always shown
+    assert plain.id and "1 step<span" in html

@@ -62,6 +62,15 @@ form.stack label.todo-checkbox input { width: auto; }
 .speaker:hover { color: var(--text); }
 .tcard-steps { flex-basis: 100%; margin: 2px 0 0 36px; font-size: 0.875rem; }
 .tcard-steps summary { cursor: pointer; color: var(--muted); width: fit-content; }
+/* No steps yet: "Break into steps" sits at the end of the row and shows on hover or focus
+   (and always on touch screens, which have no hover). Opening it gives it its own line. */
+.tcard-steps.no-steps:not([open]) { flex-basis: auto; margin: 0; }
+.tcard-steps.no-steps[open] { order: 9; }  /* opened: its own line, under the row */
+.tcard-steps.no-steps:not([open]) summary { opacity: 0; transition: opacity 0.15s ease; }
+.tcard-item:hover .tcard-steps.no-steps summary,
+.tcard-item:focus-within .tcard-steps.no-steps summary { opacity: 1; }
+@media (hover: none) { .tcard-steps.no-steps:not([open]) summary { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tcard-steps.no-steps summary { transition: none; } }
 .tcard-steps ol { margin: 6px 0; padding-left: 1.25rem; }
 .tcard-steps li.is-done { color: var(--muted); text-decoration: line-through; }
 .tcard-add-step { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0 2px; }

@@ -3,6 +3,7 @@ layout that survives a reload. The e2e server is shared, so each test puts back 
 changed."""
 
 import re
+from itertools import pairwise
 
 import pytest
 from playwright.sync_api import expect
@@ -90,20 +91,42 @@ def test_every_button_is_a_pill_on_every_page(page):
     assert seen > 20  # the check really covered buttons across the pages
 
 
-def test_home_packs_cards_without_gaps(page):
+def test_home_keeps_card_order_and_no_row_leaves_a_hole(page):
+    """Packing never reorders: cards read in the order set in Settings, left to right and
+    top to bottom. And no row leaves a hole: each row starts at the grid's left edge, the
+    cards in it sit one grid gap apart, and the row ends at the right edge."""
     page.goto("/")
     expect(page.locator(".grid[data-pack]")).to_have_class(re.compile(r"\bpacked\b"))
+    grid = page.locator(".grid[data-pack]").bounding_box()
+    cards = []
+    for card in page.locator("section.card").all():  # in page order: the Settings order
+        box = card.bounding_box()
+        cards.append((card.locator(".tape").inner_text(), box))
+    assert len(cards) >= 4  # the check really covers several cards
 
-    def box(label):
-        return page.locator(
-            "section.card", has=page.locator(".tape", has_text=label)
-        ).bounding_box()
+    rows: list[list[tuple[str, dict]]] = []  # cards whose tops line up (tilted ones: ±8px)
+    for name, box in cards:
+        for row in rows:
+            if abs(row[0][1]["y"] - box["y"]) <= 8:
+                row.append((name, box))
+                break
+        else:
+            rows.append([(name, box)])
+    reading = [
+        name
+        for row in sorted(rows, key=lambda r: r[0][1]["y"])
+        for name, _ in sorted(row, key=lambda c: c[1]["x"])
+    ]
+    assert reading == [name for name, _ in cards]  # order kept
 
-    todo, brief, radar = box("To do"), box("Brief"), box("Career Radar")
-    assert brief["height"] > todo["height"]  # the case packing is for: a taller neighbour
-    assert abs(radar["x"] - todo["x"]) < 2  # Career Radar sits in To do's column…
-    gap = radar["y"] - (todo["y"] + todo["height"])
-    assert 18 <= gap <= 26, gap  # …right under it (the 22px grid gap), not under Brief
+    for row in rows:
+        row.sort(key=lambda c: c[1]["x"])
+        assert abs(row[0][1]["x"] - grid["x"]) < 3, row[0][0]  # starts at the left edge
+        for (left, a), (right, b) in pairwise(row):
+            gap = b["x"] - (a["x"] + a["width"])
+            assert 18 <= gap <= 26, (left, right, gap)  # one grid gap, no hole
+        last, box = row[-1]
+        assert abs(box["x"] + box["width"] - (grid["x"] + grid["width"])) < 3, last  # right edge
 
 
 @pytest.mark.parametrize("width", [1280, 2560])

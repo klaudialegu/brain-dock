@@ -1,34 +1,7 @@
 {# The To do card on Home (ADR 0016). Every control is a plain form with CSRF that comes
    back to Home (back=home: a fixed word, never an address). #}
-<div class="tcard-head"><h2>Today</h2> <span class="card-meta mono">{{ c.open }} open</span></div>
-{% if c.rows %}
-<ul class="tcard-list">
-  {% for row in c.rows %}{% set task = row.task %}
-  <li class="tcard-item{% if task.done %} is-done{% endif %}">
-    <form class="inline-form" method="post" action="/todo/{{ task.id }}/done">
-      <input type="hidden" name="{{ csrf_field }}" value="{{ csrf_token }}">
-      <input type="hidden" name="back" value="home">
-      <input type="hidden" name="done" value="{{ '0' if task.done else '1' }}">
-      <button class="tcard-check" type="submit" role="checkbox" aria-checked="{{ 'true' if task.done else 'false' }}" aria-label="Done: {{ task.title }}">
-        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M5 10.5l3.2 3.2L15 7"/></svg>
-      </button>
-    </form>
-    <span class="tcard-title">{{ task.title }}</span>
-    {% if row.dots %}<span class="dot-meter" role="img" aria-label="{{ row.dots }} of 4: about {{ row.dots * 15 }} minutes or less">{% for i in range(4) %}<span class="{{ 'on' if i < row.dots else 'off' }}"></span>{% endfor %}</span>{% endif %}
-    {% if row.meta %}<span class="card-meta mono">{{ row.meta }}</span>{% endif %}
-    <span class="tcard-actions">
-      <form class="inline-form" method="post" action="/todo/{{ task.id }}/read-aloud">
-        <input type="hidden" name="{{ csrf_field }}" value="{{ csrf_token }}">
-        <input type="hidden" name="back" value="home">
-        <input type="hidden" name="on" value="{{ '0' if task.ok_to_read_aloud else '1' }}">
-        <button class="speaker" type="submit" aria-pressed="{{ 'true' if task.ok_to_read_aloud else 'false' }}" aria-label="Ok to read aloud: {{ task.title }}" title="Ok to read aloud in the morning brief">
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/>{% if task.ok_to_read_aloud %}<path class="wave" d="M15.5 9.2a4 4 0 010 5.6M18 7a7 7 0 010 10"/>{% endif %}</svg>
-        </button>
-      </form>
-      {% if not task.done %}<a href="/todo/{{ task.id }}/focus">Focus<span class="visually-hidden">: {{ task.title }}</span></a>{% endif %}
-    </span>
-    {% if not task.done %}
-    <details class="tcard-steps">
+{% macro steps_details(task, row) %}
+    <details class="tcard-steps{% if not row.steps %} no-steps{% endif %}">
       <summary>{% if row.steps %}{{ row.steps | length }} step{{ "" if row.steps | length == 1 else "s" }}{% else %}Break into steps{% endif %}<span class="visually-hidden">: {{ task.title }}</span></summary>
       {% if row.steps %}
       <ol>
@@ -47,7 +20,38 @@
         <button class="button button-quiet" type="submit">Add<span class="visually-hidden"> step</span></button>
       </form>
     </details>
-    {% endif %}
+{% endmacro %}
+<div class="tcard-head"><h2>Today</h2> <span class="card-meta mono">{{ c.open }} open</span></div>
+{% if c.rows %}
+<ul class="tcard-list">
+  {% for row in c.rows %}{% set task = row.task %}
+  <li class="tcard-item{% if task.done %} is-done{% endif %}">
+    <form class="inline-form" method="post" action="/todo/{{ task.id }}/done">
+      <input type="hidden" name="{{ csrf_field }}" value="{{ csrf_token }}">
+      <input type="hidden" name="back" value="home">
+      <input type="hidden" name="done" value="{{ '0' if task.done else '1' }}">
+      <button class="tcard-check" type="submit" role="checkbox" aria-checked="{{ 'true' if task.done else 'false' }}" aria-label="Done: {{ task.title }}">
+        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M5 10.5l3.2 3.2L15 7"/></svg>
+      </button>
+    </form>
+    <span class="tcard-title">{{ task.title }}</span>
+    {# No steps yet: "Break into steps" sits just after the title (shown on hover or focus),
+       so the controls on the right line up on every row. #}
+    {% if not task.done and not row.steps %}{{ steps_details(task, row) }}{% endif %}
+    {% if row.dots %}<span class="dot-meter" role="img" aria-label="{{ row.dots }} of 4: about {{ row.dots * 15 }} minutes or less">{% for i in range(4) %}<span class="{{ 'on' if i < row.dots else 'off' }}"></span>{% endfor %}</span>{% endif %}
+    {% if row.meta %}<span class="card-meta mono">{{ row.meta }}</span>{% endif %}
+    <span class="tcard-actions">
+      <form class="inline-form" method="post" action="/todo/{{ task.id }}/read-aloud">
+        <input type="hidden" name="{{ csrf_field }}" value="{{ csrf_token }}">
+        <input type="hidden" name="back" value="home">
+        <input type="hidden" name="on" value="{{ '0' if task.ok_to_read_aloud else '1' }}">
+        <button class="speaker" type="submit" aria-pressed="{{ 'true' if task.ok_to_read_aloud else 'false' }}" aria-label="Ok to read aloud: {{ task.title }}" title="Ok to read aloud in the morning brief">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/>{% if task.ok_to_read_aloud %}<path class="wave" d="M15.5 9.2a4 4 0 010 5.6M18 7a7 7 0 010 10"/>{% endif %}</svg>
+        </button>
+      </form>
+      {% if not task.done %}<a href="/todo/{{ task.id }}/focus">Focus<span class="visually-hidden">: {{ task.title }}</span></a>{% endif %}
+    </span>
+    {% if not task.done and row.steps %}{{ steps_details(task, row) }}{% endif %}
   </li>
   {% endfor %}
 </ul>
