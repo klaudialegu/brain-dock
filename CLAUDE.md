@@ -23,6 +23,7 @@ Describe features plainly and briefly, as product docs. Never record where an id
 - Before reporting a check's result, confirm it actually ran what it claims (test count above 0, correct target, a spy that saw calls), and every new test must be able to fail: no always-true assertions.
 - After a break test, rerun the test that failed and see it pass before moving on; a "restored" message isn't proof.
 - Never change an approved look to make a test pass; fix the test, or bring the look change to Klaudia.
+- After every merge, check main's CI run and report it; a green PR isn't proof main is green.
 - Before telling Klaudia how to change her data, check the instruction against the current ADRs (since ADR 0004 the database is the source of truth).
 - Any plan that removes or renames tests includes the before/after `pytest --collect-only` test-ID diff, so the approved count is the real one.
 - If a new test is worth adding mid-slice, add it and report the plan change; don't fold it into a planned test just to keep the test-ID diff matching.

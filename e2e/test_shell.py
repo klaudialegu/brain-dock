@@ -3,7 +3,7 @@ layout that survives a reload. The e2e server is shared, so each test puts back 
 changed."""
 
 import re
-from itertools import pairwise
+from itertools import pairwise, product
 
 import pytest
 from playwright.sync_api import expect
@@ -97,10 +97,69 @@ def test_every_button_is_a_pill_on_every_page(page):
     assert seen > 20  # the check really covered buttons across the pages
 
 
+def card_positions(page) -> list[tuple[str, dict]]:
+    """Home's cards in page order (the Settings order), each with its box."""
+    page.goto("/")
+    expect(page.locator(".grid[data-pack]")).to_have_class(re.compile(r"\bpacked\b"))
+    page.wait_for_timeout(150)  # let packing settle after fonts
+    return [
+        (card.locator(".tape").inner_text(), card.bounding_box())
+        for card in page.locator("section.card").all()
+    ]
+
+
+def set_widths(page, widths: dict[str, str]) -> None:
+    """Set card widths through the Settings form's own POST (CSRF token and all)."""
+    page.goto("/settings")
+    token = page.locator('input[name="csrf_token"]').first.get_attribute("value")
+    origin = re.match(r"https?://[^/]+", page.url).group(0)
+    for card_id, size in widths.items():
+        response = page.request.post(
+            f"/settings/cards/{card_id}/size",
+            form={"size": size, "csrf_token": token},
+            headers={"Origin": origin},
+            max_redirects=0,
+        )
+        assert response.status == 303, (card_id, size, response.status)
+
+
+DEFAULT_WIDTHS = {"todo": "W", "brief": "M", "job_search": "L", "inbox": "S"}
+WIDTH_CHOICES = {"todo": "LW", "brief": "ML", "job_search": "MLW", "inbox": "SM"}
+
+
+def test_cards_keep_the_settings_order_at_every_width(page):
+    """Packing may tuck a card under a shorter neighbour, but it never reorders: reading
+    top to bottom, then left to right, gives the Settings order. Checked for every width
+    combination Settings offers (the Scratchpad has one width)."""
+    combos = list(product(*(WIDTH_CHOICES[c] for c in WIDTH_CHOICES)))
+    assert len(combos) == 24
+    try:
+        for combo in combos:
+            widths = dict(zip(WIDTH_CHOICES, combo, strict=True))
+            set_widths(page, widths)
+            cards = card_positions(page)
+            assert len(cards) == 5, widths
+            for (name_a, a), (name_b, b) in pairwise(cards):
+                same_row = abs(b["y"] - a["y"]) <= 4  # tilted cards: a few px
+                assert b["y"] > a["y"] - 4, (widths, name_a, name_b)  # never above
+                if same_row:
+                    assert b["x"] > a["x"], (widths, name_a, name_b)  # then left to right
+    finally:
+        set_widths(page, DEFAULT_WIDTHS)  # the e2e server is shared: put them back
+    assert [n for n, _ in card_positions(page)] == [
+        "To do",
+        "Brief",
+        "Career Radar",
+        "Inbox",
+        "Scratchpad",
+    ]
+
+
 def test_home_keeps_card_order_and_no_row_leaves_a_hole(page):
-    """Packing never reorders: cards read in the order set in Settings, left to right and
-    top to bottom. And no row leaves a hole: each row starts at the grid's left edge, the
-    cards in it sit one grid gap apart, and the row ends at the right edge."""
+    """With the default widths: cards read in the Settings order, and no row leaves a
+    hole: each row starts at the grid's left edge, the cards in it sit one grid gap apart,
+    and the row ends at the right edge. (Other width choices can leave a hole; see the
+    plan's "PR 3 as built".)"""
     page.goto("/")
     expect(page.locator(".grid[data-pack]")).to_have_class(re.compile(r"\bpacked\b"))
     grid = page.locator(".grid[data-pack]").bounding_box()

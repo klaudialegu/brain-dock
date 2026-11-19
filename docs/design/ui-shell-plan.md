@@ -254,10 +254,16 @@ Today 673. Per-module and per-template tests grow on their own (each new templat
   - The ring is SVG circles with attributes, so no inline styles (CSP). Time comes from the clock, so a background tab stays right.
   - "Park a thought" posts to the shell's capture path and stays put (204); without scripts it posts normally.
 - **Home layout (owner's choice A):** packing keeps the Settings order. When the To do card is taller than Brief, the space under Brief stays.
+  - **What packing promises:**
+    - **Always:** cards are placed in the Settings order (top to bottom, then left to right), at every width combination. A card may tuck under a shorter neighbour when it fits there.
+    - **With the default widths:** no row leaves a hole.
+    - **Known limit:** some other width choices in Settings can leave a hole, for example a Medium Career Radar tucked under Brief with an empty strip beside it. Dense packing would close such holes, but it would also move cards out of the Settings order.
+  - **Tests:** `e2e/test_shell.py::test_cards_keep_the_settings_order_at_every_width` (all 24 combinations, set through the Settings form, defaults restored after) and `::test_home_keeps_card_order_and_no_row_leaves_a_hole` (default widths).
+  - **A flaky test fixed:** `::test_layout_persists_after_reload` didn't wait for its own restore, so on CI Career Radar sometimes stayed Medium and later Home tests failed (main's e2e run after #64). It now waits for each step and checks the width is back to Large.
   - `e2e/test_shell.py::test_home_packs_cards_without_gaps` is renamed and rewritten as `::test_home_keeps_card_order_and_no_row_leaves_a_hole`: cards read in page order, each row starts and ends at the grid edges, and neighbours are one gap apart.
 - **Tests:**
   - `uv run pytest`: 811 → 821. That's the 6 planned in `tests/test_todo_card.py`, plus 2 mid-slice (`::test_card_forms_come_back_home_and_never_follow_an_address`, `::test_break_into_steps_is_quiet_only_for_tasks_without_steps`), plus 2 per-template checks for `focus.html`.
-  - `uv run pytest e2e`: 74 → 77. That's the 2 planned in `e2e/test_todo_card.py` (the Focus one also checks reduced motion), plus `::test_break_into_steps_shows_on_hover_and_focus`. One test renamed (above), none removed.
+  - `uv run pytest e2e`: 74 → 78. That's the 2 planned in `e2e/test_todo_card.py` (the Focus one also checks reduced motion), plus `::test_break_into_steps_shows_on_hover_and_focus` and `e2e/test_shell.py::test_cards_keep_the_settings_order_at_every_width`. One test renamed (above), none removed.
   - Break tests (each restored and rerun):
     - the meter rounding, the speaker toggle, the Focus length, staying in Focus, the Park bar shown and hidden, the `back` word, the step form;
     - dense packing, a hole in a row;
