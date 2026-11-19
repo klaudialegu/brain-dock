@@ -395,3 +395,35 @@ def test_undo_keeps_the_words_typed_in_the_old_tab(client, session):
     post(client, f"/scratchpad/{page.id}/remove", {})
     assert post(client, f"/scratchpad/{page.id}/restore", {}).status_code == 303  # plain Undo
     assert text_layer(pages(session)[0]).content.startswith("first line, edited")  # unchanged
+
+
+def test_undo_with_typed_words_when_the_page_is_already_back(client, session):
+    page = new_page(session, TODAY)
+    set_text(page, "saved line")
+    session.commit()
+    post(client, f"/scratchpad/{page.id}/remove", {})
+    post(client, f"/scratchpad/{page.id}/restore", {})  # Undo pressed in the other tab first
+
+    late = post(client, f"/scratchpad/{page.id}/restore", {"typed": "kept words"})
+    assert late.status_code == 409  # not a silent redirect: the words are on screen
+    assert ">kept words\nsaved line</textarea>" in late.text
+    assert "<summary>The page as saved</summary>" in late.text
+    assert text_layer(pages(session)[0]).content == "saved line"  # nothing overwritten
+
+
+def test_undo_with_typed_words_too_long_to_keep(client, session, caplog):
+    caplog.set_level(logging.DEBUG)
+    page = new_page(session, TODAY)
+    set_text(page, "s" * 15_000)
+    session.commit()
+    post(client, f"/scratchpad/{page.id}/remove", {})
+
+    typed = f"{SECRET} " + "t" * 10_000
+    too_long = post(client, f"/scratchpad/{page.id}/restore", {"typed": typed})
+    assert too_long.status_code == 400
+    assert "at most 20,000 characters" in too_long.text
+    assert f">{typed}\n" in too_long.text  # the typed words are in the box, to copy or trim
+    stored = pages(session)[0]
+    assert stored.removed_at is None  # the page is back regardless
+    assert text_layer(stored).content == "s" * 15_000
+    assert SECRET not in caplog.text

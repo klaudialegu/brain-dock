@@ -209,12 +209,21 @@ def restore(request: Request, page_id: int, session: SessionDep, values: FormVal
     tab: it's kept, merged like a refused save (the typed text, then any saved line it
     lacks), so Undo never loses those words either."""
     page = load_page(session, page_id)
+    typed = values.get("typed", "")
     try:
         restore_page(page)
     except ScratchpadError:
+        if typed.strip():  # back already (Undo in another tab), maybe edited since: show both
+            saved = text_layer(page).content
+            message = (
+                "Text: this page was already back. What you typed is below, with its saved "
+                "lines at the end. Check it, then Save."
+            )
+            return page_view(
+                request, session, page, {"text": message}, 409, with_new_lines(typed, saved), saved
+            )
         # already back (Undo twice, or Back): nothing changes
         return RedirectResponse(f"/scratchpad/{page.id}", status_code=303)
-    typed = values.get("typed", "")
     if typed.strip():
         merged = with_new_lines(typed, text_layer(page).content)
         try:
