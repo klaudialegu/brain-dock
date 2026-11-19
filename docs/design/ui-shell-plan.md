@@ -245,6 +245,30 @@ Today 673. Per-module and per-template tests grow on their own (each new templat
     - a refused save lets the paper change through → `test_an_out_of_date_tab_keeps_both_the_note_and_the_typing` failed;
     - the orb loop never repeats → `test_reduced_motion_keeps_the_orb_still` failed.
 
+## PR 3 as built (2026-11-19)
+- **Built as planned.** The card's checkbox, read-aloud toggle, "↑ Today" and inline "Add step" return to Home.
+  - They send a fixed word, `back=home` (or `back=focus` from Focus mode), never an address. Anything else falls back to the To do page, so nothing can redirect to another site.
+  - The step form sets `back` aside before checking the step's fields. Before that, the card's own "Add step" was refused, which `test_todo_card.py::test_card_forms_come_back_home_and_never_follow_an_address` caught.
+- **"Break into steps"** (tasks with no steps) sits after the title and shows on hover or keyboard focus, and always on touch screens. "N steps" is always shown. The right-hand controls line up on every row.
+- **Focus mode:** `/todo/{id}/focus`. The timer is the current step's minutes, else the task's estimate, else 25, capped at 120 dots.
+  - The ring is SVG circles with attributes, so no inline styles (CSP). Time comes from the clock, so a background tab stays right.
+  - "Park a thought" posts to the shell's capture path and stays put (204); without scripts it posts normally.
+- **Home layout (owner's choice A):** packing keeps the Settings order. When the To do card is taller than Brief, the space under Brief stays.
+  - **What packing promises:**
+    - **Always:** cards are placed in the Settings order (top to bottom, then left to right), at every width combination. A card may tuck under a shorter neighbour when it fits there.
+    - **With the default widths:** no row leaves a hole.
+    - **Known limit:** some other width choices in Settings can leave a hole, for example a Medium Career Radar tucked under Brief with an empty strip beside it. Dense packing would close such holes, but it would also move cards out of the Settings order.
+  - **Tests:** `e2e/test_shell.py::test_cards_keep_the_settings_order_at_every_width` (all 24 combinations, set through the Settings form, defaults restored after) and `::test_home_keeps_card_order_and_no_row_leaves_a_hole` (default widths).
+  - **A flaky test fixed:** in `::test_layout_persists_after_reload`, the clicks that post a Settings form didn't wait for the new page. On CI, "Set width" sometimes acted on the old page, so Career Radar never became Medium. That was main's e2e run after #64; the restore then never ran, and later Home tests failed in a chain. Each click now waits for its page load (`expect_navigation`). The restore runs in `finally` as direct posts that must succeed, so the shared server is always put back.
+  - `e2e/test_shell.py::test_home_packs_cards_without_gaps` is renamed and rewritten as `::test_home_keeps_card_order_and_no_row_leaves_a_hole`: cards read in page order, each row starts and ends at the grid edges, and neighbours are one gap apart.
+- **Tests:**
+  - `uv run pytest`: 811 → 821. That's the 6 planned in `tests/test_todo_card.py`, plus 2 mid-slice (`::test_card_forms_come_back_home_and_never_follow_an_address`, `::test_break_into_steps_is_quiet_only_for_tasks_without_steps`), plus 2 per-template checks for `focus.html`.
+  - `uv run pytest e2e`: 74 → 78. That's the 2 planned in `e2e/test_todo_card.py` (the Focus one also checks reduced motion), plus `::test_break_into_steps_shows_on_hover_and_focus` and `e2e/test_shell.py::test_cards_keep_the_settings_order_at_every_width`. One test renamed (above), none removed.
+  - Break tests (each restored and rerun):
+    - the meter rounding, the speaker toggle, the Focus length, staying in Focus, the Park bar shown and hidden, the `back` word, the step form;
+    - dense packing, a hole in a row;
+    - the hover and focus rules, the `no-steps` marker.
+
 ## Privacy and safety
 - The server stays on 127.0.0.1. There are no inbox or email changes.
 - Scratchpad text and layout are local. Scratchpad text is never logged, sent, or put into the brief.

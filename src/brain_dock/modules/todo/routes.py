@@ -5,6 +5,7 @@ Remove keeps the task or step for Undo (ADR 0018). A removed task refuses every 
 (say, from a page left open in another tab) with a page that offers Undo, never a bare 404.
 """
 
+import math
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -23,8 +24,10 @@ from brain_dock.modules.todo.models import (
     add_step,
     add_task,
     card,
+    current_step,
     done_on,
     done_recently,
+    focus_minutes,
     live_steps,
     meta,
     move_step,
@@ -186,6 +189,17 @@ def back_to_edit(task: TodoTask) -> RedirectResponse:
     return RedirectResponse(f"/todo/{task.id}/edit", status_code=303)
 
 
+def go_back(values: dict, task: TodoTask, default: RedirectResponse) -> RedirectResponse:
+    """Where a form on Home's card or in Focus mode returns. A fixed word picks the page;
+    an address is never taken from the request, so this can't redirect to another site."""
+    where = values.get("back")
+    if where == "home":
+        return RedirectResponse("/", status_code=303)
+    if where == "focus":
+        return RedirectResponse(f"/todo/{task.id}/focus", status_code=303)
+    return default
+
+
 @router.get("/todo", response_class=HTMLResponse)
 def todo(request: Request, session: SessionDep) -> HTMLResponse:
     return page(request, session)
@@ -216,7 +230,7 @@ def mark_done(request: Request, task_id: int, session: SessionDep, values: FormV
         return removed_page(request, task)
     set_done(task, values.get("done") == "1")
     session.commit()
-    return back_to_list()
+    return go_back(values, task, back_to_list())
 
 
 @router.post("/todo/{task_id}/bucket", dependencies=[Depends(verify_csrf)])
@@ -229,7 +243,7 @@ def change_bucket(request: Request, task_id: int, session: SessionDep, values: F
     except TodoFieldError:
         raise HTTPException(status_code=400, detail="Bad request") from None
     session.commit()
-    return back_to_list()
+    return go_back(values, task, back_to_list())
 
 
 @router.get("/todo/{task_id}/edit", response_class=HTMLResponse)
@@ -289,15 +303,15 @@ def create_step(request: Request, task_id: int, session: SessionDep, values: For
     task = load_task(session, task_id)
     if task.removed_at is not None:
         return removed_page(request, task, values)
-    try:
-        entry = StepForm.model_validate(values)
+    try:  # `back` only says where to return; the step form takes just its own fields
+        entry = StepForm.model_validate({k: v for k, v in values.items() if k != "back"})
     except ValidationError as e:
         return edit_page(
             request, task, step_values=values, step_errors=form_errors(e), status_code=400
         )
     add_step(session, task, entry.title, entry.minutes)
     session.commit()
-    return back_to_edit(task)
+    return go_back(values, task, back_to_edit(task))
 
 
 @router.post("/todo/{task_id}/steps/{step_id}/move", dependencies=[Depends(verify_csrf)])
@@ -330,7 +344,7 @@ def mark_step_done(
         return step_gone(request, task, step)
     step.done = values.get("done") == "1"
     session.commit()
-    return back_to_edit(task)
+    return go_back(values, task, back_to_edit(task))
 
 
 @router.post("/todo/{task_id}/steps/{step_id}/remove", dependencies=[Depends(verify_csrf)])
@@ -359,3 +373,47 @@ def undo_step(request: Request, task_id: int, step_id: int, session: SessionDep)
         return back_to_edit(task)  # already back: nothing changes
     session.commit()
     return back_to_edit(task)
+
+
+@router.post("/todo/{task_id}/read-aloud", dependencies=[Depends(verify_csrf)])
+def toggle_read_aloud(request: Request, task_id: int, session: SessionDep, values: FormValues):
+    """The card's speaker toggle: "ok to read aloud" on or off (off by default, ADR 0015)."""
+    task = load_task(session, task_id)
+    if task.removed_at is not None:
+        return removed_page(request, task)
+    task.ok_to_read_aloud = values.get("on") == "1"
+    session.commit()
+    return go_back(values, task, back_to_list())
+
+
+@router.get("/todo/{task_id}/focus", response_class=HTMLResponse)
+def focus(request: Request, task_id: int, session: SessionDep) -> HTMLResponse:
+    """One task, its current step and a dot-ring timer: one dot per minute."""
+    task = load_task(session, task_id)
+    if task.removed_at is not None:
+        return removed_page(request, task)
+    minutes = focus_minutes(task)
+    return render_form(
+        request,
+        "todo/focus.html",
+        {},
+        task=task,
+        steps=live_steps(task),
+        step=current_step(task),
+        minutes=minutes,
+        ring=ring(minutes),
+    )
+
+
+def ring(count: int, size: int = 240) -> list[tuple[float, float, float]]:
+    """(cx, cy, r) for each minute's dot around a circle, starting at the top. Drawn as SVG
+    attributes, so the page needs no inline styles (CSP)."""
+    centre, radius = size / 2, size / 2 - 14
+    dot = max(2.2, min(7.0, math.pi * radius / count * 0.42))
+    points = []
+    for i in range(count):
+        angle = -math.pi / 2 + 2 * math.pi * i / count
+        cx = centre + radius * math.cos(angle)
+        cy = centre + radius * math.sin(angle)
+        points.append((round(cx, 2), round(cy, 2), round(dot, 2)))
+    return points

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% import "partials/fields.html" as f %}
+
+{% block title %}Focus · {{ task.title }} · Brain Dock{% endblock %}
+
+{% block content %}
+<div class="focus">
+  <p class="eyebrow"><a href="/todo">To do</a> · Focus</p>
+  <h1>{{ task.title }}</h1>
+  {% if step %}
+  <p class="focus-step">Step {{ step.position }} of {{ steps | length }}: <strong>{{ step.title }}</strong></p>
+  {% elif steps %}
+  <p class="focus-step">Every step is done.</p>
+  {% endif %}
+
+  <figure class="focus-timer" data-focus data-minutes="{{ minutes }}">
+    <svg class="focus-ring" viewBox="0 0 240 240" role="img" aria-label="{{ minutes }} minutes, one dot per minute">
+      {% for cx, cy, r in ring %}<circle cx="{{ cx }}" cy="{{ cy }}" r="{{ r }}" data-minute="{{ loop.index0 }}"/>{% endfor %}
+    </svg>
+    <figcaption>
+      <span class="focus-clock mono" data-clock aria-live="off">{{ "%d:00" % minutes }}</span>
+      <span class="card-meta" data-state>{{ minutes }} min</span>
+    </figcaption>
+  </figure>
+
+  <div class="focus-actions">
+    <button class="button button-quiet" type="button" data-toggle hidden>Pause</button>
+    {% if step %}
+    <form class="inline-form" method="post" action="/todo/{{ task.id }}/steps/{{ step.id }}/done">
+      {{ f.csrf(csrf_field, csrf_token) }}
+      <input type="hidden" name="back" value="focus">
+      <input type="hidden" name="done" value="1">
+      <button class="button" type="submit">Done, next step</button>
+    </form>
+    {% else %}
+    <form class="inline-form" method="post" action="/todo/{{ task.id }}/done">
+      {{ f.csrf(csrf_field, csrf_token) }}
+      <input type="hidden" name="done" value="1">
+      <button class="button" type="submit">Done</button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if steps %}
+  <ol class="focus-steps" aria-label="Steps">
+    {% for s in steps %}
+    <li class="{{ 'is-done' if s.done else ('is-current' if step and s.id == step.id else '') }}">{{ s.title }}{% if s.minutes %} <span class="card-meta mono">{{ s.minutes }}m</span>{% endif %}</li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+
+  {% set capture = request.state.shell.capture if request.state.shell is defined else none %}
+  {% if capture %}
+  <form class="park" method="post" action="{{ capture }}" data-park>
+    {{ f.csrf(csrf_field, csrf_token) }}
+    <label class="visually-hidden" for="park-text">Park a thought</label>
+    <input id="park-text" name="text" autocomplete="off" maxlength="2000" placeholder="Park a thought. It waits in {{ request.state.shell.capture_label }}.">
+    <button class="button button-quiet" type="submit">Park</button>
+    <span class="card-meta" data-park-state aria-live="polite"></span>
+  </form>
+  {% endif %}
+</div>
+<script src="/static/modules/todo/focus.js" defer></script>
+{% endblock %}

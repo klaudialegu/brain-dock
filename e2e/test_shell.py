@@ -3,6 +3,7 @@ layout that survives a reload. The e2e server is shared, so each test puts back 
 changed."""
 
 import re
+from itertools import pairwise, product
 
 import pytest
 from playwright.sync_api import expect
@@ -46,31 +47,50 @@ def test_module_off_and_on_in_settings(page):
     ).to_be_visible()
 
 
+def settings_post(page, path: str, form: dict) -> None:
+    """One Settings change through its own form POST (CSRF token and all); it must save."""
+    page.goto("/settings")
+    token = page.locator('input[name="csrf_token"]').first.get_attribute("value")
+    origin = re.match(r"https?://[^/]+", page.url).group(0)
+    response = page.request.post(
+        path, form={**form, "csrf_token": token}, headers={"Origin": origin}, max_redirects=0
+    )
+    assert response.status == 303, (path, form, response.status)
+
+
 def test_layout_persists_after_reload(page):
     before = card_order(page)
     assert before.index("Career Radar") > before.index("Brief")
+    try:
+        page.goto("/settings")
+        # Each click posts a form and loads a new page: wait for that load before the next
+        # step, or the next step can act on the old page (a race on slower machines).
+        with page.expect_navigation():
+            settings_row(page, "Career Radar").get_by_role(
+                "button", name=re.compile("Move .* up")
+            ).click()
+        settings_row(page, "Career Radar").get_by_label(re.compile("Width of")).select_option("M")
+        with page.expect_navigation():
+            settings_row(page, "Career Radar").get_by_role(
+                "button", name=re.compile("Set width")
+            ).click()
 
-    page.goto("/settings")
-    settings_row(page, "Career Radar").get_by_role("button", name=re.compile("Move .* up")).click()
-    settings_row(page, "Career Radar").get_by_label(re.compile("Width of")).select_option("M")
-    settings_row(page, "Career Radar").get_by_role("button", name=re.compile("Set width")).click()
-
-    page.reload()
-    after = card_order(page)
-    assert after.index("Career Radar") == before.index("Career Radar") - 1
-    page.goto("/")
-    expect(page.locator("section.card.size-M", has_text="Career Radar")).to_be_visible()
-    rail = page.get_by_role("navigation", name="Main").get_by_role("link")
-    labels = [rail.nth(i).get_attribute("aria-label") for i in range(rail.count())]
-    assert labels.index("Career Radar") < labels.index("Brief")  # the rail follows Home
-
-    page.goto("/settings")  # put it back for the other tests
-    settings_row(page, "Career Radar").get_by_role(
-        "button", name=re.compile("Move .* down")
-    ).click()
-    settings_row(page, "Career Radar").get_by_label(re.compile("Width of")).select_option("L")
-    settings_row(page, "Career Radar").get_by_role("button", name=re.compile("Set width")).click()
+        page.reload()
+        after = card_order(page)
+        assert after.index("Career Radar") == before.index("Career Radar") - 1
+        page.goto("/")
+        expect(page.locator("section.card.size-M", has_text="Career Radar")).to_be_visible()
+        rail = page.get_by_role("navigation", name="Main").get_by_role("link")
+        labels = [rail.nth(i).get_attribute("aria-label") for i in range(rail.count())]
+        assert labels.index("Career Radar") < labels.index("Brief")  # the rail follows Home
+    finally:
+        # Put it back whatever happened above: the e2e server is shared, so a half-changed
+        # layout would break every later Home test. Direct posts, each checked to save.
+        if card_order(page).index("Career Radar") < before.index("Career Radar"):
+            settings_post(page, "/settings/cards/job_search/move", {"direction": "down"})
+        settings_post(page, "/settings/cards/job_search/size", {"size": "L"})
     assert card_order(page) == before
+    expect(page.locator("section.card.size-L", has_text="Career Radar")).to_be_visible()
 
 
 def test_every_button_is_a_pill_on_every_page(page):
@@ -90,20 +110,92 @@ def test_every_button_is_a_pill_on_every_page(page):
     assert seen > 20  # the check really covered buttons across the pages
 
 
-def test_home_packs_cards_without_gaps(page):
+def card_positions(page) -> list[tuple[str, dict]]:
+    """Home's cards in page order (the Settings order), each with its box."""
     page.goto("/")
     expect(page.locator(".grid[data-pack]")).to_have_class(re.compile(r"\bpacked\b"))
+    page.wait_for_timeout(150)  # let packing settle after fonts
+    return [
+        (card.locator(".tape").inner_text(), card.bounding_box())
+        for card in page.locator("section.card").all()
+    ]
 
-    def box(label):
-        return page.locator(
-            "section.card", has=page.locator(".tape", has_text=label)
-        ).bounding_box()
 
-    todo, brief, radar = box("To do"), box("Brief"), box("Career Radar")
-    assert brief["height"] > todo["height"]  # the case packing is for: a taller neighbour
-    assert abs(radar["x"] - todo["x"]) < 2  # Career Radar sits in To do's column…
-    gap = radar["y"] - (todo["y"] + todo["height"])
-    assert 18 <= gap <= 26, gap  # …right under it (the 22px grid gap), not under Brief
+def set_widths(page, widths: dict[str, str]) -> None:
+    """Set card widths through the Settings form's own POST (CSRF token and all)."""
+    for card_id, size in widths.items():
+        settings_post(page, f"/settings/cards/{card_id}/size", {"size": size})
+
+
+DEFAULT_WIDTHS = {"todo": "W", "brief": "M", "job_search": "L", "inbox": "S"}
+WIDTH_CHOICES = {"todo": "LW", "brief": "ML", "job_search": "MLW", "inbox": "SM"}
+
+
+def test_cards_keep_the_settings_order_at_every_width(page):
+    """Packing may tuck a card under a shorter neighbour, but it never reorders: reading
+    top to bottom, then left to right, gives the Settings order. Checked for every width
+    combination Settings offers (the Scratchpad has one width)."""
+    combos = list(product(*(WIDTH_CHOICES[c] for c in WIDTH_CHOICES)))
+    assert len(combos) == 24
+    try:
+        for combo in combos:
+            widths = dict(zip(WIDTH_CHOICES, combo, strict=True))
+            set_widths(page, widths)
+            cards = card_positions(page)
+            assert len(cards) == 5, widths
+            for (name_a, a), (name_b, b) in pairwise(cards):
+                same_row = abs(b["y"] - a["y"]) <= 4  # tilted cards: a few px
+                assert b["y"] > a["y"] - 4, (widths, name_a, name_b)  # never above
+                if same_row:
+                    assert b["x"] > a["x"], (widths, name_a, name_b)  # then left to right
+    finally:
+        set_widths(page, DEFAULT_WIDTHS)  # the e2e server is shared: put them back
+    assert [n for n, _ in card_positions(page)] == [
+        "To do",
+        "Brief",
+        "Career Radar",
+        "Inbox",
+        "Scratchpad",
+    ]
+
+
+def test_home_keeps_card_order_and_no_row_leaves_a_hole(page):
+    """With the default widths: cards read in the Settings order, and no row leaves a
+    hole: each row starts at the grid's left edge, the cards in it sit one grid gap apart,
+    and the row ends at the right edge. (Other width choices can leave a hole; see the
+    plan's "PR 3 as built".)"""
+    page.goto("/")
+    expect(page.locator(".grid[data-pack]")).to_have_class(re.compile(r"\bpacked\b"))
+    grid = page.locator(".grid[data-pack]").bounding_box()
+    cards = []
+    for card in page.locator("section.card").all():  # in page order: the Settings order
+        box = card.bounding_box()
+        cards.append((card.locator(".tape").inner_text(), box))
+    assert len(cards) >= 4  # the check really covers several cards
+
+    rows: list[list[tuple[str, dict]]] = []  # cards whose tops line up (tilted ones: ±8px)
+    for name, box in cards:
+        for row in rows:
+            if abs(row[0][1]["y"] - box["y"]) <= 8:
+                row.append((name, box))
+                break
+        else:
+            rows.append([(name, box)])
+    reading = [
+        name
+        for row in sorted(rows, key=lambda r: r[0][1]["y"])
+        for name, _ in sorted(row, key=lambda c: c[1]["x"])
+    ]
+    assert reading == [name for name, _ in cards]  # order kept
+
+    for row in rows:
+        row.sort(key=lambda c: c[1]["x"])
+        assert abs(row[0][1]["x"] - grid["x"]) < 3, row[0][0]  # starts at the left edge
+        for (left, a), (right, b) in pairwise(row):
+            gap = b["x"] - (a["x"] + a["width"])
+            assert 18 <= gap <= 26, (left, right, gap)  # one grid gap, no hole
+        last, box = row[-1]
+        assert abs(box["x"] + box["width"] - (grid["x"] + grid["width"])) < 3, last  # right edge
 
 
 @pytest.mark.parametrize("width", [1280, 2560])

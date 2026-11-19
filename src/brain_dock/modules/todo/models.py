@@ -285,3 +285,30 @@ def meta(task: TodoTask, today: date) -> str:
         else:
             parts.append(f"due {task.due_on:%b} {task.due_on.day}")
     return " · ".join(parts)
+
+
+# --- The Home card and Focus mode (ADR 0016) ---------------------------------------------
+
+DOT_MINUTES = 15  # one meter dot per 15 minutes of the estimate…
+DOTS_MAX = 4  # …at most 4
+FOCUS_DEFAULT = 25  # minutes, when neither the step nor the task has an estimate
+FOCUS_MAX = 120  # the ring has a dot per minute; past two hours it would be a blur
+
+
+def dot_count(task: TodoTask) -> int:
+    minutes = total_minutes(task)  # the estimate, else the steps added up
+    if not minutes:
+        return 0
+    return min(DOTS_MAX, -(-minutes // DOT_MINUTES))  # rounded up
+
+
+def current_step(task: TodoTask) -> TodoStep | None:
+    """The first step that isn't done (removed steps don't count)."""
+    return next((s for s in live_steps(task) if not s.done), None)
+
+
+def focus_minutes(task: TodoTask) -> int:
+    """The Focus timer: the current step's minutes, else the task's estimate, else 25."""
+    step = current_step(task)
+    minutes = (step.minutes if step else None) or task.estimate_minutes or FOCUS_DEFAULT
+    return min(minutes, FOCUS_MAX)

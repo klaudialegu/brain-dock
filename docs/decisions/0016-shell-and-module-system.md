@@ -54,3 +54,4 @@ Each module had its own pages and a shared text nav, and `/` jumped to the first
 - Trade-off: every page reads the layout (two small queries) through an app-wide dependency.
 - Trade-off: the stage colors and the pipeline chart lost their dark variants.
 - Trade-off: error pages for addresses that don't exist are drawn outside the routes, so their rail lists every enabled module, hidden or not. Hiding is a layout choice, not a privacy control, so this is accepted.
+- Trade-off: packing keeps the Settings order. With the default widths no row leaves a hole; some other width choices can leave one, since filling it would move cards out of order (`docs/design/ui-shell-plan.md`, "PR 3 as built").
