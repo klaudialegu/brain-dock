@@ -150,8 +150,22 @@ def test_reload_does_not_repeat_the_message(page):
     expect(page.locator(BAR)).to_have_count(0)
 
 
+def no_leave_prompt(page) -> list[str]:
+    """Collect browser dialogs. Save must never trigger "Leave this page?": choosing Stay
+    there would leave a page that no longer saves."""
+    seen: list[str] = []
+
+    def answer(dialog):
+        seen.append(dialog.type)
+        dialog.accept()
+
+    page.on("dialog", answer)
+    return seen
+
+
 def test_removed_page_in_another_tab_keeps_its_text(page, recorder):
     recorder.expect_error_page(410)  # the refused save answers 410 on purpose
+    dialogs = no_leave_prompt(page)
     page.goto("/scratchpad")
     press(page.get_by_role("button", name="New page"))
     expect(page.locator("#pad-text")).to_have_value("")
@@ -170,6 +184,7 @@ def test_removed_page_in_another_tab_keeps_its_text(page, recorder):
     expect(page.locator("[data-save-state]")).to_contain_text("This page was removed")
     press(page.get_by_role("button", name="Save"))
     expect(page.get_by_role("heading", name="This page was removed")).to_be_visible()
+    assert dialogs == []  # Save posted the text without a "Leave this page?" prompt
     expect(page.locator(".pad-typed")).to_have_text("words typed in the old tab")
     expect(page.get_by_role("button", name="Undo")).to_be_visible()
     expect(page.locator("#pad-text")).to_have_count(0)  # no editor

@@ -473,9 +473,13 @@ def test_undo_and_changes_refuse_items_in_the_wrong_state(client, session):
     page = new_page(session, date.today())
     session.commit()
 
-    assert post(client, f"/todo/{task.id}/restore").status_code == 409
-    assert post(client, f"/todo/{task.id}/steps/{step.id}/restore").status_code == 409
-    assert post(client, f"/scratchpad/{page.id}/restore").status_code == 409
+    # Undo on something already back (pressed twice, or after Back): goes where Undo goes
+    assert post(client, f"/todo/{task.id}/restore").headers["location"] == "/todo"
+    edit = post(client, f"/todo/{task.id}/steps/{step.id}/restore").headers["location"]
+    assert edit == f"/todo/{task.id}/edit"
+    assert post(client, f"/scratchpad/{page.id}/restore").headers["location"] == (
+        f"/scratchpad/{page.id}"
+    )
     session.expire_all()
     assert (step.position, step.removed_position) == (1, None)  # nothing shifted
 
@@ -504,3 +508,26 @@ def test_every_task_row_has_remove_with_undo(client, session):
     removed = post(client, f"/todo/{parked.id}/remove")
     assert removed.headers["location"] == "/todo"
     assert "Removed: Row in Can wait" in client.get("/todo").text  # the same Undo bar
+
+
+def test_message_close_works_without_scripts_on_pages_drawn_for_a_post(client, session):
+    task = add_task(session, "Steps here")
+    session.flush()
+    step = add_step(session, task, "Gone step", None)
+    session.commit()
+    token = edit_token(client, task.id)  # an old tab…
+    post(client, f"/todo/{task.id}/steps/{step.id}/remove")  # …the step removed elsewhere
+
+    gone = client.post(
+        f"/todo/{task.id}/steps/{step.id}/done",
+        data={"done": "1", "csrf_token": token},
+        headers={"Origin": BASE_URL},
+        follow_redirects=False,
+    )
+    assert gone.status_code == 410 and "This step was removed" in gone.text
+    close = re.search(r'class="message-close" href="([^"]+)"', gone.text).group(1)
+    assert close == f"/todo/{task.id}/edit"  # not the POST-only address
+    assert client.get(close).status_code == 200
+    post(client, f"/todo/{task.id}/remove")
+    listed = client.get("/todo").text  # a normal page: × reloads that same page
+    assert re.search(r'class="message-close" href="([^"]+)"', listed).group(1) == "/todo"

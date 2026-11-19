@@ -24,7 +24,7 @@ To do tasks and Scratchpad pages had no way to be removed, and removing a step d
 5. **Pages:** a new page's number counts removed pages too, so a number is never reused. Empty pages from earlier days aren't listed as tabs.
 6. **A removed item refuses changes, never with a bare 404.** This covers a page left open in another tab, the Back button, or an old link.
    - The item answers 410 with "This … was removed", Undo, and anything just typed shown so it isn't lost.
-   - Undo on an item that isn't removed changes nothing (409).
+   - Undo on an item that's already back (Undo pressed twice, or after Back) changes nothing and goes where Undo would have gone.
    - On a removed page, Undo also keeps what was just typed. It's merged like a refused save: the typed text, then any saved line it lacks.
 7. **Downgrades refuse while anything is removed.** Going back would fail part-way, or quietly bring removed items back.
 

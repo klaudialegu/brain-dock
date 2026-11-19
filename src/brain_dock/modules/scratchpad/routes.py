@@ -212,7 +212,8 @@ def restore(request: Request, page_id: int, session: SessionDep, values: FormVal
     try:
         restore_page(page)
     except ScratchpadError:
-        return Response("Nothing to undo", status_code=409)  # a live page: nothing changes
+        # already back (Undo twice, or Back): nothing changes
+        return RedirectResponse(f"/scratchpad/{page.id}", status_code=303)
     typed = values.get("typed", "")
     if typed.strip():
         merged = with_new_lines(typed, text_layer(page).content)

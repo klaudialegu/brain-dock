@@ -105,6 +105,12 @@ Merge this PR when review is clean and CI is green. Then rebase `feat/todo-card-
     - a "Remove" on every task row (Today, Can wait, Done recently), next to Edit;
     - Undo on a removed page also keeps the words typed in the old tab, merged like a refused save.
     - Tests: `test_todo.py::test_every_task_row_has_remove_with_undo`, `test_scratchpad.py::test_undo_keeps_the_words_typed_in_the_old_tab` and `e2e/test_remove.py::test_remove_from_a_task_row_and_undo`; `e2e/test_remove.py::test_removed_page_in_another_tab_keeps_its_text` now also presses Undo.
+  - **From the PR review:**
+    - Save never triggers the browser's "Leave this page?" prompt. Choosing "Stay" there used to leave a page that no longer autosaved.
+    - × on a page drawn for a form post (a removed step in an old tab) goes to a real page, not a POST-only address.
+    - Undo on an item that's already back goes where Undo would have gone, instead of a bare 409 page.
+    - The backup command in the PR uses a timestamped name, so running it twice never overwrites the copy from before the migration.
+    - Tests: `test_todo.py::test_message_close_works_without_scripts_on_pages_drawn_for_a_post`; `e2e/test_remove.py::test_removed_page_in_another_tab_keeps_its_text` now fails on any dialog; `test_todo.py::test_undo_and_changes_refuse_items_in_the_wrong_state` checks the redirect.
   - **The To do demo has two tasks finished two days ago,** so "Done recently" has something to show.
   - **Changed, not renamed:**
     - `test_todo.py::test_todo_page_shows_today_and_can_wait` (an older done task is now under "Done recently", not gone);
@@ -113,7 +119,7 @@ Merge this PR when review is clean and CI is green. Then rebase `feat/todo-card-
     - `test_inbox_triage.py` (redirects to `/inbox` with the message cookie);
     - `test_todo_brief.py::test_todo_demo_writes_only_the_demo_database` (7 demo tasks).
 - **Tests:**
-  - `uv run pytest`: 782 → 808 (806, then 2 after the look review). That's the plan's 18 tests plus 6 per-template security checks for the three new templates. None removed or renamed.
+  - `uv run pytest`: 782 → 809 (806, then 2 after the look review, then 1 from the PR review). That's the plan's 18 tests plus 6 per-template security checks for the three new templates. None removed or renamed.
   - `uv run pytest e2e`: 64 → 73: the plan's 8 in `e2e/test_remove.py`, plus the row test.
 - **Break tests** (each restored, then rerun and seen passing; compiled caches cleared each run):
   - 17 unit guards: hiding, restore, step place, done recently, the removed-task and removed-page refusals, page numbering, `latest`, both migrations, both downgrades, the message cookie and Ctrl+C.

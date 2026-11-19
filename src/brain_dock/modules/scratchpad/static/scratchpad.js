@@ -93,7 +93,8 @@
     });
   }
   window.addEventListener("beforeunload", (event) => {
-    if (unsaved() && (stale || refused)) event.preventDefault(); // ask before dropping text
+    // Ask before dropping text, but not when Save itself is posting the text to keep it.
+    if (unsaved() && (stale || refused) && !form.dataset.posting) event.preventDefault();
   });
   window.addEventListener("pagehide", () => {
     if (unsaved()) save();

@@ -8,7 +8,7 @@ Remove keeps the task or step for Undo (ADR 0018). A removed task refuses every 
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import ValidationError
 from sqlmodel import Session
 
@@ -133,6 +133,7 @@ def step_gone(request: Request, task: TodoTask, step: TodoStep) -> HTMLResponse:
         bar={
             "text": f"This step was removed: {step.title}",
             "undo": f"/todo/{task.id}/steps/{step.id}/restore",
+            "close": f"/todo/{task.id}/edit",  # this page answers a POST: × goes here
         },
     )
 
@@ -278,7 +279,7 @@ def restore(task_id: int, session: SessionDep):
     try:
         restore_task(task)
     except TodoStateError:
-        return Response("Nothing to undo", status_code=409)  # a live task: nothing changes
+        return back_to_list()  # already back (Undo twice, or Back): nothing changes
     session.commit()
     return back_to_list()
 
@@ -355,6 +356,6 @@ def undo_step(request: Request, task_id: int, step_id: int, session: SessionDep)
     try:
         restore_step(session, task, load_step(task, step_id))
     except TodoStateError:
-        return Response("Nothing to undo", status_code=409)  # a live step: nothing changes
+        return back_to_edit(task)  # already back: nothing changes
     session.commit()
     return back_to_edit(task)
