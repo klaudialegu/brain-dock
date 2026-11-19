@@ -40,3 +40,58 @@ form.stack label.todo-checkbox input { width: auto; }
 /* Done recently: only the title is struck through; its date and Not done stay plain. */
 .todo-done .todo-title { color: var(--muted); text-decoration: line-through; }
 .todo-done summary { cursor: pointer; padding: 14px 0 4px; font-weight: 600; }
+
+/* --- The Home card (ADR 0016) -------------------------------------------------------- */
+.tcard-head { display: flex; align-items: baseline; gap: 10px; }
+.tcard-head h2 { margin: 0; }
+.tcard-list { list-style: none; margin: 8px 0 12px; padding: 0; }
+.tcard-item { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding: 8px 0; border-top: 1px dotted var(--dot); }
+.tcard-title { flex: 1 1 10rem; min-width: 0; overflow-wrap: anywhere; }
+.tcard-item.is-done .tcard-title { color: var(--muted); text-decoration: line-through; }
+.tcard-check { display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 1.5px solid var(--text); border-radius: 8px; background: transparent; cursor: pointer; }
+.tcard-check svg { width: 16px; height: 16px; fill: none; stroke: transparent; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.tcard-check[aria-checked="true"] { background: var(--highlighter, #D9CCF2); border-color: var(--text); }
+.tcard-check[aria-checked="true"] svg { stroke: var(--text); }
+.dot-meter { display: inline-flex; gap: 3px; }
+.dot-meter span { width: 7px; height: 7px; border-radius: 50%; background: var(--text); }
+.dot-meter span.off { background: transparent; box-shadow: inset 0 0 0 1px var(--dot); }
+.tcard-actions { display: inline-flex; align-items: center; gap: 10px; font-size: 0.875rem; }
+.speaker { display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer; }
+.speaker svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.speaker[aria-pressed="true"] { background: var(--highlighter, #D9CCF2); color: var(--text); }
+.speaker:hover { color: var(--text); }
+.tcard-steps { flex-basis: 100%; margin: 2px 0 0 36px; font-size: 0.875rem; }
+.tcard-steps summary { cursor: pointer; color: var(--muted); width: fit-content; }
+.tcard-steps ol { margin: 6px 0; padding-left: 1.25rem; }
+.tcard-steps li.is-done { color: var(--muted); text-decoration: line-through; }
+.tcard-add-step { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 6px 0 2px; }
+.tcard-add-step input { min-height: 36px; padding: 0 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); font: inherit; }
+.tcard-add-step input[name="title"] { flex: 1 1 12rem; }
+.tcard-add-step input[name="minutes"] { width: 5.5rem; }
+.tcard-later { margin-top: 6px; padding-top: 10px; border-top: 1px dotted var(--dot); }
+.tcard-later h3 { margin: 0; font-size: 0.875rem; font-weight: 600; color: var(--muted); }
+.tcard-later .tcard-item { color: var(--muted); font-size: 0.9375rem; }
+
+/* --- Focus mode ---------------------------------------------------------------------- */
+.focus { max-width: 640px; margin: 0 auto; text-align: center; }
+.focus h1 { margin-bottom: 6px; }
+.focus-step { margin-bottom: 18px; }
+.focus-timer { position: relative; width: min(320px, 80vw); margin: 0 auto 18px; }
+.focus-ring { display: block; width: 100%; height: auto; }
+.focus-ring circle { fill: var(--text); transition: opacity 0.6s ease, fill 0.6s ease; }
+.focus-ring circle.is-past { opacity: 0.18; }
+.focus-ring circle.is-now { fill: var(--highlighter-ink, #4B3A78); stroke: var(--highlighter, #D9CCF2); stroke-width: 6; paint-order: stroke; }
+.focus-timer figcaption { position: absolute; inset: 0; display: grid; place-content: center; gap: 2px; }
+.focus-clock { font-size: 2.5rem; letter-spacing: 0.02em; }
+.focus-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 22px; }
+.focus-steps { text-align: left; width: fit-content; max-width: 100%; margin: 0 auto 26px; padding-left: 1.25rem; color: var(--muted); }
+.focus-steps li { padding: 3px 0; }
+.focus-steps li.is-done { text-decoration: line-through; }
+.focus-steps li.is-current { color: var(--text); font-weight: 600; }
+.park { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 6px 8px 6px 18px; background: var(--card); border-radius: 999px; box-shadow: 0 0 0 1px var(--border); text-align: left; }
+.park input[name="text"] { flex: 1 1 14rem; min-width: 0; min-height: 40px; border: 0; background: transparent; font: inherit; color: var(--text); }
+.park input[name="text"]::placeholder { color: var(--muted); opacity: 1; }
+.park:focus-within { box-shadow: 0 0 0 2px var(--text); }
+@media (prefers-reduced-motion: reduce) {
+  .focus-ring circle { transition: none; }
+}
