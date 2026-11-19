@@ -1,9 +1,6 @@
 """The To do card on Home and Focus mode (ADR 0016)."""
 
 import re
-from datetime import date
-
-from sqlmodel import select
 
 from brain_dock.modules.todo.models import (
     TodoTask,
@@ -11,6 +8,7 @@ from brain_dock.modules.todo.models import (
     add_task,
     dot_count,
     focus_minutes,
+    live_steps,
 )
 
 from .conftest import BASE_URL
@@ -47,6 +45,10 @@ def test_dot_meter_is_one_dot_per_15_minutes_max_4(client, session):
     html = client.get("/").text
     meter = re.search(r'<span class="dot-meter"[^>]*>(.*?)</span></span>', html, re.S)
     assert meter.group(1).count('class="on"') == 3 and meter.group(1).count('class="off"') == 1
+    assert 'aria-label="3 of 4: up to 45 minutes"' in html
+    long = add_task(session, "Long one", estimate_minutes=600)
+    session.commit()
+    assert long and 'aria-label="4 of 4: an hour or more"' in client.get("/").text
 
 
 def test_speaker_toggle_sets_read_aloud_and_defaults_off(client, session):
@@ -157,12 +159,14 @@ def test_card_forms_come_back_home_and_never_follow_an_address(client, session):
         moved = post(client, f"/todo/{task.id}/bucket", {"bucket": "today", "back": back})
         expected = "/" if back == "home" else "/todo"  # anything else: the To do page
         assert moved.headers["location"] == expected, back
+    session.expire_all()
+    assert session.get(TodoTask, task.id).bucket == "today"  # "↑ Today" really moved it
     stepped = post(
         client, f"/todo/{task.id}/steps", {"title": "From the card", "minutes": "", "back": "home"}
     )
     assert stepped.headers["location"] == "/"
-    assert [t.title for t in session.exec(select(TodoTask)).all()] == ["Parked task"]
-    assert date.today()  # the card used the real today
+    session.expire_all()
+    assert [s.title for s in live_steps(session.get(TodoTask, task.id))] == ["From the card"]
 
 
 def test_break_into_steps_is_quiet_only_for_tasks_without_steps(client, session):

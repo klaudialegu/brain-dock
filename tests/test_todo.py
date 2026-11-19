@@ -487,9 +487,13 @@ def test_undo_and_changes_refuse_items_in_the_wrong_state(client, session):
     done = post(client, f"/todo/{task.id}/done", {"done": "1"})
     moved = post(client, f"/todo/{task.id}/bucket", {"bucket": "can_wait"})
     stepped = post(client, f"/todo/{task.id}/steps", {"title": "More"})
-    assert done.status_code == moved.status_code == stepped.status_code == 410
+    aloud = post(client, f"/todo/{task.id}/read-aloud", {"on": "1"})
+    assert done.status_code == moved.status_code == stepped.status_code == aloud.status_code == 410
+    focused = client.get(f"/todo/{task.id}/focus")
+    assert focused.status_code == 410 and "This task was removed" in focused.text  # no timer
     session.expire_all()
     assert (task.done, task.bucket, len(task.steps)) == (False, "today", 1)
+    assert task.ok_to_read_aloud is False
 
 
 def test_every_task_row_has_remove_with_undo(client, session):

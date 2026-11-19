@@ -65,13 +65,19 @@ def test_layout_persists_after_reload(page):
     labels = [rail.nth(i).get_attribute("aria-label") for i in range(rail.count())]
     assert labels.index("Career Radar") < labels.index("Brief")  # the rail follows Home
 
-    page.goto("/settings")  # put it back for the other tests
+    page.goto("/settings")  # put it back for the other tests, and check it really is back:
+    # the e2e server is shared, so a half-restored layout breaks every later Home test
     settings_row(page, "Career Radar").get_by_role(
         "button", name=re.compile("Move .* down")
     ).click()
+    page.wait_for_load_state()
+    assert card_order(page) == before  # (this opens Home)
+    page.goto("/settings")
     settings_row(page, "Career Radar").get_by_label(re.compile("Width of")).select_option("L")
     settings_row(page, "Career Radar").get_by_role("button", name=re.compile("Set width")).click()
-    assert card_order(page) == before
+    page.wait_for_load_state()
+    page.goto("/")
+    expect(page.locator("section.card.size-L", has_text="Career Radar")).to_be_visible()
 
 
 def test_every_button_is_a_pill_on_every_page(page):
