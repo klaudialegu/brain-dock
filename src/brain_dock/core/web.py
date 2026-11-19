@@ -8,6 +8,7 @@ from fastapi import Depends, Request
 from fastapi.responses import HTMLResponse
 from sqlmodel import Session
 
+from brain_dock.core.flash import clear_message
 from brain_dock.core.security import CSRF_FIELD, csrf_token, no_store, set_csrf_cookie
 
 
@@ -39,6 +40,7 @@ def render(
     """A page from this app's templates, never cached (pages can hold personal data)."""
     templates = request.app.state.templates
     response = templates.TemplateResponse(request, template, context or {}, status_code=status_code)
+    clear_message(request, response)  # a one-time message gets exactly one showing
     return no_store(response)
 
 

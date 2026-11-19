@@ -20,7 +20,7 @@
 }
 .todo-title { flex: 1 1 12rem; min-width: 0; overflow-wrap: anywhere; }
 .todo-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 0.875rem; }
-.todo-actions a { color: var(--accent); }
+.todo-actions a, .todo-actions .link-button { color: var(--accent); }
 .todo-check {
   width: 1.75rem;
   height: 1.75rem;
@@ -37,3 +37,6 @@
 .todo-empty { color: var(--muted); }
 form.stack label.todo-checkbox { display: flex; gap: 8px; align-items: baseline; font-weight: 400; }
 form.stack label.todo-checkbox input { width: auto; }
+/* Done recently: only the title is struck through; its date and Not done stay plain. */
+.todo-done .todo-title { color: var(--muted); text-decoration: line-through; }
+.todo-done summary { cursor: pointer; padding: 14px 0 4px; font-weight: 600; }

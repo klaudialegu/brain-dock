@@ -66,3 +66,4 @@
 .pad-card { border-radius: 14px; padding: 12px 14px 12px 32px; min-height: 120px; box-shadow: inset 0 0 0 1px #E6DFD2; }
 .pad-card p { margin: 0; font-size: 1.0625rem; line-height: 28px; }
 .pad-empty { min-height: 220px; }
+.pad-typed { white-space: pre-wrap; padding: 16px 20px; background: var(--card); border-radius: 14px; box-shadow: 0 0 0 1px var(--border); font-family: var(--hand); font-weight: 300; }

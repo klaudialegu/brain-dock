@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% import "partials/fields.html" as f %}
+
+{% block title %}Removed task · To do · Brain Dock{% endblock %}
+
+{% block content %}
+<section class="removed-notice">
+<h1>This task was removed</h1>
+<p>“{{ task.title }}” isn't on your list any more. Undo brings it back as it was.</p>
+<form class="inline-form" method="post" action="/todo/{{ task.id }}/restore">
+  {{ f.csrf(csrf_field, csrf_token) }}
+  <button class="button" type="submit">Undo</button>
+</form>
+{% if typed %}
+<h2 id="typed-heading">What you just typed (not saved)</h2>
+<dl class="todo-typed" aria-labelledby="typed-heading">
+  {% for name, value in typed.items() %}
+  <dt>{{ {"title": "Title", "due_on": "Due", "estimate_minutes": "Estimate", "minutes": "Minutes"}[name] }}</dt>
+  <dd>{{ value }}</dd>
+  {% endfor %}
+</dl>
+{% endif %}
+<p><a href="/todo">Back to To do</a></p>
+</section>
+{% endblock %}

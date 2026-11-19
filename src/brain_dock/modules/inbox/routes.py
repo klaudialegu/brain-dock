@@ -16,6 +16,7 @@ from brain_dock.core.agents.approvals import Approvals
 from brain_dock.core.agents.audit import AuditLog, key_path_for, load_or_create_key
 from brain_dock.core.agents.passes import default_switch_folder
 from brain_dock.core.agents.run_tables import Approval, WorkItem
+from brain_dock.core.flash import read_message, set_message
 from brain_dock.core.security import verify_csrf
 from brain_dock.core.web import FormValues, SessionDep, render, render_form
 from brain_dock.modules.inbox import config
@@ -56,7 +57,8 @@ REASON_LABELS = {
     "input_changed": "The approval changed after it was made",
     "interrupted": "Cut off while running",
 }
-# Fixed messages after a decision (post/redirect/get), chosen by a short code.
+# Fixed messages after a decision (post/redirect/get), chosen by a short code. The code
+# rides in the one-time message cookie (ADR 0018), so a reload doesn't repeat it.
 NOTICES = {
     "approved": "Accepted. Save it as a job from the Accepted list below.",
     "rejected": "Rejected.",
@@ -155,7 +157,9 @@ def role_counts(session: Session) -> dict[str, int]:
 
 
 @router.get("/inbox", response_class=HTMLResponse)
-def inbox(request: Request, session: SessionDep, done: str | None = None) -> HTMLResponse:
+def inbox(request: Request, session: SessionDep) -> HTMLResponse:
+    waiting = read_message(request)
+    notice = NOTICES.get(waiting[0]) if waiting and waiting[1] is None else None
     by_status = role_counts(session)
     emails = session.exec(select(func.count()).select_from(InboxEmail)).one()
     accepted = session.exec(
@@ -174,7 +178,7 @@ def inbox(request: Request, session: SessionDep, done: str | None = None) -> HTM
         emails=emails,
         log=rejection_log(session),
         config_problem=config_problem(),
-        notice=NOTICES.get(done or ""),
+        message_bar={"text": notice, "undo": None} if notice else None,
         reject_reasons=REJECT_REASONS,
         reason_labels=REASON_LABELS,
         salary_text=salary_text,
@@ -205,7 +209,7 @@ def approve(request: Request, approval_id: int, session: SessionDep):
     inbox_approval(session, approval_id)
     result = approvals_for(request).approve(approval_id)
     # Post/redirect/get: refreshing can't decide twice (and approve refuses anyway).
-    return RedirectResponse(f"/inbox?done={'approved' if result.ok else 'refused'}", 303)
+    return decided("approved" if result.ok else "refused")
 
 
 @router.post("/inbox/approvals/{approval_id}/reject", dependencies=[Depends(verify_csrf)])
@@ -215,4 +219,10 @@ def reject(request: Request, approval_id: int, session: SessionDep, values: Form
     if reason not in REJECT_REASONS:
         raise HTTPException(status_code=400, detail="Bad request")
     result = approvals_for(request).reject(approval_id, reason)
-    return RedirectResponse(f"/inbox?done={'rejected' if result.ok else 'refused'}", 303)
+    return decided("rejected" if result.ok else "refused")
+
+
+def decided(code: str) -> RedirectResponse:
+    response = RedirectResponse("/inbox", 303)
+    set_message(response, code)
+    return response

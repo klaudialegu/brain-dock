@@ -1,0 +1,14 @@
+{# The one-time message bar (ADR 0018). `message_bar` = {"text", "undo": a POST path or none, "close": optional}.
+   × reloads this page without the message (the cookie is already used up); with scripts,
+   × and Esc close it in place. Undo is a plain form: keyboard and no-script friendly. #}
+<div class="message-bar" role="status" data-message>
+  <p>{{ message_bar.text }}</p>
+  {% if message_bar.undo %}
+  <form class="inline-form" method="post" action="{{ message_bar.undo }}">
+    <input type="hidden" name="{{ csrf_field }}" value="{{ csrf_token }}">
+    <button class="button" type="submit">Undo</button>
+  </form>
+  {% endif %}
+  {# Without scripts × reloads the page; a page drawn for a POST names its own address. #}
+  <a class="message-close" href="{{ message_bar.close or (request.url.path if request.method == 'GET' else '/') }}" data-message-close aria-label="Close message">×</a>
+</div>

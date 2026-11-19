@@ -595,3 +595,26 @@ def test_voices_lists_names_and_ids_only(tmp_path, capsys):
     assert code == 1
     assert err.strip() == "Voice: ElevenLabs refused the request: HTTP 401 (invalid_api_key)"
     assert KEY not in err
+
+
+def test_ctrl_c_during_playback_stops_cleanly(tmp_path, capsys):
+    fake = Fake()
+
+    def pressed_ctrl_c(audio):
+        raise KeyboardInterrupt  # what Ctrl+C raises while afplay plays
+
+    path = tmp_path / "config.toml"
+    path.write_text(CONFIG_ON)
+    code = voice.main(
+        [],
+        config_path=path,
+        now=NOW,
+        gather_options={**NO_NETWORK, "lines": lambda day: {}},
+        player=pressed_ctrl_c,
+        **fake.options(tmp_path / "cache"),
+    )
+
+    out = capsys.readouterr()
+    assert code == 130  # the usual exit code for Ctrl+C
+    assert out.err.strip().endswith("Stopped.")
+    assert "Traceback" not in out.err + out.out and "KeyboardInterrupt" not in out.err

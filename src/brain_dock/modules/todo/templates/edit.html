@@ -62,4 +62,11 @@
   {{ f.input("minutes", "Minutes", step_values, step_errors, type="number", hint="optional") }}
   <p><button class="button button-quiet" type="submit">Add step</button></p>
 </form>
+
+<h2 id="remove-heading">Remove</h2>
+<form class="inline-form" method="post" action="/todo/{{ task.id }}/remove" aria-labelledby="remove-heading">
+  {{ f.csrf(csrf_field, csrf_token) }}
+  <button class="button button-quiet" type="submit">Remove task</button>
+</form>
+<p class="todo-meta">It leaves your lists and the brief. Undo brings it back.</p>
 {% endblock %}

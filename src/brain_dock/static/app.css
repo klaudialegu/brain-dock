@@ -94,6 +94,15 @@ a {
   text-underline-offset: 3px;
 }
 a:hover { text-decoration-style: solid; text-decoration-color: currentColor; }
+/* A form button that reads as a link (a row's "Remove" next to "Edit"): it posts, so it
+   can't be an <a>, but it looks like one, so the row keeps a single outlined button. */
+.link-button {
+  padding: 0; border: 0; background: none; font: inherit; color: var(--accent); cursor: pointer;
+  text-decoration: underline dotted var(--muted);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+}
+.link-button:hover { text-decoration-style: solid; text-decoration-color: currentColor; }
 :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; border-radius: 8px; }
 .mono, code, td.date { font-family: var(--mono); font-size: 0.875em; font-variant-numeric: tabular-nums; }
 .eyebrow { font-family: var(--mono); font-size: 0.8125rem; letter-spacing: 0.04em; color: var(--muted); text-transform: uppercase; }
@@ -249,6 +258,14 @@ form.stack [aria-invalid="true"] { border-color: var(--bad); }
 /* Disabled until playback exists, but never dimmed; hover reaches the wrapper (the orb). */
 .play-brief:disabled { cursor: default; pointer-events: none; color: var(--text); opacity: 1; }
 .orb { display: block; width: 34px; height: 34px; }
+/* The one-time message bar (ADR 0018): what just happened, an Undo, a ×. */
+.message-bar { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 4px 8px 4px 20px; margin: 0 0 22px; background: var(--cream); border-radius: 999px; box-shadow: 0 0 0 1px var(--border); }
+.message-bar p { margin: 0 auto 0 0; min-width: 0; overflow-wrap: anywhere; color: var(--text); }
+/* "This … was removed": the notice, its Undo, then anything that was typed. */
+.removed-notice form { margin: 0 0 28px; }
+.message-bar form { margin: 0; }
+.message-close { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 999px; color: var(--text); text-decoration: none; font-size: 1.375rem; line-height: 1; }
+.message-close:hover { background: var(--card); }
 /* Quick capture: one line that lands on the Scratchpad (ADR 0017). */
 .quick-capture { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 0 18px; margin: 0 0 22px; background: var(--card); border-radius: 16px; box-shadow: 0 0 0 1px var(--border); }
 .quick-capture svg { width: 18px; height: 18px; fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }

@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime
 
 from sqlalchemy import UniqueConstraint
-from sqlmodel import Field, Relationship, Session, SQLModel, select
+from sqlmodel import Field, Relationship, Session, SQLModel, func, select
 
 TEXT_MAX = 20_000  # characters on one page
 CAPTURE_MAX = 2_000  # characters in one quick note
@@ -65,6 +65,7 @@ class ScratchpadPage(SQLModel, table=True):
     pen: str = "fineliner"
     size: str = "wide"
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    removed_at: datetime | None = None  # removed: out of tabs, card and capture (ADR 0018)
 
     layers: list["ScratchpadLayer"] = Relationship(
         back_populates="page",
@@ -98,7 +99,7 @@ def new_page(session: Session, day: date) -> ScratchpadPage:
     last = latest_on(session, day)
     page = ScratchpadPage(
         day=day,
-        position=(last.position + 1) if last else 1,
+        position=next_position(session, day),
         paper=last.paper if last else "lined",
         pen=last.pen if last else "fineliner",
         size=last.size if last else "wide",
@@ -108,30 +109,74 @@ def new_page(session: Session, day: date) -> ScratchpadPage:
     return page
 
 
+def next_position(session: Session, day: date) -> int:
+    """After every page that day, removed ones included, so a number is never reused (the
+    day+position rule would refuse it, and Undo needs the old page's place)."""
+    highest = session.exec(
+        select(func.max(ScratchpadPage.position)).where(ScratchpadPage.day == day)
+    ).one()
+    return (highest or 0) + 1
+
+
+def is_empty(page: ScratchpadPage) -> bool:
+    return not text_layer(page).content.strip()
+
+
 def latest_on(session: Session, day: date) -> ScratchpadPage | None:
+    """That day's last page that isn't removed."""
     return session.exec(
         select(ScratchpadPage)
-        .where(ScratchpadPage.day == day)
+        .where(ScratchpadPage.day == day, ScratchpadPage.removed_at == None)  # noqa: E711
         .order_by(ScratchpadPage.position.desc())
     ).first()
 
 
-def latest(session: Session) -> ScratchpadPage | None:
-    return session.exec(
-        select(ScratchpadPage).order_by(ScratchpadPage.day.desc(), ScratchpadPage.position.desc())
-    ).first()
+def shown(page: ScratchpadPage, today: date) -> bool:
+    """Listed in the tabs and opened by /scratchpad: not removed, and not an empty page
+    left over from an earlier day."""
+    return page.removed_at is None and (page.day >= today or not is_empty(page))
 
 
-def pages_by_day(session: Session, days: int = 7) -> list[tuple[date, list[ScratchpadPage]]]:
-    """The most recent days that have pages, newest first; each day's pages in order."""
+def latest(session: Session, today: date | None = None) -> ScratchpadPage | None:
+    today = today or date.today()
     pages = session.exec(
-        select(ScratchpadPage).order_by(ScratchpadPage.day.desc(), ScratchpadPage.position)
+        select(ScratchpadPage)
+        .where(ScratchpadPage.removed_at == None)  # noqa: E711
+        .order_by(ScratchpadPage.day.desc(), ScratchpadPage.position.desc())
+    ).all()
+    return next((p for p in pages if shown(p, today)), None)
+
+
+def pages_by_day(
+    session: Session, days: int = 7, today: date | None = None
+) -> list[tuple[date, list[ScratchpadPage]]]:
+    """The most recent days with pages to show, newest first; each day's pages in order.
+    Hidden pages are filtered out before days are counted, so they take no slot."""
+    today = today or date.today()
+    pages = session.exec(
+        select(ScratchpadPage)
+        .where(ScratchpadPage.removed_at == None)  # noqa: E711
+        .order_by(ScratchpadPage.day.desc(), ScratchpadPage.position)
     ).all()
     grouped: dict[date, list[ScratchpadPage]] = {}
     for page in pages:
+        if not shown(page, today):
+            continue
         if page.day in grouped or len(grouped) < days:
             grouped.setdefault(page.day, []).append(page)
     return list(grouped.items())
+
+
+def remove_page(page: ScratchpadPage, now: datetime | None = None) -> None:
+    if page.removed_at is not None:
+        raise ScratchpadError("Page: already removed")
+    page.removed_at = now or datetime.now(UTC)
+
+
+def restore_page(page: ScratchpadPage) -> None:
+    if page.removed_at is None:
+        raise ScratchpadError("Page: not removed")
+    page.removed_at = None
 
 
 def text_layer(page: ScratchpadPage) -> ScratchpadLayer:
