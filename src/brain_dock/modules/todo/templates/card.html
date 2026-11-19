@@ -38,7 +38,7 @@
     {# No steps yet: "Break into steps" sits just after the title (shown on hover or focus),
        so the controls on the right line up on every row. #}
     {% if not task.done and not row.steps %}{{ steps_details(task, row) }}{% endif %}
-    {% if row.dots %}<span class="dot-meter" role="img" aria-label="{{ row.dots }} of 4: {{ 'an hour or more' if row.dots == 4 else 'up to ' ~ (row.dots * 15) ~ ' minutes' }}">{% for i in range(4) %}<span class="{{ 'on' if i < row.dots else 'off' }}"></span>{% endfor %}</span>{% endif %}
+    {% if row.dots %}<span class="dot-meter" role="img" aria-label="{{ row.dots }} of 4: {{ 'more than 45 minutes' if row.dots == 4 else 'up to ' ~ (row.dots * 15) ~ ' minutes' }}">{% for i in range(4) %}<span class="{{ 'on' if i < row.dots else 'off' }}"></span>{% endfor %}</span>{% endif %}
     {% if row.meta %}<span class="card-meta mono">{{ row.meta }}</span>{% endif %}
     <span class="tcard-actions">
       <form class="inline-form" method="post" action="/todo/{{ task.id }}/read-aloud">

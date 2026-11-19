@@ -47,36 +47,49 @@ def test_module_off_and_on_in_settings(page):
     ).to_be_visible()
 
 
+def settings_post(page, path: str, form: dict) -> None:
+    """One Settings change through its own form POST (CSRF token and all); it must save."""
+    page.goto("/settings")
+    token = page.locator('input[name="csrf_token"]').first.get_attribute("value")
+    origin = re.match(r"https?://[^/]+", page.url).group(0)
+    response = page.request.post(
+        path, form={**form, "csrf_token": token}, headers={"Origin": origin}, max_redirects=0
+    )
+    assert response.status == 303, (path, form, response.status)
+
+
 def test_layout_persists_after_reload(page):
     before = card_order(page)
     assert before.index("Career Radar") > before.index("Brief")
+    try:
+        page.goto("/settings")
+        # Each click posts a form and loads a new page: wait for that load before the next
+        # step, or the next step can act on the old page (a race on slower machines).
+        with page.expect_navigation():
+            settings_row(page, "Career Radar").get_by_role(
+                "button", name=re.compile("Move .* up")
+            ).click()
+        settings_row(page, "Career Radar").get_by_label(re.compile("Width of")).select_option("M")
+        with page.expect_navigation():
+            settings_row(page, "Career Radar").get_by_role(
+                "button", name=re.compile("Set width")
+            ).click()
 
-    page.goto("/settings")
-    settings_row(page, "Career Radar").get_by_role("button", name=re.compile("Move .* up")).click()
-    settings_row(page, "Career Radar").get_by_label(re.compile("Width of")).select_option("M")
-    settings_row(page, "Career Radar").get_by_role("button", name=re.compile("Set width")).click()
-
-    page.reload()
-    after = card_order(page)
-    assert after.index("Career Radar") == before.index("Career Radar") - 1
-    page.goto("/")
-    expect(page.locator("section.card.size-M", has_text="Career Radar")).to_be_visible()
-    rail = page.get_by_role("navigation", name="Main").get_by_role("link")
-    labels = [rail.nth(i).get_attribute("aria-label") for i in range(rail.count())]
-    assert labels.index("Career Radar") < labels.index("Brief")  # the rail follows Home
-
-    page.goto("/settings")  # put it back for the other tests, and check it really is back:
-    # the e2e server is shared, so a half-restored layout breaks every later Home test
-    settings_row(page, "Career Radar").get_by_role(
-        "button", name=re.compile("Move .* down")
-    ).click()
-    page.wait_for_load_state()
-    assert card_order(page) == before  # (this opens Home)
-    page.goto("/settings")
-    settings_row(page, "Career Radar").get_by_label(re.compile("Width of")).select_option("L")
-    settings_row(page, "Career Radar").get_by_role("button", name=re.compile("Set width")).click()
-    page.wait_for_load_state()
-    page.goto("/")
+        page.reload()
+        after = card_order(page)
+        assert after.index("Career Radar") == before.index("Career Radar") - 1
+        page.goto("/")
+        expect(page.locator("section.card.size-M", has_text="Career Radar")).to_be_visible()
+        rail = page.get_by_role("navigation", name="Main").get_by_role("link")
+        labels = [rail.nth(i).get_attribute("aria-label") for i in range(rail.count())]
+        assert labels.index("Career Radar") < labels.index("Brief")  # the rail follows Home
+    finally:
+        # Put it back whatever happened above: the e2e server is shared, so a half-changed
+        # layout would break every later Home test. Direct posts, each checked to save.
+        if card_order(page).index("Career Radar") < before.index("Career Radar"):
+            settings_post(page, "/settings/cards/job_search/move", {"direction": "down"})
+        settings_post(page, "/settings/cards/job_search/size", {"size": "L"})
+    assert card_order(page) == before
     expect(page.locator("section.card.size-L", has_text="Career Radar")).to_be_visible()
 
 
@@ -110,17 +123,8 @@ def card_positions(page) -> list[tuple[str, dict]]:
 
 def set_widths(page, widths: dict[str, str]) -> None:
     """Set card widths through the Settings form's own POST (CSRF token and all)."""
-    page.goto("/settings")
-    token = page.locator('input[name="csrf_token"]').first.get_attribute("value")
-    origin = re.match(r"https?://[^/]+", page.url).group(0)
     for card_id, size in widths.items():
-        response = page.request.post(
-            f"/settings/cards/{card_id}/size",
-            form={"size": size, "csrf_token": token},
-            headers={"Origin": origin},
-            max_redirects=0,
-        )
-        assert response.status == 303, (card_id, size, response.status)
+        settings_post(page, f"/settings/cards/{card_id}/size", {"size": size})
 
 
 DEFAULT_WIDTHS = {"todo": "W", "brief": "M", "job_search": "L", "inbox": "S"}

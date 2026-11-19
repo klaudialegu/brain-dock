@@ -46,9 +46,10 @@ def test_dot_meter_is_one_dot_per_15_minutes_max_4(client, session):
     meter = re.search(r'<span class="dot-meter"[^>]*>(.*?)</span></span>', html, re.S)
     assert meter.group(1).count('class="on"') == 3 and meter.group(1).count('class="off"') == 1
     assert 'aria-label="3 of 4: up to 45 minutes"' in html
-    long = add_task(session, "Long one", estimate_minutes=600)
+    long = add_task(session, "Fifty minutes", estimate_minutes=50)  # 46–59: under an hour
     session.commit()
-    assert long and 'aria-label="4 of 4: an hour or more"' in client.get("/").text
+    assert long and 'aria-label="4 of 4: more than 45 minutes"' in client.get("/").text
+    assert "an hour or more" not in client.get("/").text
 
 
 def test_speaker_toggle_sets_read_aloud_and_defaults_off(client, session):
